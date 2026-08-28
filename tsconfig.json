@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+
+    // The app is JavaScript. There is no build step and nothing is transpiled: `tsc` is used
+    // only as a checker, which is why `noEmit` is on and there is no output directory.
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+
+    "strict": true,
+    // Off deliberately. GeoJSON properties and MapLibre event payloads are genuinely `any`,
+    // and annotating them into submission would be ceremony rather than safety. Everything
+    // this repo owns is annotated; what crosses the boundary is not.
+    "noImplicitAny": false,
+    "noUnusedLocals": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Third-party declarations are their problem, not ours. Without this, the check reports
+    // other people's type errors and the signal is lost.
+    "skipLibCheck": true,
+
+    "types": ["node"]
+  },
+  "include": ["app/js/**/*.js", "scripts/**/*.mjs", "tests/**/*.js", "types/**/*.d.ts"],
+  "exclude": ["node_modules", "app/vendor"]
+}

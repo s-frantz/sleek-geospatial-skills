@@ -1,0 +1,31 @@
+{
+  "name": "sleek-geospatial-skills",
+  "version": "0.1.0",
+  "description": "Conventions and agent skills for building MapLibre applications, with a small runnable app to practise them on.",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "test": "playwright test",
+    "icons": "node scripts/icon-ink.mjs",
+    "verify": "npm run typecheck && npm run test:unit && npm test && npm run icons"
+  },
+  "keywords": [
+    "maplibre",
+    "maplibre-gl",
+    "geospatial",
+    "web-map",
+    "ui-conventions",
+    "agent-skills"
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^26.4.0",
+    "pngjs": "^7.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}

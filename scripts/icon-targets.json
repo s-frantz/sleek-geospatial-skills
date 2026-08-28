@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Targets for scripts/icon-ink.mjs. Every number here is the INTENDED ink size, in CSS",
+    "pixels, on the glyph's long axis. It is a decision, not a measurement: the measurement",
+    "is what the script prints, and the gap between the two is the bug.",
+    "",
+    "defaultWant applies to any glyph without its own entry. Give a glyph its own entry only",
+    "when it genuinely should read a different size from its neighbours, and say why."
+  ],
+  "defaultWant": 17,
+  "sizeTolerance": 1.0,
+  "centreTolerance": 0.6,
+  "want": {}
+}

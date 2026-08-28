@@ -1,0 +1,569 @@
+/* ============================================================================================
+   style.css
+
+   Organised as: tokens, then reset, then furniture, then the small shared pieces.
+
+   Two rules hold the whole thing together:
+
+   1. EVERY COLOUR IS A TOKEN, and every token has a value on bare `:root`. Dark mode only
+      redefines them. A colour whose only definition lives inside a media query is a colour
+      that will be missing in one of the three theme states.
+
+   2. GEOMETRY ARRIVES AS A VARIABLE, NOT AS AN INLINE STYLE. JavaScript sets --sgs-panel-w;
+      this file decides what that means, including the minimum, the maximum, and what else
+      responds. See the `panel-anatomy` skill.
+   ========================================================================================= */
+
+/* ── Tokens ─────────────────────────────────────────────────────────────────────────────── */
+
+:root {
+    --sgs-bg: #ffffff;
+    --sgs-bg-sunk: #f4f5f7;
+    --sgs-fg: #1b1e24;
+    --sgs-fg-dim: #5c636e;
+    --sgs-line: #d9dce2;
+    --sgs-line-soft: #e9ebef;
+    --sgs-accent: #2f6fd0;
+    --sgs-accent-fg: #ffffff;
+    --sgs-scrim: rgba(20, 24, 31, 0.42);
+    --sgs-shadow: 0 6px 20px rgba(16, 20, 28, 0.16), 0 1px 3px rgba(16, 20, 28, 0.1);
+    --sgs-hover: rgba(20, 24, 31, 0.06);
+
+    --sgs-radius: 8px;
+    --sgs-radius-sm: 5px;
+    --sgs-gap: 10px;
+
+    /* Furniture geometry. The panel's defaults; panel.js overrides them per posture. */
+    --sgs-panel-w: auto;
+    --sgs-panel-h: auto;
+    --sgs-panel-inset: 10px;
+    --sgs-ctrl-size: 30px;
+
+    --sgs-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --sgs-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* Dark, in both the explicit and the system case. The `:not([data-theme="light"])` guard is
+   what lets an explicit light choice win over a dark operating system. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --sgs-bg: #171a20;
+        --sgs-bg-sunk: #1f232b;
+        --sgs-fg: #e7e9ee;
+        --sgs-fg-dim: #99a1ae;
+        --sgs-line: #333944;
+        --sgs-line-soft: #262b34;
+        --sgs-accent: #5b96ea;
+        --sgs-accent-fg: #0f1319;
+        --sgs-scrim: rgba(6, 9, 14, 0.58);
+        --sgs-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
+        --sgs-hover: rgba(255, 255, 255, 0.08);
+    }
+}
+
+:root[data-theme="dark"] {
+    --sgs-bg: #171a20;
+    --sgs-bg-sunk: #1f232b;
+    --sgs-fg: #e7e9ee;
+    --sgs-fg-dim: #99a1ae;
+    --sgs-line: #333944;
+    --sgs-line-soft: #262b34;
+    --sgs-accent: #5b96ea;
+    --sgs-accent-fg: #0f1319;
+    --sgs-scrim: rgba(6, 9, 14, 0.58);
+    --sgs-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
+    --sgs-hover: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Reset ──────────────────────────────────────────────────────────────────────────────── */
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    height: 100%;
+    font-family: var(--sgs-font);
+    font-size: 13px;
+    color: var(--sgs-fg);
+    background: var(--sgs-bg);
+}
+
+#map { position: absolute; inset: 0; }
+
+/* ── The left panel ─────────────────────────────────────────────────────────────────────── */
+
+.sgs-panel {
+    position: absolute;
+    left: var(--sgs-panel-inset);
+    top: var(--sgs-panel-inset);
+    bottom: var(--sgs-panel-inset);
+    z-index: 5;
+
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    max-width: 60vw;
+
+    background: var(--sgs-bg);
+    border: 1px solid var(--sgs-line);
+    border-radius: var(--sgs-radius);
+    box-shadow: var(--sgs-shadow);
+    overflow: hidden;
+}
+
+/* auto: width fits content, height reaches the bottom inset. No inline styles at all, which
+   is what makes "double-click a grip" a genuine return to the default rather than a guess at
+   what the default was. */
+.sgs-panel:not(.sgs-panel--manual-w) { width: max-content; }
+.sgs-panel--manual-w { width: var(--sgs-panel-w); }
+
+/* manual-h: the panel releases its bottom anchor and hugs the height it was given. */
+.sgs-panel--manual-h { bottom: auto; height: var(--sgs-panel-h); }
+
+/* float: unpinned. Left and top come from JavaScript; the bottom anchor goes, so the panel
+   hugs its content. This is also the state in which visible-area.js reports no occlusion. */
+.sgs-panel--float {
+    bottom: auto;
+    max-height: 70vh;
+    cursor: default;
+}
+
+.sgs-panel.sgs-stowed {
+    /* A stow gives the pixels back. The head stays only so its berth, and therefore the mark
+       that brings the panel back, is still reachable. */
+    bottom: auto;
+    width: max-content;
+    min-width: 0;
+}
+
+.sgs-panel.sgs-stowed .sgs-panel-body,
+.sgs-panel.sgs-stowed .sgs-grip { display: none; }
+
+.sgs-panel-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 6px 6px 10px;
+    border-bottom: 1px solid var(--sgs-line-soft);
+    background: var(--sgs-bg-sunk);
+    cursor: grab;
+    user-select: none;
+}
+
+.sgs-panel-head:active { cursor: grabbing; }
+
+.sgs-panel-title {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin-right: auto;
+    white-space: nowrap;
+}
+
+/* A BERTH is a corner of chrome that already exists, never a dedicated lane. */
+.sgs-berth { display: flex; align-items: center; gap: 2px; }
+
+.sgs-panel-body { overflow: auto; padding: 6px; }
+
+/* Grips. Invisible until hovered: a resize affordance that is always drawn is furniture in
+   its own right, and there are two of them. */
+.sgs-grip { position: absolute; z-index: 1; }
+.sgs-grip--w { top: 0; right: 0; width: 6px; height: 100%; cursor: ew-resize; }
+.sgs-grip--h { left: 0; bottom: 0; height: 6px; width: 100%; cursor: ns-resize; }
+.sgs-grip:hover { background: var(--sgs-accent); opacity: 0.35; }
+
+/* ── Panel rows ─────────────────────────────────────────────────────────────────────────── */
+
+.sgs-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 4px 4px 6px;
+    border-radius: var(--sgs-radius-sm);
+    white-space: nowrap;
+}
+
+.sgs-row:hover { background: var(--sgs-hover); }
+
+.sgs-row-label { display: flex; align-items: center; gap: 7px; cursor: pointer; margin-right: auto; }
+.sgs-row-text { padding-right: 8px; }
+
+.sgs-swatch {
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+    border: 1px solid var(--sgs-line);
+    flex: none;
+}
+
+/* Row actions fade in on hover, but they are never removed from the accessibility tree and
+   they come back on focus, so the keyboard can reach them. */
+.sgs-row-actions { display: flex; gap: 1px; opacity: 0; transition: opacity 90ms ease; }
+.sgs-row:hover .sgs-row-actions,
+.sgs-row:focus-within .sgs-row-actions { opacity: 1; }
+
+/* ── The bottom dock ────────────────────────────────────────────────────────────────────── */
+
+.sgs-dock {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: var(--sgs-panel-inset);
+    z-index: 5;
+
+    width: min(760px, calc(100vw - 2 * var(--sgs-panel-inset)));
+    max-height: 42vh;
+    display: flex;
+    flex-direction: column;
+
+    background: var(--sgs-bg);
+    border: 1px solid var(--sgs-line);
+    border-radius: var(--sgs-radius);
+    box-shadow: var(--sgs-shadow);
+    overflow: hidden;
+}
+
+.sgs-dock-head { border-bottom: 1px solid var(--sgs-line-soft); background: var(--sgs-bg-sunk); }
+.sgs-dock--folded .sgs-dock-head { border-bottom: none; }
+
+.sgs-fold {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+.sgs-fold:hover { background: var(--sgs-hover); }
+
+/* A chevron is a LIST affordance. It is right here because the dock keeps its head, and its
+   head keeps reporting, while shut. */
+.sgs-chev {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(-135deg);
+    transition: transform 120ms ease;
+    margin-left: 2px;
+}
+
+.sgs-dock--folded .sgs-chev { transform: rotate(45deg); }
+
+.sgs-dock-label { color: var(--sgs-fg-dim); }
+.sgs-dock-body { overflow: auto; }
+
+/* ── Tables ─────────────────────────────────────────────────────────────────────────────── */
+
+.sgs-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+
+.sgs-table th,
+.sgs-table td {
+    padding: 4px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--sgs-line-soft);
+    white-space: nowrap;
+}
+
+.sgs-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--sgs-bg);
+    color: var(--sgs-fg-dim);
+    font-weight: 600;
+    z-index: 1;
+}
+
+.sgs-table tbody tr:hover { background: var(--sgs-hover); }
+.sgs-table tbody tr:focus { outline: 2px solid var(--sgs-accent); outline-offset: -2px; }
+
+/* ── Popups ─────────────────────────────────────────────────────────────────────────────── */
+
+/* The leader layer sits under the popups and over the map, and never takes a pointer event:
+   a line you cannot click is a line that cannot get in the way. */
+.sgs-leaders {
+    position: fixed;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    width: 100%;
+    height: 100%;
+}
+
+.sgs-leader {
+    stroke: var(--sgs-accent);
+    stroke-width: 1.5;
+    stroke-dasharray: 3 3;
+    opacity: 0.85;
+}
+
+.sgs-popups { position: fixed; inset: 0; z-index: 7; pointer-events: none; }
+
+.sgs-popup {
+    position: fixed;
+    pointer-events: auto;
+    width: 250px;
+    max-height: 45vh;
+    display: flex;
+    flex-direction: column;
+
+    background: var(--sgs-bg);
+    border: 1px solid var(--sgs-line);
+    border-top: 2px solid var(--sgs-popup-accent, var(--sgs-accent));
+    border-radius: var(--sgs-radius);
+    box-shadow: var(--sgs-shadow);
+    overflow: hidden;
+}
+
+.sgs-popup-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 5px 5px 10px;
+    border-bottom: 1px solid var(--sgs-line-soft);
+}
+
+.sgs-popup-title { font-weight: 600; margin-right: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sgs-popup-body { overflow: auto; padding: 4px 0; }
+
+.sgs-fields { border-collapse: collapse; width: 100%; }
+
+.sgs-fields th {
+    text-align: left;
+    font-weight: 400;
+    color: var(--sgs-fg-dim);
+    padding: 2px 8px 2px 10px;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+.sgs-fields td { padding: 2px 10px 2px 0; font-variant-numeric: tabular-nums; }
+
+/* ── Overlay windows ────────────────────────────────────────────────────────────────────── */
+
+.sgs-window-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    background: var(--sgs-scrim);
+    backdrop-filter: blur(2px);
+}
+
+.sgs-window {
+    position: relative;
+    width: min(440px, calc(100vw - 32px));
+    max-height: min(80vh, 720px);
+    display: flex;
+    flex-direction: column;
+
+    background: var(--sgs-bg);
+    border: 1px solid var(--sgs-line);
+    border-radius: var(--sgs-radius);
+    box-shadow: var(--sgs-shadow);
+    overflow: hidden;
+}
+
+.sgs-window--wide { width: min(720px, calc(100vw - 32px)); }
+
+.sgs-window-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 9px 9px 14px;
+    border-bottom: 1px solid var(--sgs-line-soft);
+    background: var(--sgs-bg-sunk);
+    cursor: grab;
+    user-select: none;
+}
+
+.sgs-window-head:active { cursor: grabbing; }
+.sgs-window-title { font-weight: 600; font-size: 14px; margin-right: auto; }
+.sgs-window-body { overflow: auto; padding: 16px 18px 14px; }
+
+.sgs-lede { margin: 0 0 14px; font-size: 14px; line-height: 1.55; color: var(--sgs-fg-dim); }
+
+/* Two columns that become one when there is not room for two. A grid rather than a flex row
+   precisely so the collapse is one line. */
+.sgs-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px 26px; }
+.sgs-cols h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--sgs-fg-dim); }
+.sgs-cols p { margin: 0 0 14px; line-height: 1.6; }
+
+.sgs-aside {
+    margin: 4px 0 16px;
+    padding: 11px 13px;
+    border: 1px solid var(--sgs-line);
+    border-left: 3px solid var(--sgs-accent);
+    border-radius: var(--sgs-radius-sm);
+    background: var(--sgs-bg-sunk);
+    line-height: 1.55;
+    color: var(--sgs-fg-dim);
+}
+
+/* Actions right-aligned, primary last: the eye lands on the right end of a row of buttons. */
+.sgs-window-foot { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+
+/* ── Quick settings popover ─────────────────────────────────────────────────────────────── */
+
+.sgs-quick {
+    position: fixed;
+    z-index: 15;
+    width: 268px;
+    padding: 10px;
+    background: var(--sgs-bg);
+    border: 1px solid var(--sgs-line);
+    border-radius: var(--sgs-radius);
+    box-shadow: var(--sgs-shadow);
+}
+
+.sgs-set-row { display: flex; align-items: center; gap: 10px; padding: 4px 2px 8px; }
+.sgs-set-label { color: var(--sgs-fg-dim); margin-right: auto; }
+
+.sgs-seg { display: flex; border: 1px solid var(--sgs-line); border-radius: var(--sgs-radius-sm); overflow: hidden; }
+
+.sgs-seg-btn {
+    padding: 3px 9px;
+    border: 0;
+    border-left: 1px solid var(--sgs-line);
+    background: var(--sgs-bg);
+    color: var(--sgs-fg-dim);
+    font: inherit;
+    cursor: pointer;
+}
+
+.sgs-seg-btn:first-child { border-left: 0; }
+.sgs-seg-btn:hover { background: var(--sgs-hover); }
+.sgs-seg-btn[aria-checked="true"] { background: var(--sgs-accent); color: var(--sgs-accent-fg); }
+
+.sgs-shortcuts { border-top: 1px solid var(--sgs-line-soft); margin-top: 4px; padding-top: 8px; display: grid; gap: 5px; }
+.sgs-shortcut { display: flex; align-items: center; gap: 8px; color: var(--sgs-fg-dim); }
+
+.sgs-shortcut kbd {
+    font-family: var(--sgs-mono);
+    font-size: 11px;
+    min-width: 34px;
+    text-align: center;
+    padding: 1px 5px;
+    border: 1px solid var(--sgs-line);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: var(--sgs-bg-sunk);
+    color: var(--sgs-fg);
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────────────────────── */
+
+/* One icon-button shell everywhere off the map: panel berth, popup head, window head, rows.
+   The glyph inherits `color`, so hover is a single rule for the whole app. */
+.sgs-icon-btn {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    flex: none;
+    padding: 0;
+    border: 0;
+    border-radius: var(--sgs-radius-sm);
+    background: none;
+    color: var(--sgs-fg-dim);
+    cursor: pointer;
+}
+
+.sgs-icon-btn:hover { background: var(--sgs-hover); color: var(--sgs-fg); }
+.sgs-icon-btn:focus-visible { outline: 2px solid var(--sgs-accent); outline-offset: 1px; }
+
+.sgs-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--sgs-line);
+    border-radius: var(--sgs-radius-sm);
+    background: var(--sgs-bg);
+    color: var(--sgs-fg);
+    font: inherit;
+    cursor: pointer;
+}
+
+.sgs-btn:hover { background: var(--sgs-hover); }
+.sgs-btn--primary { background: var(--sgs-accent); border-color: var(--sgs-accent); color: var(--sgs-accent-fg); }
+.sgs-btn--primary:hover { filter: brightness(1.08); }
+
+/* ── Map controls ───────────────────────────────────────────────────────────────────────── */
+
+/* THE SPECIFICITY TRAP. MapLibre styles its buttons through `.maplibregl-ctrl-group button`,
+   a two-part selector that beats a single class. `.sgs-ctrl-btn { width: 30px }` silently
+   loses. The choices are to match its specificity (done below) or to reach for !important.
+   Matching is better: it stays readable, and it keeps working if MapLibre adds a state class.
+   See the `map-control-icons` skill. */
+
+.maplibregl-ctrl-group.sgs-ctrl { background: var(--sgs-bg); }
+
+.maplibregl-ctrl-group.sgs-ctrl button.sgs-ctrl-btn {
+    display: grid;
+    place-items: center;
+    width: var(--sgs-ctrl-size);
+    height: var(--sgs-ctrl-size);
+    background: none;
+    /* The glyph is stroked with currentColor, so this one declaration colours every custom
+       control, in both themes, with no per-glyph rules. */
+    color: var(--sgs-fg-dim);
+}
+
+.maplibregl-ctrl-group.sgs-ctrl button.sgs-ctrl-btn:hover {
+    background: var(--sgs-hover);
+    color: var(--sgs-fg);
+}
+
+/* MapLibre's own zoom buttons carry their glyphs as background images baked in one colour, so
+   in dark mode they need the treatment the custom ones do not: recolour the group, and invert
+   the baked artwork. This asymmetry is the argument for currentColor. */
+:root[data-theme="dark"] .maplibregl-ctrl-group,
+:root[data-theme="dark"] .maplibregl-ctrl-attrib {
+    background: var(--sgs-bg);
+    color: var(--sgs-fg);
+}
+
+:root[data-theme="dark"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1) brightness(1.4); }
+:root[data-theme="dark"] .maplibregl-ctrl-group button:hover { background: var(--sgs-hover); }
+:root[data-theme="dark"] .maplibregl-ctrl-attrib a { color: var(--sgs-accent); }
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .maplibregl-ctrl-group,
+    :root:not([data-theme="light"]) .maplibregl-ctrl-attrib {
+        background: var(--sgs-bg);
+        color: var(--sgs-fg);
+    }
+    :root:not([data-theme="light"]) .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1) brightness(1.4); }
+    :root:not([data-theme="light"]) .maplibregl-ctrl-group button:hover { background: var(--sgs-hover); }
+    :root:not([data-theme="light"]) .maplibregl-ctrl-attrib a { color: var(--sgs-accent); }
+}
+
+/* ── Development guides ─────────────────────────────────────────────────────────────────── */
+
+/* Turned on by adding `sgs-guides` to <body>. Red marks the button's own centre lines; the
+   glyph's ink should sit symmetrically about them. Guides SHOW a problem; they do not measure
+   it, which is what `npm run icons` is for. */
+body.sgs-guides .sgs-ctrl-btn,
+body.sgs-guides .sgs-icon-btn { position: relative; }
+
+body.sgs-guides .sgs-ctrl-btn::after,
+body.sgs-guides .sgs-icon-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(to right, transparent calc(50% - 0.5px), rgba(255, 0, 0, 0.75) calc(50% - 0.5px), rgba(255, 0, 0, 0.75) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+        linear-gradient(to bottom, transparent calc(50% - 0.5px), rgba(255, 0, 0, 0.75) calc(50% - 0.5px), rgba(255, 0, 0, 0.75) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+}
+
+/* ── Motion ─────────────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+}

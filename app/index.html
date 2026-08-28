@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sleek geospatial skills</title>
+
+<!--
+  Theme, restored BEFORE first paint.
+
+  This script is deliberately blocking and deliberately inline. Anything async, and the
+  browser paints the default ground first, so a dark-mode reader gets a white flash on every
+  load. See the `theme-tokens` skill.
+-->
+<script>
+    try {
+        var stored = localStorage.getItem('sgs-theme');   // 'light' | 'dark' | null (= system)
+        if (stored === 'light' || stored === 'dark') {
+            document.documentElement.setAttribute('data-theme', stored);
+        }
+    } catch (e) { /* private mode, blocked storage: system theme is a fine answer */ }
+</script>
+
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:,">
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- The left panel. Its postures live in panel.js; its geometry reaches CSS through
+     --sgs-panel-w / --sgs-panel-h. See the `panel-anatomy` skill. -->
+<div id="sgs-panel" class="sgs-panel">
+    <div class="sgs-panel-head">
+        <span class="sgs-panel-title">Layers</span>
+        <div class="sgs-berth" id="sgs-panel-berth"></div>
+    </div>
+    <div class="sgs-panel-body" id="sgs-panel-body"></div>
+    <div class="sgs-grip sgs-grip--w" data-grip="w" title="Drag to set width, double-click for automatic"></div>
+    <div class="sgs-grip sgs-grip--h" data-grip="h" title="Drag to set height, double-click for automatic"></div>
+</div>
+
+<!-- The bottom dock. Folds rather than stows: its head keeps reporting what is in it while
+     shut, which is the test the `stow` skill sets out. -->
+<div id="sgs-dock" class="sgs-dock sgs-dock--folded">
+    <div class="sgs-dock-head">
+        <button class="sgs-fold" type="button" aria-expanded="false" aria-controls="sgs-dock-body">
+            <span class="sgs-chev" aria-hidden="true"></span>
+            <span class="sgs-dock-label" id="sgs-dock-label">Nothing selected</span>
+        </button>
+    </div>
+    <div class="sgs-dock-body" id="sgs-dock-body"></div>
+</div>
+
+<!--
+  Vendored globals load with `defer`, in document order, ahead of the module entry point.
+  A `type="module"` script is ALWAYS deferred, so it runs after every deferred classic
+  script: `maplibregl` is guaranteed to exist by the time main.js executes, with no
+  polling, no load event, and no bundler. See the `boot-order` skill.
+-->
+<script defer src="vendor/maplibre-gl.js"></script>
+<script type="module" src="js/main.js"></script>
+
+</body>
+</html>
