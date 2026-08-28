@@ -14,7 +14,6 @@
 
 import { getTheme, setTheme } from './theme.js';
 import { PLACEMENT, getPlacementMode, setPlacementMode } from './popup-placement.js';
-import { repositionAll } from './popup.js';
 import { pushDismissible } from './dismiss-stack.js';
 
 /** @type {HTMLElement|null} */
@@ -74,12 +73,22 @@ function segmentRow(label, choices, current, onPick) {
     return row;
 }
 
-/** The one shortcut inventory. Rendered here, and nowhere else. */
-const SHORTCUTS = /** @type {Array<[string, string]>} */ ([
-    ['Esc', 'Close the topmost window or popup'],
+/**
+ * The ONE inventory of claimed shortcuts. Every row here must be true of the running app —
+ * a list that advertises a key nothing implements is worse than no list — and anything the
+ * app binds must appear here. One list, one honesty rule, every renderer reads it.
+ * @type {Array<[string, string]>}
+ */
+const SHORTCUTS = [
     ['?', 'Open these settings'],
-    ['+ / -', 'Zoom in and out'],
-]);
+    ['←↓→↑', 'Pan the map'],
+    ['1  /  2', 'Zoom out / in'],
+    ['Shift + ←→', 'Rotate the map'],
+    ['Shift + Drag', 'Box zoom'],
+    ['Ctrl + Click', 'Keep popups open (compare)'],
+    ['Ctrl + Arrows', 'Nudge the top popup (Shift: faster)'],
+    ['Esc', 'Close the topmost popup or window'],
+];
 
 /**
  * @param {HTMLElement} anchor the control the popover hangs from
@@ -104,12 +113,9 @@ export function toggleQuickSettings(anchor) {
         'Popups',
         [[PLACEMENT.CLEAN, 'Clean'], [PLACEMENT.ADJACENT, 'Adjacent']],
         getPlacementMode(),
-        (v) => {
-            setPlacementMode(/** @type {'clean'|'adjacent'} */ (v));
-            // Apply immediately to what is already open. A placement setting that only takes
-            // effect on the next click cannot be evaluated by the person changing it.
-            repositionAll();
-        },
+        // Takes effect on the NEXT popup. Popups already open belong to the reader — they
+        // may have been dragged into an arrangement — so a setting change never moves them.
+        (v) => setPlacementMode(/** @type {'clean'|'adjacent'} */ (v)),
     ));
 
     const list = document.createElement('div');
@@ -128,11 +134,13 @@ export function toggleQuickSettings(anchor) {
 
     document.body.appendChild(panel);
 
-    // Anchor under the control, right-aligned to it, clamped to the viewport.
+    // Anchor: fixed, to the LEFT of the invoking control with a standard gap — top-aligned
+    // with the gear, never over the rest of the control stack below it. Anchoring by the
+    // RIGHT edge (a distance from the viewport's right side) rather than a computed left
+    // means the panel's own width can change without the position math caring.
     const a = anchor.getBoundingClientRect();
-    const p = panel.getBoundingClientRect();
-    panel.style.top = `${Math.round(a.bottom + 8)}px`;
-    panel.style.left = `${Math.round(Math.max(8, a.right - p.width))}px`;
+    panel.style.top = `${Math.max(8, Math.round(a.top))}px`;
+    panel.style.right = `${Math.max(8, Math.round(window.innerWidth - a.left + 8))}px`;
 
     /** @param {MouseEvent} e */
     const onDocDown = (e) => {

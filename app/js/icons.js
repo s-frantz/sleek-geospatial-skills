@@ -59,6 +59,20 @@ const PATHS = {
     tight: '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>',
 
     info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8"/>',
+
+    /**
+     * Compass: a two-tone needle in a ring, drawn with its INK CENTRED in the 24 box rather
+     * than merely fitted inside it. A needle drawn from y 1.2 to 17.3 has an ink centre of
+     * 9.25 in a box centred at 12, so it renders 2.5px high and no amount of sizing fixes
+     * it — the single most common way a compass glyph goes wrong.
+     */
+    compass: '<circle cx="12" cy="12" r="9.5"/><polygon points="12 5 15 13 12 11.5 9 13 12 5"/><polyline points="9 13 12 19 15 13"/>',
+
+    /** Crosshair with a centre dot: find my location. */
+    locate: '<circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><line x1="12" y1="1.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22.5" y2="12"/>',
+
+    /** Disclosure chevron, pointing down. Rotated by CSS for the other three directions. */
+    chevron: '<polyline points="6 9 12 15 18 9"/>',
 };
 
 /**
@@ -83,6 +97,16 @@ const SIZE_FACTOR = {
     // The inward arrows sit well inside the viewBox: 11.00 measured against 13 requested,
     // so 13 / 11 = 1.18.
     tight: 1.18,
+
+    // The MapLibre controls we adopt. Plus and minus measured 11.00 of ink at factor 1, and
+    // their TARGET is deliberately smaller than the stack's 17 — see icon-targets.json for
+    // why a plus must not be matched to a gear by the ruler. 14.5 / 11 = 1.318.
+    plus: 1.318,
+    minus: 1.318,
+    // 17 / 15.00 measured.
+    compass: 1.133,
+    // 17 / 16.00 measured.
+    locate: 1.0625,
 };
 
 /**

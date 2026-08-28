@@ -34,7 +34,7 @@
 import { getPrefs, setPrefs } from '../utils/prefs.js';
 import { icon } from '../icons.js';
 import { makeDraggable } from '../utils/draggable.js';
-import { makeStowable } from './stow.js';
+import { makeClosable, makeFoldable } from './stow.js';
 
 /** @typedef {'auto'|'manual-w'|'manual-h'|'float'} Posture */
 
@@ -93,9 +93,16 @@ function apply() {
         _frame.x = x; _frame.y = y;
         p.style.left = `${x}px`;
         p.style.top = `${y}px`;
+        // A floating panel can still be resized by its grips. The stored width and height
+        // apply as inline sizes IN PLACE: the panel must not re-dock just because a grip was
+        // touched, which is exactly the jump the one-applier design exists to prevent.
+        p.style.width = _frame.w ? `${_frame.w}px` : '';
+        p.style.height = _frame.h ? `${_frame.h}px` : '';
     } else {
         p.style.left = '';
         p.style.top = '';
+        p.style.width = '';
+        p.style.height = '';
     }
 
     _pin.innerHTML = icon(_frame.mode === 'float' ? 'pin-off' : 'pin', 13);
@@ -118,7 +125,7 @@ export function setPosture(mode) {
 
 /**
  * @param {HTMLElement} panel
- * @returns {{stowable: import('./stow.js').Stowable}}
+ * @returns {{closable: import('./stow.js').Closable, foldable: ReturnType<typeof makeFoldable>}}
  */
 export function initPanel(panel) {
     _panel = panel;
@@ -129,19 +136,45 @@ export function initPanel(panel) {
     _pin.type = 'button';
     _pin.className = 'sgs-icon-btn';
     _pin.addEventListener('click', () => {
-        setPosture(_frame.mode === 'float' ? 'auto' : 'float');
+        if (_frame.mode === 'float') {
+            // Re-docking returns to automatic: the float's pinned size was a fact about
+            // where it floated, not about the dock.
+            _frame.w = undefined;
+            _frame.h = undefined;
+            setPosture('auto');
+        } else {
+            setPosture('float');
+        }
     });
     berth.appendChild(_pin);
 
-    // The panel's own mark is the layers glyph, not a generic close: a stowed section is
-    // recognised by what it IS.
-    const stowable = makeStowable({
+    // FOLD and CLOSE, the same pair the dock offers, in the same order. See stow.js for why
+    // one section reasonably carries both.
+    const foldBtn = /** @type {HTMLButtonElement} */ (panel.querySelector('.sgs-panel-fold'));
+    foldBtn.innerHTML = icon('chevron', 12);
+    const foldable = makeFoldable({
         section: panel,
-        berth,
-        glyph: 'layers',
+        control: foldBtn,
+        body: /** @type {HTMLElement} */ (panel.querySelector('.sgs-panel-body')),
+        foldedClass: 'sgs-panel--folded',
+        folded: false,
+        onChange: () => { for (const fn of _listeners) fn(); },
+    });
+
+    // The mark points RIGHT, back at the panel it restores: a chevron is a direction, and
+    // the direction it should give is "your panel is over here".
+    const closable = makeClosable({
+        section: panel,
+        markId: 'sgs-panel-sliver',
+        markClass: 'sgs-mark--left',
+        glyph: 'chevron',
         label: 'the layer panel',
         onChange: () => { for (const fn of _listeners) fn(); },
     });
+    /** @type {HTMLButtonElement} */
+    (panel.querySelector('.sgs-panel-close')).innerHTML = icon('close', 12);
+    /** @type {HTMLButtonElement} */
+    (panel.querySelector('.sgs-panel-close')).addEventListener('click', () => closable.close());
 
     // Grips. Each drags one dimension; each double-clicks back to automatic, which is why
     // there is no separate reset.
@@ -158,11 +191,14 @@ export function initPanel(panel) {
             if (!dragging) return;
             const pe = /** @type {PointerEvent} */ (e);
             const r = panel.getBoundingClientRect();
+            // Floating: the grip resizes the panel where it sits. Docked: the grip pins the
+            // corresponding manual posture. Same gesture, and the mode only changes in the
+            // docked case.
             if (axis === 'w') {
-                _frame.mode = 'manual-w';
+                if (_frame.mode !== 'float') _frame.mode = 'manual-w';
                 _frame.w = clampW(pe.clientX - r.left);
             } else {
-                _frame.mode = 'manual-h';
+                if (_frame.mode !== 'float') _frame.mode = 'manual-h';
                 _frame.h = clampH(pe.clientY - r.top);
             }
             apply();
@@ -176,7 +212,15 @@ export function initPanel(panel) {
         };
         grip.addEventListener('pointerup', stop);
         grip.addEventListener('pointercancel', stop);
-        grip.addEventListener('dblclick', () => setPosture('auto'));
+        grip.addEventListener('dblclick', () => {
+            if (_frame.mode === 'float') {
+                _frame.w = undefined;
+                _frame.h = undefined;
+                apply();
+            } else {
+                setPosture('auto');
+            }
+        });
     }
 
     makeDraggable(panel, head, ({ x, y }) => {
@@ -201,5 +245,5 @@ export function initPanel(panel) {
     };
     apply();
 
-    return { stowable };
+    return { closable, foldable };
 }

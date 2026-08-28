@@ -8,41 +8,54 @@
  *
  * So every camera move goes through `visiblePadding()`. It is not a cosmetic margin: the
  * numbers are read off the live furniture each time, because the panel can be any of four
- * postures and the dock can be folded or open.
+ * postures and the dock can be open, minimised, or gone.
  *
- * The floating case is the one people get wrong. A FLOATING panel returns zero occlusion,
- * because an unpinned panel sits wherever it was dragged: reserving a left band for something
- * that may be sitting in the middle of the map buys nothing, and reserving a band around
- * wherever it happens to be would make the camera jump every time it moved. See the
- * `chrome-aware-camera` skill.
+ * ── Occlusion is a question about WHERE THE PANEL IS, not what state it is in ────────────
+ * The first version of this file asked whether the panel carried the float class and gave up
+ * the moment it did. Consequence: unpinning the panel WITHOUT MOVING IT ONE PIXEL sent every
+ * popup back to the far left, underneath it, and stopped the camera reserving the band it
+ * plainly still covers. A float parked at home occludes exactly as much as a docked panel.
+ * So the rule is geometric: the panel occludes the left edge while its own left edge sits
+ * within HOME of it. That also handles "dragged away and roughly back" for free, which no
+ * amount of pin-state bookkeeping would.
  */
 
+/** How close to the left viewport edge still counts as "hugging" it, in px. */
+const HOME = 24;
+
 /**
- * The right screen edge of the panel WHEN it occludes the left side, which means when it is
- * docked and not stowed. Zero when there is nothing to avoid.
+ * The right screen edge of the panel WHILE it occludes the left side, else 0. Measured, not
+ * inferred from posture flags — see the header.
  * @returns {number}
  */
 export function dockedPanelRight() {
     if (typeof document === 'undefined') return 0;
     const panel = document.getElementById('sgs-panel');
-    if (!panel || panel.offsetParent === null) return 0;
-    if (panel.classList.contains('sgs-panel--float')) return 0;
-    if (panel.classList.contains('sgs-panel--stowed')) return 0;
+    if (!panel) return 0;
+    if (panel.classList.contains('sgs-closed')) return 0;
+    // Rect, not offsetParent — see dockCover for why offsetParent lies about fixed elements.
     const r = panel.getBoundingClientRect();
-    return r.width > 0 ? r.right : 0;
+    if (r.width <= 0 || r.height <= 0) return 0;
+    return r.left <= HOME ? r.right : 0;
 }
 
 /**
- * How much of the bottom of the viewport the dock covers. A FOLDED dock still covers its own
- * head, which is a real band and worth avoiding: a feature centred under the fold bar is a
- * feature you cannot see.
+ * How much of the bottom of the viewport the dock covers. A MINIMISED dock still covers its
+ * own head, which is a real band and worth avoiding; the closed-state sliver tab is a few
+ * pixels of deliberate chrome and is not.
  * @returns {number}
  */
 export function dockCover() {
     if (typeof document === 'undefined') return 0;
     const dock = document.getElementById('sgs-dock');
-    if (!dock || dock.offsetParent === null) return 0;
+    if (!dock) return 0;
+    // NOT `offsetParent === null` as a visibility test: the dock is position fixed, and a
+    // fixed element's offsetParent is null BY DEFINITION, on screen or not. That guard
+    // silently reported the dock invisible and zeroed the camera's bottom padding, which
+    // shipped as "zoom-to centres features underneath the table". A display-none element
+    // has a zero rect, so the rect is the honest test.
     const r = dock.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return 0;
     return Math.max(0, window.innerHeight - r.top);
 }
 
@@ -51,9 +64,9 @@ export function dockCover() {
  * viewport: right of the panel, above the dock.
  *
  * Clamped, because MapLibre requires the padding to leave a positive drawing area, and a
- * panel dragged to 60% of the window plus an open dock can otherwise ask for more padding
- * than there is screen. When the clamp bites, the camera is merely imperfect; without it,
- * `fitBounds` throws and the button appears broken.
+ * wide panel plus an open dock can otherwise ask for more padding than there is screen. When
+ * the clamp bites, the camera is merely imperfect; without it, `fitBounds` throws and the
+ * button appears broken.
  *
  * @param {number} [base] padding on unobstructed edges, in pixels
  * @returns {{top: number, right: number, bottom: number, left: number}}

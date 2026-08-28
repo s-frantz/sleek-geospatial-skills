@@ -19,7 +19,8 @@ import { bboxOf, isDegenerate } from './utils/geo.js';
  * @property {string} id
  * @property {string} label
  * @property {string} url
- * @property {'fill'|'circle'} kind
+ * @property {'fill'|'circle'} kind        how it paints
+ * @property {string} type                  its SOURCE kind, which drives the type pill
  * @property {boolean} visible whether it starts on
  * @property {string} color
  * @property {string[]} fields the columns the dock shows, in order
@@ -32,6 +33,7 @@ export const LAYERS = [
         label: 'Districts',
         url: 'data/districts.geojson',
         kind: 'fill',
+        type: 'geojson-file',
         visible: true,
         color: '#3f7fd4',
         fields: ['id', 'name', 'zone', 'households', 'area_km2'],
@@ -41,6 +43,7 @@ export const LAYERS = [
         label: 'Stations',
         url: 'data/stations.geojson',
         kind: 'circle',
+        type: 'geojson-file',
         visible: true,
         color: '#d4703f',
         fields: ['id', 'name', 'kind', 'capacity', 'online'],

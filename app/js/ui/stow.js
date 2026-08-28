@@ -2,88 +2,100 @@
  * stow.js — the one way a section is put away.
  *
  * An app grows several gestures for "make this go away" and no word for any of them, so each
- * new panel invents another one. The vocabulary is two verbs and two nouns, and the test for
- * which verb applies is: DOES THE THING STILL HAVE SOMETHING TO SAY WHEN IT IS SHUT?
+ * new panel invents another one. Two verbs and two nouns, and one test.
  *
- *   FOLD    the content collapses, the header stays in its slot, a chevron rotates. Right when
- *           the header is itself information AND the section has siblings to compare against.
- *           The dock folds: its bar goes on reporting "Districts, 12 rows" while shut.
- *   STOW    the whole section leaves the layout and gives its pixels back. Right when the
- *           section is self-contained and has nothing to report while shut. Folding a minimap
- *           yields a bar reading "Minimap", which is no information at all.
- *   MARK    what a stow leaves behind: the section's own glyph, parked at a corner of the
- *           container, which brings it back.
- *   BERTH   where a container's marks park. A corner, not a lane.
+ *   FOLD    the content collapses, the header stays in its slot, a chevron rotates.
+ *   CLOSE   the whole section leaves the layout and gives its pixels back.
+ *   MARK    what a close leaves behind: a small tab that brings the section back.
+ *   BERTH   where a mark parks. An edge or a corner of chrome that already exists, never a
+ *           lane of its own.
  *
- * A chevron is a LIST affordance. Alone on screen it is a switch wearing a disclosure costume,
- * which is why folding a single panel reads cheap.
+ * ── The test ─────────────────────────────────────────────────────────────────────────────
+ * DOES THE THING STILL HAVE SOMETHING TO SAY WHEN IT IS SHUT?
  *
- * WHY MARKS SIT AT CORNERS. The obvious design is a RAIL: a thin dedicated row that holds the
- * marks. It does not survive contact. A lane that exists to hold one or two small glyphs
- * spends a whole row of a narrow panel on chrome, and it reads as new furniture rather than as
- * the section having moved. So marks park at corners of chrome that already exists. No lane,
- * no extra line, and nothing on screen when nothing is stowed.
+ * Yes, so FOLD. The dock's bar goes on reporting "Stations, 24 rows" while folded, and that
+ * sentence is worth a row of pixels. No, so CLOSE: a folded minimap yields a bar reading
+ * "Minimap", which is no information at all, so it should leave and give the space back.
  *
- * The consequence worth knowing: a mark and a stow control can be the SAME element. When a
- * section's control already lives in the berth, stowing does not spawn a twin beside it; the
- * control simply becomes the thing that brings the section back. One glyph per section, in one
- * place, whatever its state.
+ * A chevron is a LIST affordance. Alone on screen it is a switch wearing a disclosure
+ * costume, which is why folding a single lone panel reads cheap.
  *
- * A stow is not the same switch as a settings toggle. Settings decides whether a thing exists
- * for this map at all; a stow is this reader, right now, wanting the pixels.
+ * ── Both verbs on one section ────────────────────────────────────────────────────────────
+ * The panel and the dock each offer BOTH, and that is deliberate rather than indecisive.
+ * They are the two largest things on screen, and the two questions a reader actually has are
+ * different: "let me see the map behind this for a second" (fold, and the head stays where
+ * my eye expects it) and "I am not using this at all right now" (close, and give me the
+ * pixels). Offering only the first makes a permanently unwanted panel permanently present;
+ * offering only the second throws away the head's report every time someone peeks.
+ *
+ * The grammar is identical in both places, which is the part worth taking: same chevron in
+ * the same corner, same close beside it, same kind of tab left behind on the nearest
+ * viewport edge. Learn the panel and you already know the dock.
+ *
+ * ── Why marks sit on an edge, not in a lane ──────────────────────────────────────────────
+ * The obvious design is a RAIL: a thin dedicated row that holds the marks. It does not
+ * survive contact. A lane that exists to hold one or two small glyphs spends a whole row of
+ * chrome, and it reads as new furniture rather than as the section having moved. So a mark
+ * parks against the viewport edge the section came from: the panel's on the left, the
+ * dock's on the bottom. Nothing on screen when nothing is closed.
  */
 
 import { icon } from '../icons.js';
 
 /**
- * @typedef {object} Stowable
- * @property {() => void} stow
- * @property {() => void} unstow
+ * @typedef {object} Closable
+ * @property {() => void} close
+ * @property {() => void} open
  * @property {() => void} toggle
- * @property {() => boolean} isStowed
+ * @property {() => boolean} isClosed
  * @property {HTMLButtonElement} mark
  */
 
 /**
- * Make a section stowable, with its mark parked in a berth.
+ * Make a section closable, leaving a MARK berthed on a viewport edge.
+ *
+ * The mark is created once and lives in the document permanently; CSS shows it only while
+ * the section is closed. Creating and destroying it per state would mean the reopen control
+ * does not exist at the exact moment somebody needs it — a race that shows up as a tab that
+ * flickers on resize.
  *
  * @param {object} opts
- * @param {HTMLElement} opts.section the thing that leaves the layout
- * @param {HTMLElement} opts.berth where its mark parks
- * @param {string} opts.glyph a name from icons.js: the section's OWN mark, not a generic one
- * @param {string} opts.label used for the title and the accessible name
- * @param {boolean} [opts.stowed] initial state
- * @param {(stowed: boolean) => void} [opts.onChange] fires after every change, including the
- *        initial one, so callers that must react (the camera, popups) get told once
- * @returns {Stowable}
+ * @param {HTMLElement} opts.section     the thing that leaves the layout
+ * @param {string} opts.markId           id for the mark, so tests and CSS can find it
+ * @param {string} opts.markClass        which edge berth the mark parks in
+ * @param {string} opts.glyph            the chevron direction that points back at the section
+ * @param {string} opts.label
+ * @param {(closed: boolean) => void} [opts.onChange] fires on every change, including the
+ *        initial one, so the camera and any open popups get told exactly once
+ * @returns {Closable}
  */
-export function makeStowable({ section, berth, glyph, label, stowed = false, onChange }) {
-    let _stowed = false;
+export function makeClosable({ section, markId, markClass, glyph, label, onChange }) {
+    let _closed = false;
 
     const mark = document.createElement('button');
+    mark.id = markId;
     mark.type = 'button';
-    mark.className = 'sgs-icon-btn sgs-mark';
+    mark.className = `sgs-mark ${markClass}`;
+    mark.title = `Open ${label}`;
+    mark.setAttribute('aria-label', mark.title);
+    mark.innerHTML = icon(glyph, 10);
+    document.body.appendChild(mark);
 
     const apply = (/** @type {boolean} */ next) => {
-        _stowed = next;
-        section.classList.toggle('sgs-stowed', next);
-        // The mark is the same element in both states. Only what it says changes.
-        mark.title = next ? `Show ${label}` : `Hide ${label}`;
-        mark.setAttribute('aria-label', mark.title);
-        mark.setAttribute('aria-pressed', String(next));
-        mark.innerHTML = icon(next ? glyph : 'tight', 13);
+        _closed = next;
+        section.classList.toggle('sgs-closed', next);
+        document.body.classList.toggle(`${markClass}-shown`, next);
         onChange?.(next);
     };
 
-    mark.addEventListener('click', () => apply(!_stowed));
-    berth.appendChild(mark);
-    apply(stowed);
+    mark.addEventListener('click', () => apply(false));
+    apply(false);
 
     return {
-        stow: () => apply(true),
-        unstow: () => apply(false),
-        toggle: () => apply(!_stowed),
-        isStowed: () => _stowed,
+        close: () => apply(true),
+        open: () => apply(false),
+        toggle: () => apply(!_closed),
+        isClosed: () => _closed,
         mark,
     };
 }
@@ -95,17 +107,20 @@ export function makeStowable({ section, berth, glyph, label, stowed = false, onC
  * @param {HTMLElement} opts.section
  * @param {HTMLButtonElement} opts.control the head button carrying the chevron
  * @param {HTMLElement} opts.body
+ * @param {string} [opts.foldedClass] the class marking the folded state
  * @param {boolean} [opts.folded]
  * @param {(folded: boolean) => void} [opts.onChange]
  * @returns {{fold: () => void, unfold: () => void, toggle: () => void, isFolded: () => boolean}}
  */
-export function makeFoldable({ section, control, body, folded = true, onChange }) {
+export function makeFoldable({ section, control, body, foldedClass = 'sgs-folded', folded = true, onChange }) {
     let _folded = folded;
 
     const apply = (/** @type {boolean} */ next) => {
         _folded = next;
-        section.classList.toggle('sgs-dock--folded', next);
+        section.classList.toggle(foldedClass, next);
         control.setAttribute('aria-expanded', String(!next));
+        // `hidden` and not display:none in a rule: the body must leave the accessibility
+        // tree too, or a screen reader still walks a table the sighted reader cannot see.
         body.hidden = next;
         onChange?.(next);
     };

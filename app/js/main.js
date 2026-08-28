@@ -15,41 +15,50 @@
 
 import { map } from './map.js';
 import { addAllLayers, LAYERS, layerById, interactiveLayerId } from './layers.js';
-import { initPanel, onPanelGeometryChange } from './ui/panel.js';
+import { initPanel } from './ui/panel.js';
 import { renderLayerRows } from './ui/layer-rows.js';
-import { initDock, showLayerTable } from './ui/dock.js';
+import { initDock, toggleLayerTable } from './ui/dock.js';
 import { makeControl } from './ui/control-stack.js';
 import { settingsControl } from './ui/settings-control.js';
 import { toggleQuickSettings } from './ui/quick-settings.js';
 import { openAboutWindow } from './ui/about-window.js';
-import { openPopup, repositionAll } from './ui/popup.js';
+import { openPopup } from './ui/popup.js';
+import { installTooltips } from './ui/tooltip.js';
+import { adoptControlGlyphs } from './ui/control-glyphs.js';
+
+// One themed tooltip app-wide: every `title=` becomes the shared rounded bubble, clamped to
+// the viewport. Delegated, so nothing below needs to know it exists.
+installTooltips();
 
 // ── 1. Furniture ─────────────────────────────────────────────────────────────────────────
-const panelEl = /** @type {HTMLElement} */ (document.getElementById('sgs-panel'));
-const dockEl = /** @type {HTMLElement} */ (document.getElementById('sgs-dock'));
-
-initPanel(panelEl);
-initDock(dockEl, () => repositionAll());
-
-// Furniture that moves changes where a popup is allowed to be. Nothing else needs to know.
-onPanelGeometryChange(() => repositionAll());
+initPanel(/** @type {HTMLElement} */ (document.getElementById('sgs-panel')));
+initDock();
 
 // ── 2. Controls ──────────────────────────────────────────────────────────────────────────
-map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+// The scale bar is USEFUL, so it sits with the attribution rather than being decoration:
+// added after it, which places it just above the pill.
+map.addControl(new maplibregl.ScaleControl({ maxWidth: 96, unit: 'metric' }), 'bottom-right');
 map.addControl(settingsControl(), 'top-right');
+map.addControl(new maplibregl.NavigationControl(), 'top-right');
+map.addControl(new maplibregl.GeolocateControl({}), 'top-right');
 map.addControl(makeControl([{
     glyph: 'info',
     title: 'About this app',
     onClick: () => openAboutWindow(),
 }]), 'top-right');
-map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+
+// MapLibre's zoom, compass and geolocate ship as baked background images in one fixed colour.
+// Replace them with this app's own glyphs so the whole stack is one family and inherits
+// `color`. Runs after every control is mounted; see control-glyphs.js.
+adoptControlGlyphs();
 
 // ── 3. Data ──────────────────────────────────────────────────────────────────────────────
 map.on('load', async () => {
     await addAllLayers();
     renderLayerRows(
         /** @type {HTMLElement} */ (document.getElementById('sgs-panel-body')),
-        (layerId) => showLayerTable(layerId),
+        (layerId) => toggleLayerTable(layerId),
     );
 
     // ── 4. Interactions ──────────────────────────────────────────────────────────────────
@@ -67,6 +76,10 @@ map.on('load', async () => {
                 title: String(feature.properties?.name ?? layer.label),
                 rows: layer.fields.map((f) => /** @type {[string, unknown]} */ ([f, feature.properties?.[f]])),
                 accent: layer.color,
+                // A plain click replaces the open popup; Ctrl keeps it, for comparing.
+                ctrlKey: !!e.originalEvent?.ctrlKey,
+                layer,
+                onOpenTable: toggleLayerTable,
             });
         });
         map.on('mouseenter', glId, () => { map.getCanvas().style.cursor = 'pointer'; });
@@ -76,12 +89,31 @@ map.on('load', async () => {
     document.body.dataset.ready = 'true';
 });
 
-// One keyboard shortcut wired here because it belongs to the app, not to any panel.
+// ── App-level keys ───────────────────────────────────────────────────────────────────────
+// Everything bound here must appear in quick-settings' SHORTCUTS inventory, and vice versa.
+
+/** True when the event target is a place the user is typing. @param {EventTarget|null} el */
+function isTypingTarget(el) {
+    const t = /** @type {HTMLElement|null} */ (el);
+    if (!t) return false;
+    const tag = (t.tagName || '').toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select' || t.isContentEditable;
+}
+
 document.addEventListener('keydown', (e) => {
-    const t = /** @type {HTMLElement|null} */ (e.target);
-    if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    if (isTypingTarget(e.target) || e.ctrlKey || e.altKey || e.metaKey) return;
+
     if (e.key === '?') {
         const gear = /** @type {HTMLElement|null} */ (document.querySelector('[data-glyph="gear"]'));
         if (gear) toggleQuickSettings(gear);
+        return;
+    }
+
+    // 1 / 2 zoom out / in — reachable without a modifier and without the mouse, unlike the
+    // + / - the map only hears while its canvas has focus. Shifted (! / @) takes two steps.
+    if (['1', '!', '2', '@'].includes(e.key)) {
+        const zoomOut = e.key === '1' || e.key === '!';
+        const step = (e.key === '!' || e.key === '@') ? 2 : 1;
+        map.zoomTo(map.getZoom() + (zoomOut ? -step : step));
     }
 });

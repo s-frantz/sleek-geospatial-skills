@@ -10,5 +10,17 @@
   "defaultWant": 17,
   "sizeTolerance": 1.0,
   "centreTolerance": 0.6,
-  "want": {}
+  "want": {
+    "_note": [
+      "A plus and a minus are bare strokes reaching the extremes of their box with nothing",
+      "in between, so the eye reads their full extent as the glyph. A gear at the same",
+      "MEASURED size is a dense shape whose bulk sits inboard of its widest teeth. Matched by",
+      "the ruler, the cross reads a size larger than everything around it. This is the one",
+      "place in this repo where a number is an optical judgement rather than a measurement,",
+      "which is exactly why it lives in this file, out loud, instead of being quietly baked",
+      "into SIZE_FACTOR where it would look like a result."
+    ],
+    "plus": 14.5,
+    "minus": 14.5
+  }
 }

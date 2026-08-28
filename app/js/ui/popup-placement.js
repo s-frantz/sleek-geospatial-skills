@@ -2,37 +2,39 @@
  * popup-placement.js — where a popup opens, and what it refuses to sit on top of.
  *
  * ── Two strategies, one word each ────────────────────────────────────────────────────────
- *   CLEAN     popups stack in a tidy column down one side, out of the map's way. The centre
- *             of the map stays readable and you look to the SIDE for what you clicked.
+ *   CLEAN     the popup opens at a fixed home: top of the screen, just right of the panel,
+ *             out of the map's way. Stacked popups CASCADE, each 40px further right, like
+ *             windows on a desk. A leader line runs from the popup back to the feature, and
+ *             that line is what makes the distance work: you look to the side for the
+ *             answer, and the line tells you which question it answers.
  *   ADJACENT  the popup opens beside the feature: right of it if it fits, else left, else
  *             below, else above. You look AT what you clicked.
  *
- * Neither is more correct. They trade "keep the map legible" against "keep the answer near the
- * question", and which one a person wants depends on what they are doing. So it is a setting,
- * not an opinion baked into the code.
+ * Neither is more correct. They trade "keep the map legible" against "keep the answer near
+ * the question", so it is a setting, not an opinion baked into the code.
  *
- * ── What counts as "fits" ────────────────────────────────────────────────────────────────
- * A candidate is rejected if it would leave the visible area OR land on the app's own
- * furniture: the control stack, the panel while it occludes the left edge, an open dock, and
- * any popup already on screen. Those are things a person needs to keep reaching. Everything
- * else, including the map and the feature itself, is fair game.
+ * ── Popups are placed ONCE ───────────────────────────────────────────────────────────────
+ * A popup is positioned when it opens and then stays where it is, in screen space. It does
+ * not chase the map: panning under an open popup only redraws its leader line. Popups are
+ * also draggable, and a thing the user can move is a thing the app must stop moving — the
+ * moment the code re-places popups on every camera move, dragging one becomes an argument
+ * with the machine.
+ *
+ * ── What counts as furniture ─────────────────────────────────────────────────────────────
+ * ADJACENT candidates are rejected if they land on the app's own chrome: the panel while it
+ * occludes the left edge (a geometric question — see visible-area.js), the control stacks,
+ * and the dock. A panel the user has dragged into the middle of the map is NOT furniture any
+ * more: it is something they chose to put there and can move again, so a popup may land on
+ * it — the popup is information they just asked for, and is easily dismissed.
  *
  * ── The last resort ──────────────────────────────────────────────────────────────────────
- * When nothing fits, the popup goes OVER THE ANCHOR rather than wherever there is room. A
- * popup jammed into a far corner is worse than one sitting on its own feature: at least the
- * second is obviously about the thing underneath it. What is protected is the anchor POINT
- * the leader line comes from, not the geometry, because a large polygon can be covered
- * without much being lost.
- *
- * ── Why the core is pure ─────────────────────────────────────────────────────────────────
- * `choosePlacement` takes the visible area, the furniture and the existing popups as
- * arguments rather than reading them from the document. That is what makes the rung-2 unit
- * tests possible: the decision is arithmetic, and arithmetic can be tested without a browser.
- * `placementFor` is the thin wrapper that goes and gets the real numbers.
+ * When nothing fits, the popup sits ON the anchor rather than in a far corner. A popup
+ * jammed somewhere distant is worse than one covering its own feature: at least the second
+ * is obviously about the thing underneath it.
  */
 
 import { getPrefs, setPrefs } from '../utils/prefs.js';
-import { visibleRect } from '../utils/visible-area.js';
+import { dockedPanelRight } from '../utils/visible-area.js';
 
 /**
  * @typedef {{left: number, top: number, right: number, bottom: number}} Rect
@@ -44,8 +46,10 @@ export const PLACEMENT = /** @type {const} */ ({ CLEAN: 'clean', ADJACENT: 'adja
 
 /** Breathing room between a popup and whatever it is dodging. */
 const GAP = 14;
-/** Vertical rhythm of the CLEAN column. */
-const STACK_GAP = 10;
+/** Margin the popup keeps from the viewport edge. */
+const EDGE = 10;
+/** How far each stacked CLEAN popup steps right, so its title bar stays reachable. */
+export const CASCADE_STEP = 40;
 
 /** @returns {'clean'|'adjacent'} */
 export function getPlacementMode() {
@@ -72,174 +76,132 @@ export const rect = (left, top, w, h) => ({ left, top, right: left + w, bottom: 
 export const overlaps = (a, b) =>
     a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 
-/** @param {Rect} r @param {Rect} within @returns {boolean} */
-const inside = (r, within) =>
-    r.left >= within.left && r.top >= within.top && r.right <= within.right && r.bottom <= within.bottom;
-
 /**
- * @param {Rect} r
- * @param {Rect} visible
- * @param {Rect[]} blockers
- * @returns {boolean}
- */
-function fits(r, visible, blockers) {
-    if (!inside(r, visible)) return false;
-    return !blockers.some((b) => overlaps(r, b));
-}
-
-/**
- * Decide where a popup of a given size goes.
- *
- * @param {object} opts
- * @param {Point} opts.anchor screen position of the feature the popup describes
- * @param {Size} opts.size the popup's measured width and height
- * @param {'clean'|'adjacent'} opts.mode
- * @param {Rect} opts.visible the part of the viewport a person can see the map through
- * @param {Rect[]} [opts.furniture] app chrome the popup must not cover
- * @param {Rect[]} [opts.existing] popups already on screen
- * @returns {{left: number, top: number, strategy: string}}
- */
-export function choosePlacement({ anchor, size, mode, visible, furniture = [], existing = [] }) {
-    const blockers = [...furniture, ...existing];
-    const { w, h } = size;
-
-    if (mode === PLACEMENT.CLEAN) {
-        // A column down the right edge of the visible area.
-        const left = Math.round(visible.right - w);
-        const columnSpan = { left, right: left + w };
-        let top = visible.top;
-
-        // Start below anything already occupying the column. The control stack lives at the
-        // top right, so without this the first popup lands on it, the strategy is abandoned,
-        // and CLEAN quietly stops being clean. Furniture pushes the column DOWN rather than
-        // cancelling it.
-        for (const b of furniture) {
-            if (b.right > columnSpan.left && b.left < columnSpan.right) {
-                top = Math.max(top, b.bottom + GAP);
-            }
-        }
-        // Then below the popups already in the column, so a second answer sits under the
-        // first instead of on it.
-        for (const e of existing) {
-            if (e.right > columnSpan.left && e.left < columnSpan.right) {
-                top = Math.max(top, e.bottom + STACK_GAP);
-            }
-        }
-
-        const candidate = rect(left, top, w, h);
-        if (fits(candidate, visible, blockers)) {
-            return { left: candidate.left, top: candidate.top, strategy: 'clean-column' };
-        }
-        // The column has run out of room. Fall through to the adjacent search rather than
-        // stacking popups on top of each other.
-    }
-
-    // ADJACENT, and CLEAN's overflow: try each side of the anchor in order of preference.
-    // Each candidate names the side it is on and the axis that side is DEFINED by. A right
-    // placement is defined by x, so it may be nudged vertically to make room but never
-    // horizontally: slide it on x and it drifts back over the anchor, "fits", and the popup
-    // never tries the left side at all. That is not hypothetical; it is what the first
-    // version of this function did, and the unit test is what found it.
-    /** @type {Array<[string, Rect, 'x'|'y']>} */
-    const candidates = [
-        ['right', rect(anchor.x + GAP, anchor.y - h / 2, w, h), 'x'],
-        ['left', rect(anchor.x - GAP - w, anchor.y - h / 2, w, h), 'x'],
-        ['below', rect(anchor.x - w / 2, anchor.y + GAP, w, h), 'y'],
-        ['above', rect(anchor.x - w / 2, anchor.y - GAP - h, w, h), 'y'],
-    ];
-    for (const [name, c, axis] of candidates) {
-        const slid = slideCross(c, visible, axis);
-        if (fits(slid, visible, blockers)) {
-            return { left: Math.round(slid.left), top: Math.round(slid.top), strategy: name };
-        }
-    }
-
-    // Last resort: over the anchor, clamped into the visible area. Deliberately not "wherever
-    // there is room".
-    const over = slideInto(rect(anchor.x - w / 2, anchor.y - h / 2, w, h), visible);
-    return { left: Math.round(over.left), top: Math.round(over.top), strategy: 'over-anchor' };
-}
-
-/**
- * Push a rectangle back inside a container along one axis only, leaving the other alone.
- * @param {Rect} r
- * @param {Rect} within
- * @param {'x'|'y'} fixed the axis the placement is DEFINED by, which must not move
+ * The viewport minus its edge margin.
  * @returns {Rect}
  */
-function slideCross(r, within, fixed) {
-    const w = r.right - r.left;
-    const h = r.bottom - r.top;
-    let left = r.left;
-    let top = r.top;
-    if (fixed === 'x') {
-        if (top < within.top) top = within.top;
-        if (top + h > within.bottom) top = within.bottom - h;
-    } else {
-        if (left < within.left) left = within.left;
-        if (left + w > within.right) left = within.right - w;
-    }
-    return rect(left, top, w, h);
+export function safeArea() {
+    const w = typeof window === 'undefined' ? 1280 : window.innerWidth;
+    const h = typeof window === 'undefined' ? 800 : window.innerHeight;
+    return rect(EDGE, EDGE, w - EDGE * 2, h - EDGE * 2);
 }
 
 /**
- * Push a rectangle back inside a container on both axes without resizing it. Used only by the
- * last resort, where there is no side left to preserve.
- * @param {Rect} r @param {Rect} within @returns {Rect}
- */
-function slideInto(r, within) {
-    const w = r.right - r.left;
-    const h = r.bottom - r.top;
-    let left = r.left;
-    let top = r.top;
-    if (left < within.left) left = within.left;
-    if (left + w > within.right) left = within.right - w;
-    if (top < within.top) top = within.top;
-    if (top + h > within.bottom) top = within.bottom - h;
-    return rect(left, top, w, h);
-}
-
-/**
- * The app chrome a popup must not cover, read off the live document.
- *
- * Note what is NOT here: the map, the features, and the basemap attribution, which is small,
- * fixed, and would push popups around for no benefit.
+ * The app's own furniture, as screen rects an ADJACENT popup must not cover.
+ * The panel is included only while it occludes the left edge; see the header.
  * @returns {Rect[]}
  */
-export function furnitureRects() {
+export function obstacles() {
     if (typeof document === 'undefined') return [];
     /** @type {Rect[]} */
     const out = [];
     /** @param {Element|null} el */
     const push = (el) => {
-        if (!el || /** @type {HTMLElement} */ (el).offsetParent === null) return;
+        if (!el) return;
+        // The rect alone decides visibility: display none is a zero rect, and offsetParent
+        // is null for every fixed element regardless (see visible-area.js).
         const r = el.getBoundingClientRect();
         if (r.width > 0 && r.height > 0) out.push(rect(r.left, r.top, r.width, r.height));
     };
-
-    for (const el of document.querySelectorAll('.maplibregl-ctrl-top-right, .maplibregl-ctrl-top-left')) push(el);
-
-    const panel = document.getElementById('sgs-panel');
-    if (panel && !panel.classList.contains('sgs-panel--float')) push(panel);
-
+    if (dockedPanelRight() > 0) push(document.getElementById('sgs-panel'));
+    push(document.querySelector('.maplibregl-ctrl-top-right'));
+    push(document.querySelector('.maplibregl-ctrl-bottom-right'));
     push(document.getElementById('sgs-dock'));
     return out;
 }
 
 /**
- * Where should THIS popup go, given the live page.
- * @param {Point} anchor
- * @param {Size} size
- * @param {Rect[]} [existing]
- * @returns {{left: number, top: number, strategy: string}}
+ * Where a CLEAN popup's column starts: right of the panel while the panel occludes the left
+ * edge, the viewport edge otherwise. Recomputed per open, so the answer tracks the live
+ * panel rather than a value remembered from an older layout.
+ * @returns {number}
  */
-export function placementFor(anchor, size, existing = []) {
-    return choosePlacement({
-        anchor,
-        size,
-        mode: getPlacementMode(),
-        visible: visibleRect(),
-        furniture: furnitureRects(),
-        existing,
-    });
+export function cleanBaseLeft() {
+    const panelRight = dockedPanelRight();
+    return panelRight > 0 ? panelRight + EDGE : EDGE;
+}
+
+/**
+ * The cascade: where the Nth stacked popup goes, and the offset the (N+1)th should use.
+ * Pure arithmetic, so the wrap-around is testable without a browser.
+ *
+ * @param {number} baseLeft   the column's home, from cleanBaseLeft()
+ * @param {number} offset     the running cascade offset (0 for the first popup)
+ * @param {number} popupW     the popup's width
+ * @param {number} viewportW
+ * @returns {{left: number, nextOffset: number}}
+ */
+export function cascadeSlot(baseLeft, offset, popupW, viewportW) {
+    let left = baseLeft + offset;
+    // Off the right edge: the cascade wraps back to its home rather than pushing popups
+    // off screen one by one.
+    if (left + popupW > viewportW - EDGE) {
+        left = baseLeft;
+        offset = 0;
+    }
+    return { left, nextOffset: offset + CASCADE_STEP };
+}
+
+/**
+ * Choose a rect for a popup opening next to its feature.
+ *
+ * Each candidate commits to ONE axis — a `right` placement is defined by x — and is clamped
+ * on the other, so "almost fits vertically" becomes "fits" instead of jumping the popup to
+ * the opposite side of the feature for the sake of a few pixels. Only the committed axis can
+ * disqualify a candidate.
+ *
+ * @param {Point} anchor        the leader line's origin, in screen px
+ * @param {Size} size
+ * @param {Rect[]} [blocked]    obstacle rects (defaults to the live furniture)
+ * @param {Rect} [safe]         the area to stay inside (defaults to the live viewport)
+ * @returns {{left: number, top: number, side: string}} `side` names the winner, or 'over'
+ */
+export function adjacentPlacement(anchor, size, blocked = obstacles(), safe = safeArea()) {
+    const { w, h } = size;
+
+    /** @param {number} x */
+    const clampX = (x) => Math.max(safe.left, Math.min(x, safe.right - w));
+    /** @param {number} y */
+    const clampY = (y) => Math.max(safe.top, Math.min(y, safe.bottom - h));
+
+    const candidates = [
+        { side: 'right', left: anchor.x + GAP, top: clampY(anchor.y - h / 2) },
+        { side: 'left', left: anchor.x - GAP - w, top: clampY(anchor.y - h / 2) },
+        { side: 'below', left: clampX(anchor.x - w / 2), top: anchor.y + GAP },
+        { side: 'above', left: clampX(anchor.x - w / 2), top: anchor.y - GAP - h },
+    ];
+
+    for (const c of candidates) {
+        const r = rect(c.left, c.top, w, h);
+        if (r.left < safe.left || r.right > safe.right) continue;
+        if (r.top < safe.top || r.bottom > safe.bottom) continue;
+        if (blocked.some((b) => overlaps(r, b))) continue;
+        return { left: Math.round(c.left), top: Math.round(c.top), side: c.side };
+    }
+
+    // Nothing fits: sit ON the anchor, clamped, because "over the point" must still mean
+    // "on screen".
+    return {
+        left: Math.round(clampX(anchor.x - w / 2)),
+        top: Math.round(clampY(anchor.y - h / 2)),
+        side: 'over',
+    };
+}
+
+/**
+ * The screen position of a lngLat, in viewport coordinates.
+ * @param {any} map
+ * @param {[number, number] | {lng: number, lat: number}} lngLat
+ * @returns {Point|null} null while the camera is mid-flight and cannot answer
+ */
+export function anchorPoint(map, lngLat) {
+    if (!map || !lngLat || typeof map.project !== 'function') return null;
+    try {
+        const p = map.project(lngLat);
+        const host = map.getContainer?.();
+        const r = host ? host.getBoundingClientRect() : { left: 0, top: 0 };
+        return { x: r.left + p.x, y: r.top + p.y };
+    } catch {
+        return null;
+    }
 }

@@ -1,19 +1,21 @@
 /**
- * Rung 2: the placement decision, tested as the arithmetic it is.
+ * Rung 2: the placement decisions, tested as the arithmetic they are.
  *
- * No browser and no DOM here, because `choosePlacement` takes the visible area, the furniture
- * and the existing popups as arguments. That is not an accident of style: a function that
- * reads the document can only be tested by building a document, and then the test is mostly
- * about the fixture.
+ * No browser and no DOM here, because `adjacentPlacement` takes its obstacles and safe area
+ * as arguments and `cascadeSlot` is pure arithmetic. That is not an accident of style: a
+ * function that reads the document can only be tested by building a document, and then the
+ * test is mostly about the fixture.
  */
 
 import { describe, it, expect } from 'vitest';
-import { choosePlacement, rect, overlaps, PLACEMENT } from '../../app/js/ui/popup-placement.js';
+import {
+    adjacentPlacement, cascadeSlot, CASCADE_STEP, rect, overlaps,
+} from '../../app/js/ui/popup-placement.js';
 
-const VISIBLE = rect(10, 10, 1260, 780);
-const SIZE = { w: 250, h: 160 };
+const SAFE = rect(10, 10, 1260, 780);
+const SIZE = { w: 280, h: 160 };
 
-/** @param {{left: number, top: number}} pos @returns {import('../../app/js/ui/popup-placement.js').Rect} */
+/** @param {{left: number, top: number}} pos */
 const asRect = (pos) => rect(pos.left, pos.top, SIZE.w, SIZE.h);
 
 describe('overlaps', () => {
@@ -26,79 +28,62 @@ describe('overlaps', () => {
     });
 });
 
-describe('choosePlacement, clean', () => {
-    it('puts the first popup at the right edge of the visible area', () => {
-        const pos = choosePlacement({
-            anchor: { x: 400, y: 400 }, size: SIZE, mode: PLACEMENT.CLEAN, visible: VISIBLE,
-        });
-        expect(pos.strategy).toBe('clean-column');
-        expect(pos.left + SIZE.w).toBe(VISIBLE.right);
-        expect(pos.top).toBe(VISIBLE.top);
+describe('cascadeSlot', () => {
+    it('puts the first popup at the column home', () => {
+        const s = cascadeSlot(230, 0, 280, 1280);
+        expect(s.left).toBe(230);
+        expect(s.nextOffset).toBe(CASCADE_STEP);
     });
 
-    it('stacks the second popup below the first rather than on it', () => {
-        const first = asRect(choosePlacement({
-            anchor: { x: 400, y: 400 }, size: SIZE, mode: PLACEMENT.CLEAN, visible: VISIBLE,
-        }));
-        const second = choosePlacement({
-            anchor: { x: 500, y: 500 }, size: SIZE, mode: PLACEMENT.CLEAN, visible: VISIBLE,
-            existing: [first],
-        });
-        expect(overlaps(asRect(second), first)).toBe(false);
-        expect(second.top).toBeGreaterThan(first.bottom - 1);
+    it('steps each kept popup one CASCADE_STEP further right', () => {
+        const first = cascadeSlot(230, 0, 280, 1280);
+        const second = cascadeSlot(230, first.nextOffset, 280, 1280);
+        expect(second.left).toBe(230 + CASCADE_STEP);
     });
 
-    it('leaves the column when the column is blocked by furniture', () => {
-        // A control stack occupying the whole right edge.
-        const stack = rect(1150, 0, 130, 800);
-        const pos = choosePlacement({
-            anchor: { x: 400, y: 400 }, size: SIZE, mode: PLACEMENT.CLEAN, visible: VISIBLE,
-            furniture: [stack],
-        });
-        expect(pos.strategy).not.toBe('clean-column');
-        expect(overlaps(asRect(pos), stack)).toBe(false);
+    it('wraps back to the home instead of walking off the right edge', () => {
+        // An offset that would push the popup past the viewport.
+        const s = cascadeSlot(230, 900, 280, 1280);
+        expect(s.left).toBe(230);
+        // And the wrap restarts the walk, so the NEXT popup cascades off the home again.
+        expect(s.nextOffset).toBe(CASCADE_STEP);
     });
 });
 
-describe('choosePlacement, adjacent', () => {
+describe('adjacentPlacement', () => {
     it('prefers the right of the anchor when it fits', () => {
-        const pos = choosePlacement({
-            anchor: { x: 400, y: 400 }, size: SIZE, mode: PLACEMENT.ADJACENT, visible: VISIBLE,
-        });
-        expect(pos.strategy).toBe('right');
+        const pos = adjacentPlacement({ x: 400, y: 400 }, SIZE, [], SAFE);
+        expect(pos.side).toBe('right');
         expect(pos.left).toBeGreaterThan(400);
     });
 
-    it('goes left when the right would leave the visible area', () => {
-        const pos = choosePlacement({
-            anchor: { x: 1200, y: 400 }, size: SIZE, mode: PLACEMENT.ADJACENT, visible: VISIBLE,
-        });
-        expect(pos.strategy).toBe('left');
+    it('goes left when the right would leave the safe area', () => {
+        const pos = adjacentPlacement({ x: 1200, y: 400 }, SIZE, [], SAFE);
+        expect(pos.side).toBe('left');
         expect(pos.left + SIZE.w).toBeLessThan(1200);
     });
 
-    it('never lands on the panel', () => {
+    it('clamps the cross axis instead of abandoning the side', () => {
+        // Anchor near the top: a right placement centred on it would poke above the safe
+        // area. The side survives; the top is pulled down.
+        const pos = adjacentPlacement({ x: 400, y: 20 }, SIZE, [], SAFE);
+        expect(pos.side).toBe('right');
+        expect(pos.top).toBe(SAFE.top);
+    });
+
+    it('never lands on furniture', () => {
         const panel = rect(10, 10, 320, 780);
-        const pos = choosePlacement({
-            anchor: { x: 360, y: 400 }, size: SIZE, mode: PLACEMENT.ADJACENT, visible: VISIBLE,
-            furniture: [panel],
-        });
+        const pos = adjacentPlacement({ x: 360, y: 400 }, SIZE, [panel], SAFE);
         expect(overlaps(asRect(pos), panel)).toBe(false);
     });
 
     it('never lands on an open dock', () => {
-        const dock = rect(260, 640, 760, 160);
-        const pos = choosePlacement({
-            anchor: { x: 640, y: 620 }, size: SIZE, mode: PLACEMENT.ADJACENT, visible: VISIBLE,
-            furniture: [dock],
-        });
+        const dock = rect(10, 620, 1260, 170);
+        const pos = adjacentPlacement({ x: 640, y: 600 }, SIZE, [dock], SAFE);
         expect(overlaps(asRect(pos), dock)).toBe(false);
     });
-});
 
-describe('choosePlacement, the last resort', () => {
     it('covers the anchor rather than fleeing to a corner when nothing fits', () => {
-        // Furniture on every side, leaving only the anchor's own neighbourhood.
         const boxed = [
             rect(10, 10, 1260, 300),      // above
             rect(10, 500, 1260, 290),     // below
@@ -106,10 +91,8 @@ describe('choosePlacement, the last resort', () => {
             rect(900, 310, 370, 190),     // right
         ];
         const anchor = { x: 640, y: 400 };
-        const pos = choosePlacement({
-            anchor, size: SIZE, mode: PLACEMENT.ADJACENT, visible: VISIBLE, furniture: boxed,
-        });
-        expect(pos.strategy).toBe('over-anchor');
+        const pos = adjacentPlacement(anchor, SIZE, boxed, SAFE);
+        expect(pos.side).toBe('over');
         const r = asRect(pos);
         expect(anchor.x).toBeGreaterThanOrEqual(r.left);
         expect(anchor.x).toBeLessThanOrEqual(r.right);
@@ -117,15 +100,12 @@ describe('choosePlacement, the last resort', () => {
         expect(anchor.y).toBeLessThanOrEqual(r.bottom);
     });
 
-    it('stays inside the visible area even in the last resort', () => {
-        const pos = choosePlacement({
-            anchor: { x: 12, y: 12 }, size: SIZE, mode: PLACEMENT.ADJACENT, visible: VISIBLE,
-            furniture: [rect(0, 0, 1280, 800)],
-        });
+    it('stays inside the safe area even in the last resort', () => {
+        const pos = adjacentPlacement({ x: 12, y: 12 }, SIZE, [rect(0, 0, 1280, 800)], SAFE);
         const r = asRect(pos);
-        expect(r.left).toBeGreaterThanOrEqual(VISIBLE.left);
-        expect(r.top).toBeGreaterThanOrEqual(VISIBLE.top);
-        expect(r.right).toBeLessThanOrEqual(VISIBLE.right);
-        expect(r.bottom).toBeLessThanOrEqual(VISIBLE.bottom);
+        expect(r.left).toBeGreaterThanOrEqual(SAFE.left);
+        expect(r.top).toBeGreaterThanOrEqual(SAFE.top);
+        expect(r.right).toBeLessThanOrEqual(SAFE.right);
+        expect(r.bottom).toBeLessThanOrEqual(SAFE.bottom);
     });
 });

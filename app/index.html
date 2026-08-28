@@ -35,23 +35,20 @@
     <div class="sgs-panel-head">
         <span class="sgs-panel-title">Layers</span>
         <div class="sgs-berth" id="sgs-panel-berth"></div>
+        <button class="sgs-icon-btn sgs-panel-fold" type="button" aria-expanded="true"
+                aria-controls="sgs-panel-body" title="Fold the layer panel"
+                aria-label="Fold the layer panel"></button>
+        <button class="sgs-icon-btn sgs-panel-close" type="button"
+                title="Close the layer panel" aria-label="Close the layer panel"></button>
     </div>
     <div class="sgs-panel-body" id="sgs-panel-body"></div>
     <div class="sgs-grip sgs-grip--w" data-grip="w" title="Drag to set width, double-click for automatic"></div>
     <div class="sgs-grip sgs-grip--h" data-grip="h" title="Drag to set height, double-click for automatic"></div>
 </div>
 
-<!-- The bottom dock. Folds rather than stows: its head keeps reporting what is in it while
-     shut, which is the test the `stow` skill sets out. -->
-<div id="sgs-dock" class="sgs-dock sgs-dock--folded">
-    <div class="sgs-dock-head">
-        <button class="sgs-fold" type="button" aria-expanded="false" aria-controls="sgs-dock-body">
-            <span class="sgs-chev" aria-hidden="true"></span>
-            <span class="sgs-dock-label" id="sgs-dock-label">Nothing selected</span>
-        </button>
-    </div>
-    <div class="sgs-dock-body" id="sgs-dock-body"></div>
-</div>
+<!-- The bottom dock (the table) is built by dock.js on demand. What the markup carries is
+     nothing: closed, the dock's whole footprint is the sliver tab dock.js parks at the
+     bottom edge. -->
 
 <!--
   Vendored globals load with `defer`, in document order, ahead of the module entry point.

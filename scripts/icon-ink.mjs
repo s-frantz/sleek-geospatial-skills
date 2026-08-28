@@ -41,6 +41,8 @@ const URL_ = process.env.SGS_URL || `http://localhost:${PORT}/`;
 const SCALE = 2;
 /** How far from the face colour a pixel must be to count as ink, 0..255 per channel. */
 const INK_THRESHOLD = 40;
+/** Border and corner radius live within this many CSS pixels of the edge; glyphs do not. */
+const INSET_CSS = 2;
 
 /**
  * Find the drawn ink inside one button's screenshot.
@@ -55,7 +57,11 @@ const INK_THRESHOLD = 40;
  *   outright, and the face is the MODAL opaque colour, which is the button's fill by a wide
  *   margin in any icon button.
  *
- *   THE BORDER. A one-pixel inset drops the group's own edge, which is not the glyph.
+ *   THE FRAME. A control group has a 1px border and a corner radius, and both are drawn in
+ *   the button's own screenshot. Left in, the rounded top corner alone dragged a plus's
+ *   measured box up by 3px and made it 5px taller than it is. The inset is expressed in CSS
+ *   pixels because that is what the frame is specified in: 2px clears the border and the
+ *   antialiased corner, and no glyph here comes within 2px of its button's edge.
  *
  * @param {PNG} png
  * @returns {{w: number, h: number, cx: number, cy: number, top: number, right: number, bottom: number, left: number}|null}
@@ -82,7 +88,7 @@ function inkBox(png) {
     const face = [((bestKey >> 10) & 31) << 3, ((bestKey >> 5) & 31) << 3, (bestKey & 31) << 3];
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    const inset = SCALE; // one CSS pixel: the button's own border is not the glyph
+    const inset = INSET_CSS * SCALE;
     for (let y = inset; y < height - inset; y++) {
         for (let x = inset; x < width - inset; x++) {
             const i = idx(x, y);

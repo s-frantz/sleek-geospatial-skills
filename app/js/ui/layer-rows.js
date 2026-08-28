@@ -14,6 +14,8 @@
 
 import { LAYERS, setLayerVisible, zoomToLayer } from '../layers.js';
 import { icon } from '../icons.js';
+import { getSourcePill, makeTypePill } from './type-pill.js';
+import { buildSymbolSwatch } from './symbology.js';
 
 /**
  * @param {HTMLElement} body the panel body to fill
@@ -36,15 +38,13 @@ export function renderLayerRows(body, onShowTable) {
         cb.checked = def.visible;
         cb.addEventListener('change', () => setLayerVisible(def.id, cb.checked));
 
-        const swatch = document.createElement('span');
-        swatch.className = 'sgs-swatch';
-        swatch.style.background = def.color;
-
+        // Swatch (how it paints), then pill (what it IS), then name. The same three, in
+        // the same order, as a popup's title bar and the dock's head.
         const text = document.createElement('span');
         text.className = 'sgs-row-text';
         text.textContent = def.label;
 
-        label.append(cb, swatch, text);
+        label.append(cb, buildSymbolSwatch(def), makeTypePill(getSourcePill(def.type)), text);
 
         const actions = document.createElement('span');
         actions.className = 'sgs-row-actions';
@@ -63,6 +63,8 @@ export function renderLayerRows(body, onShowTable) {
         table.title = `Show ${def.label} in the table`;
         table.setAttribute('aria-label', table.title);
         table.innerHTML = icon('table', 12);
+        // Toggling, not merely opening: pressing it again is the obvious way to put the
+        // table away, and a button that ignores its second press reads as broken.
         table.addEventListener('click', () => onShowTable(def.id));
 
         actions.append(zoom, table);

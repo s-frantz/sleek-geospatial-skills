@@ -128,16 +128,75 @@ html, body {
     cursor: default;
 }
 
-.sgs-panel.sgs-stowed {
-    /* A stow gives the pixels back. The head stays only so its berth, and therefore the mark
-       that brings the panel back, is still reachable. */
+/* FOLDED: the head stays in its slot and keeps its controls; the body collapses and the
+   panel hugs the bar. Same shape as the folded dock, deliberately. */
+.sgs-panel--folded {
     bottom: auto;
-    width: max-content;
+    height: auto;
     min-width: 0;
+    width: max-content;
 }
 
-.sgs-panel.sgs-stowed .sgs-panel-body,
-.sgs-panel.sgs-stowed .sgs-grip { display: none; }
+.sgs-panel--folded .sgs-grip { display: none; }
+.sgs-panel--folded .sgs-panel-head { border-bottom: none; }
+.sgs-panel--folded .sgs-panel-fold svg { transform: rotate(-90deg); }
+
+/* CLOSED: the section leaves the layout entirely. What remains is its MARK, berthed on the
+   left edge — the panel's own edge, so the tab is where the panel went. */
+.sgs-panel.sgs-closed { display: none; }
+
+.sgs-panel-fold svg { transition: transform 120ms ease; }
+
+/* ── Edge marks ─────────────────────────────────────────────────────────────────────────── */
+
+/* What a CLOSE leaves behind. A small tab flush against the viewport edge the section came
+   from: left for the panel, bottom for the dock. Same size, same chevron, same reasoning —
+   learn one and you know the other. Hidden until its section is closed. */
+.sgs-mark {
+    position: fixed;
+    z-index: 4;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: var(--sgs-bg);
+    border: 1px solid var(--sgs-line);
+    color: var(--sgs-fg-dim);
+    cursor: pointer;
+    opacity: 0.78;
+    transition: opacity 90ms ease, color 90ms ease;
+}
+
+.sgs-mark:hover { opacity: 1; color: var(--sgs-fg); }
+
+.sgs-mark--left {
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 13px;
+    height: 56px;
+    border-left: none;
+    border-radius: 0 var(--sgs-radius) var(--sgs-radius) 0;
+}
+
+/* The chevron points back at the section it restores: right for the panel at the left edge,
+   up for the dock at the bottom. A direction, not a decoration. */
+.sgs-mark--left svg { transform: rotate(-90deg); }
+
+.sgs-mark--bottom {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    width: 56px;
+    height: 13px;
+    border-bottom: none;
+    border-radius: var(--sgs-radius) var(--sgs-radius) 0 0;
+}
+
+.sgs-mark--bottom svg { transform: rotate(180deg); }
+
+body.sgs-mark--left-shown .sgs-mark--left { display: flex; }
+body:not(.sgs-dock-open) .sgs-mark--bottom { display: flex; }
 
 .sgs-panel-head {
     display: flex;
@@ -187,12 +246,115 @@ html, body {
 .sgs-row-label { display: flex; align-items: center; gap: 7px; cursor: pointer; margin-right: auto; }
 .sgs-row-text { padding-right: 8px; }
 
-.sgs-swatch {
-    width: 11px;
-    height: 11px;
-    border-radius: 3px;
-    border: 1px solid var(--sgs-line);
+/* ── Swatch ─────────────────────────────────────────────────────────────────────────────── */
+
+/* The SHAPE carries the geometry: a square is a polygon, a dot is a point. Colour alone
+   would throw that away, and two blue layers are told apart by form before hue. */
+.sgs-swatch { flex: none; display: inline-block; }
+
+.sgs-swatch--fill {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    background: var(--sgs-swatch-color, #ccc);
+    border: 2px solid var(--sgs-swatch-border, rgba(0, 0, 0, 0.15));
+}
+
+.sgs-swatch--circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--sgs-swatch-color, #888);
+}
+
+:root[data-theme="dark"] .sgs-swatch--fill { border-color: rgba(255, 255, 255, 0.14); }
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .sgs-swatch--fill { border-color: rgba(255, 255, 255, 0.14); }
+}
+
+/* ── Source pill ────────────────────────────────────────────────────────────────────────── */
+
+/* Names the layer's SOURCE KIND. Small enough to read as texture until wanted, and the full
+   name is always one hover away — an abbreviation nobody can expand is a puzzle. */
+.sgs-source-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex: none;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 2px 3px;
+    border-radius: 3px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    opacity: 0.85;
+}
+
+.sgs-source-pill--json { color: #16a34a; background: #dcfce7; }
+.sgs-source-pill--fs   { color: #2563eb; background: #dbeafe; }
+.sgs-source-pill--vtl  { color: #7c3aed; background: #ede9fe; }
+.sgs-source-pill--wms  { color: #0d9488; background: #ccfbf1; }
+.sgs-source-pill--xyz  { color: #b91c1c; background: #fee2e2; }
+.sgs-source-pill--csv  { color: #16a34a; background: #dcfce7; }
+.sgs-source-pill--other { color: #475569; background: #e2e8f0; }
+
+:root[data-theme="dark"] .sgs-source-pill--json { color: #86efac; background: #052e16; }
+:root[data-theme="dark"] .sgs-source-pill--fs   { color: #93c5fd; background: #172554; }
+:root[data-theme="dark"] .sgs-source-pill--vtl  { color: #c4b5fd; background: #2e1065; }
+:root[data-theme="dark"] .sgs-source-pill--wms  { color: #5eead4; background: #042f2e; }
+:root[data-theme="dark"] .sgs-source-pill--xyz  { color: #fca5a5; background: #450a0a; }
+:root[data-theme="dark"] .sgs-source-pill--csv  { color: #86efac; background: #052e16; }
+:root[data-theme="dark"] .sgs-source-pill--other { color: #cbd5e1; background: #1e293b; }
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .sgs-source-pill--json { color: #86efac; background: #052e16; }
+    :root:not([data-theme="light"]) .sgs-source-pill--fs   { color: #93c5fd; background: #172554; }
+    :root:not([data-theme="light"]) .sgs-source-pill--vtl  { color: #c4b5fd; background: #2e1065; }
+    :root:not([data-theme="light"]) .sgs-source-pill--wms  { color: #5eead4; background: #042f2e; }
+    :root:not([data-theme="light"]) .sgs-source-pill--xyz  { color: #fca5a5; background: #450a0a; }
+    :root:not([data-theme="light"]) .sgs-source-pill--csv  { color: #86efac; background: #052e16; }
+    :root:not([data-theme="light"]) .sgs-source-pill--other { color: #cbd5e1; background: #1e293b; }
+}
+
+/* ── Field type badge ───────────────────────────────────────────────────────────────────── */
+
+/* Three monospace characters, coloured by kind. The colours are fixed hexes shared by both
+   themes — a type is a type — so only the plate behind them changes. */
+.sgs-field-badge {
+    display: inline-block;
+    flex: none;
+    font-family: var(--sgs-mono);
+    font-size: 9px;
+    line-height: 12px;
+    min-width: 22px;
+    text-align: center;
+    padding: 1px 3px;
+    border-radius: var(--sgs-radius-sm);
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--sgs-fg-dim);
+    user-select: none;
+}
+
+:root[data-theme="dark"] .sgs-field-badge { background: rgba(255, 255, 255, 0.05); }
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .sgs-field-badge { background: rgba(255, 255, 255, 0.05); }
+}
+
+.sgs-field-badge[data-type="string"]   { color: #c9a227; }
+.sgs-field-badge[data-type="integer"]  { color: #4caf50; }
+.sgs-field-badge[data-type="float"]    { color: #5c9bd4; }
+.sgs-field-badge[data-type="datetime"] { color: #ab7bd4; }
+.sgs-field-badge[data-type="boolean"]  { color: #e08050; }
+
+.sgs-field-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Row actions fade in on hover, but they are never removed from the accessibility tree and
@@ -201,63 +363,83 @@ html, body {
 .sgs-row:hover .sgs-row-actions,
 .sgs-row:focus-within .sgs-row-actions { opacity: 1; }
 
-/* ── The bottom dock ────────────────────────────────────────────────────────────────────── */
+/* ── The bottom dock ──────────────────────────────────────────────────────────────────────── */
 
+/* Open: a full-width band (small inset each side), height owned by dock.js as an inline
+   style and PUBLISHED as --sgs-dock-h so the panel rule below can stay out of its way. */
 .sgs-dock {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    position: fixed;
+    left: var(--sgs-panel-inset);
+    right: var(--sgs-panel-inset);
     bottom: var(--sgs-panel-inset);
     z-index: 5;
-
-    width: min(760px, calc(100vw - 2 * var(--sgs-panel-inset)));
-    max-height: 42vh;
     display: flex;
     flex-direction: column;
 
     background: var(--sgs-bg);
     border: 1px solid var(--sgs-line);
     border-radius: var(--sgs-radius);
-    box-shadow: var(--sgs-shadow);
+    box-shadow: 0 -6px 20px rgba(16, 20, 28, 0.14), 0 1px 3px rgba(16, 20, 28, 0.1);
     overflow: hidden;
 }
 
-.sgs-dock-head { border-bottom: 1px solid var(--sgs-line-soft); background: var(--sgs-bg-sunk); }
-.sgs-dock--folded .sgs-dock-head { border-bottom: none; }
+/* The dock displaces the panel: while it is open the panel's bottom sits just above it.
+   The exempt postures already gave up their bottom anchor, and each pairing must be
+   restated here because this three-class selector would otherwise outweigh theirs. */
+body.sgs-dock-open .sgs-panel { bottom: calc(var(--sgs-dock-h, 250px) + 16px); }
+body.sgs-dock-open .sgs-panel--manual-h,
+body.sgs-dock-open .sgs-panel--float,
+body.sgs-dock-open .sgs-panel--folded { bottom: auto; }
 
-.sgs-fold {
+/* Top-edge resize grip: a thin strip with a centred pill, overlaid absolutely so it adds
+   zero height to the head. */
+.sgs-dock-grip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    z-index: 2;
+    cursor: ns-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sgs-dock-grip::before {
+    content: "";
+    width: 36px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--sgs-line);
+}
+
+.sgs-dock-grip:hover::before { background: var(--sgs-fg-dim); }
+
+.sgs-dock-head {
     display: flex;
     align-items: center;
     gap: 8px;
-    width: 100%;
-    padding: 7px 10px;
-    border: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-    cursor: pointer;
-    text-align: left;
-}
-
-.sgs-fold:hover { background: var(--sgs-hover); }
-
-/* A chevron is a LIST affordance. It is right here because the dock keeps its head, and its
-   head keeps reporting, while shut. */
-.sgs-chev {
-    width: 8px;
-    height: 8px;
+    padding: 4px 10px;
+    border-bottom: 1px solid var(--sgs-line-soft);
+    background: var(--sgs-bg-sunk);
     flex: none;
-    border-right: 2px solid currentColor;
-    border-bottom: 2px solid currentColor;
-    transform: rotate(-135deg);
-    transition: transform 120ms ease;
-    margin-left: 2px;
 }
 
-.sgs-dock--folded .sgs-chev { transform: rotate(45deg); }
-
-.sgs-dock-label { color: var(--sgs-fg-dim); }
+.sgs-dock-swatch,
+.sgs-dock-pill { display: inline-flex; align-items: center; flex: none; }
+.sgs-dock-title { font-weight: 600; }
+.sgs-dock-count { color: var(--sgs-fg-dim); }
+.sgs-dock-spacer { flex: 1; }
 .sgs-dock-body { overflow: auto; }
+
+/* Folded: the head alone, still a full-width bar, still reporting. The whole bar unfolds. */
+.sgs-dock--folded .sgs-dock-body { display: none; }
+.sgs-dock--folded .sgs-dock-grip { display: none; }
+.sgs-dock--folded .sgs-dock-head { border-bottom: none; cursor: pointer; }
+.sgs-dock--folded .sgs-dock-fold svg { transform: rotate(180deg); }
+
+/* The dock's mark is .sgs-mark--bottom; see the edge-marks block above. */
 
 /* ── Tables ─────────────────────────────────────────────────────────────────────────────── */
 
@@ -278,7 +460,12 @@ html, body {
     color: var(--sgs-fg-dim);
     font-weight: 600;
     z-index: 1;
+    border-bottom: 1px solid var(--sgs-line);
 }
+
+/* The header cell reads like a popup field row: badge, then name. Same vocabulary across
+   the two surfaces that show attributes. */
+.sgs-th-field { display: flex; align-items: center; gap: 6px; }
 
 .sgs-table tbody tr:hover { background: var(--sgs-hover); }
 .sgs-table tbody tr:focus { outline: 2px solid var(--sgs-accent); outline-offset: -2px; }
@@ -297,10 +484,10 @@ html, body {
 }
 
 .sgs-leader {
-    stroke: var(--sgs-accent);
+    stroke: var(--sgs-fg-dim);
     stroke-width: 1.5;
-    stroke-dasharray: 3 3;
-    opacity: 0.85;
+    stroke-dasharray: 4 3;
+    opacity: 0.6;
 }
 
 .sgs-popups { position: fixed; inset: 0; z-index: 7; pointer-events: none; }
@@ -308,7 +495,7 @@ html, body {
 .sgs-popup {
     position: fixed;
     pointer-events: auto;
-    width: 250px;
+    width: 280px;
     max-height: 45vh;
     display: flex;
     flex-direction: column;
@@ -327,23 +514,51 @@ html, body {
     gap: 6px;
     padding: 5px 5px 5px 10px;
     border-bottom: 1px solid var(--sgs-line-soft);
+    cursor: grab;
+    user-select: none;
 }
 
-.sgs-popup-title { font-weight: 600; margin-right: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sgs-popup-title {
+    font-weight: 600;
+    margin-right: auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .sgs-popup-body { overflow: auto; padding: 4px 0; }
 
+/* TYPE | FIELD | VALUE. The type column is first because it is fixed-width and monospace,
+   so it forms a clean left rail the eye can skip; last, it would ragged-edge against
+   variable-length values. Each column is ruled off the next, which is what makes a dense
+   field list scannable without alternating row colours. */
 .sgs-fields { border-collapse: collapse; width: 100%; }
+
+.sgs-fields tr { border-bottom: 1px solid var(--sgs-line-soft); }
+.sgs-fields tr:last-child { border-bottom: none; }
+
+.sgs-fields th,
+.sgs-fields td { padding: 5px 8px; vertical-align: top; word-break: break-word; }
+
+.sgs-field-type-col {
+    width: 1%;
+    white-space: nowrap;
+    border-right: 1px solid var(--sgs-line-soft);
+    padding-left: 10px;
+}
 
 .sgs-fields th {
     text-align: left;
-    font-weight: 400;
+    font-weight: 600;
     color: var(--sgs-fg-dim);
-    padding: 2px 8px 2px 10px;
-    vertical-align: top;
+    background: var(--sgs-bg-sunk);
     white-space: nowrap;
+    width: 1%;
+    max-width: 130px;
+    border-right: 1px solid var(--sgs-line-soft);
 }
 
-.sgs-fields td { padding: 2px 10px 2px 0; font-variant-numeric: tabular-nums; }
+.sgs-fields td:last-child { font-variant-numeric: tabular-nums; padding-right: 10px; }
 
 /* ── Overlay windows ────────────────────────────────────────────────────────────────────── */
 
@@ -414,16 +629,24 @@ html, body {
 
 .sgs-quick {
     position: fixed;
+    /* Above the control stack, so a popover opening left of the gear is drawn ON the stack
+       rather than sliding under the buttons below it. */
     z-index: 15;
-    width: 268px;
-    padding: 10px;
+    width: 264px;
+    max-height: calc(100vh - 80px);
+    overflow: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     background: var(--sgs-bg);
     border: 1px solid var(--sgs-line);
     border-radius: var(--sgs-radius);
-    box-shadow: var(--sgs-shadow);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+    color: var(--sgs-fg);
 }
 
-.sgs-set-row { display: flex; align-items: center; gap: 10px; padding: 4px 2px 8px; }
+.sgs-set-row { display: flex; align-items: center; gap: 10px; }
 .sgs-set-label { color: var(--sgs-fg-dim); margin-right: auto; }
 
 .sgs-seg { display: flex; border: 1px solid var(--sgs-line); border-radius: var(--sgs-radius-sm); overflow: hidden; }
@@ -442,18 +665,40 @@ html, body {
 .sgs-seg-btn:hover { background: var(--sgs-hover); }
 .sgs-seg-btn[aria-checked="true"] { background: var(--sgs-accent); color: var(--sgs-accent-fg); }
 
-.sgs-shortcuts { border-top: 1px solid var(--sgs-line-soft); margin-top: 4px; padding-top: 8px; display: grid; gap: 5px; }
-.sgs-shortcut { display: flex; align-items: center; gap: 8px; color: var(--sgs-fg-dim); }
+/* The shortcut inventory, ruled off as its own quiet band. */
+.sgs-shortcuts {
+    border-top: 1px solid var(--sgs-line-soft);
+    margin-top: 2px;
+    padding-top: 9px;
+    display: grid;
+    gap: 2px;
+    font-size: 11px;
+}
+
+.sgs-shortcut {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 3px 0;
+    color: var(--sgs-fg-dim);
+    line-height: 1.35;
+}
+
+/* The key chip is a DRAWN BOX and the description is bare text, so they need more air
+   between them than two plain runs of text would: the flex gap alone reads as smushed
+   against the chip's border. The gap does the work and this adds the last of it. */
+.sgs-shortcut span { padding-left: 2px; }
 
 .sgs-shortcut kbd {
+    flex: none;
     font-family: var(--sgs-mono);
-    font-size: 11px;
-    min-width: 34px;
+    font-size: 10px;
+    line-height: 1.5;
+    min-width: 78px;
     text-align: center;
-    padding: 1px 5px;
+    padding: 2px 6px;
     border: 1px solid var(--sgs-line);
-    border-bottom-width: 2px;
-    border-radius: 4px;
+    border-radius: var(--sgs-radius-sm);
     background: var(--sgs-bg-sunk);
     color: var(--sgs-fg);
 }
@@ -519,16 +764,41 @@ html, body {
     color: var(--sgs-fg);
 }
 
-/* MapLibre's own zoom buttons carry their glyphs as background images baked in one colour, so
-   in dark mode they need the treatment the custom ones do not: recolour the group, and invert
-   the baked artwork. This asymmetry is the argument for currentColor. */
+/* MapLibre's own buttons ship their glyphs as background images baked in one fixed colour.
+   control-glyphs.js puts OUR svg inside each icon span instead and adds .sgs-adopted, which
+   switches the baked image off — so the whole stack inherits `color` and dark mode needs no
+   invert filter at all.
+
+   No !important: MapLibre's rule is `.maplibregl-ctrl-zoom-in .maplibregl-ctrl-icon` (two
+   classes) and this is `.maplibregl-ctrl-icon.sgs-adopted` (also two). A tie, broken by
+   source order, and this file loads after the vendored MapLibre CSS. */
+   THE RESET ITSELF IS INLINE, in control-glyphs.js, and this comment is here to say why so
+   nobody moves it back. Written as a rule it half worked: MapLibre writes its icon rules at
+   several specificities, so ours landed for the zoom buttons and lost for the compass and
+   the geolocate, whose baked artwork kept rendering under our svg. It was `npm run icons`
+   reporting 22.5px of ink in a 17px box that found it, not a screenshot.
+
+   What stays here is only what the cascade is the right tool for: state colour. */
+.maplibregl-ctrl-icon.sgs-adopted { color: inherit; }
+
+/* Geolocate's active and error states also carry baked artwork; the same rule covers them,
+   and the state is carried by colour instead. */
+.maplibregl-ctrl-geolocate-active .maplibregl-ctrl-icon.sgs-adopted,
+.maplibregl-ctrl-geolocate-background .maplibregl-ctrl-icon.sgs-adopted { color: var(--sgs-accent); }
+
+.maplibregl-ctrl-geolocate-active-error .maplibregl-ctrl-icon.sgs-adopted,
+.maplibregl-ctrl-geolocate-background-error .maplibregl-ctrl-icon.sgs-adopted { color: #d9534f; }
+
+/* The whole group now speaks one language, so ONE rule colours every button in it. */
+.maplibregl-ctrl-group button { color: var(--sgs-fg-dim); }
+.maplibregl-ctrl-group button:hover { color: var(--sgs-fg); }
+
 :root[data-theme="dark"] .maplibregl-ctrl-group,
 :root[data-theme="dark"] .maplibregl-ctrl-attrib {
     background: var(--sgs-bg);
     color: var(--sgs-fg);
 }
 
-:root[data-theme="dark"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1) brightness(1.4); }
 :root[data-theme="dark"] .maplibregl-ctrl-group button:hover { background: var(--sgs-hover); }
 :root[data-theme="dark"] .maplibregl-ctrl-attrib a { color: var(--sgs-accent); }
 
@@ -538,9 +808,53 @@ html, body {
         background: var(--sgs-bg);
         color: var(--sgs-fg);
     }
-    :root:not([data-theme="light"]) .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1) brightness(1.4); }
     :root:not([data-theme="light"]) .maplibregl-ctrl-group button:hover { background: var(--sgs-hover); }
     :root:not([data-theme="light"]) .maplibregl-ctrl-attrib a { color: var(--sgs-accent); }
+}
+
+/* ── Tooltip ────────────────────────────────────────────────────────────────────────────── */
+
+/* ONE shared bubble, positioned by tooltip.js: centred under its element, clamped to the
+   viewport, flipped above when cramped. Pointer-events none so it can never trap a hover. */
+.sgs-tooltip {
+    position: fixed;
+    z-index: 40;
+    max-width: 260px;
+    padding: 4px 9px;
+    background: var(--sgs-bg);
+    border: 1px solid var(--sgs-line);
+    border-radius: var(--sgs-radius-sm);
+    box-shadow: var(--sgs-shadow);
+    color: var(--sgs-fg);
+    font-size: 12px;
+    line-height: 1.4;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 80ms ease;
+}
+
+.sgs-tooltip--visible { opacity: 1; }
+
+/* The 4px slide is TOWARD the element, so the bubble reads as coming from the thing it
+   names rather than merely appearing near it. */
+.sgs-tooltip { transform: translateY(-3px); }
+.sgs-tooltip[data-side="left"] { transform: translateX(4px); }
+.sgs-tooltip--visible { transform: none; }
+
+/* ── Scale bar ─────────────────────────────────────────────────────────────────────── */
+
+/* Useful, so it earns real contrast at rest — a translucent card over the map rather than
+   MapLibre's bare line. Sits just above the attribution pill in the bottom-right stack. */
+.maplibregl-ctrl.maplibregl-ctrl-scale {
+    margin: 0 8px 4px 0;
+    background: color-mix(in srgb, var(--sgs-bg) 88%, transparent);
+    color: var(--sgs-fg);
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+    border: 1px solid var(--sgs-line);
+    border-top: none;
+    border-radius: 0 0 3px 3px;
 }
 
 /* ── Development guides ─────────────────────────────────────────────────────────────────── */
