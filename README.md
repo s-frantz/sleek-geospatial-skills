@@ -132,3 +132,4 @@ CHANGELOG.md      one entry per release; Breaking: lines name affected component
 ## Licence
 
 MIT. Take what is useful.
+<!-- smoke test, no version bump -->
