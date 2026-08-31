@@ -1,0 +1,51 @@
+/* ── Edge mark — TIER 2 component ──────────────────────────────────────────────────────────
+   What a CLOSE leaves behind. A small tab flush against the viewport edge the section came
+   from. Same size, same chevron, same reasoning regardless of which edge — learn one and you
+   know the rest. Self-contained: reads only which edge it belongs to (`--left`/`--bottom`),
+   never which piece of furniture it marks. */
+
+.sgs-mark {
+    position: fixed;
+    z-index: 4;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: var(--sgs-bg, #fff);
+    border: 1px solid var(--sgs-line, #d9dce2);
+    color: var(--sgs-fg-dim, #5c636e);
+    cursor: pointer;
+    opacity: 0.78;
+    transition: opacity 90ms ease, color 90ms ease;
+}
+
+.sgs-mark:hover { opacity: 1; color: var(--sgs-fg, #1b1e24); }
+
+.sgs-mark--left {
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 13px;
+    height: 56px;
+    border-left: none;
+    border-radius: 0 var(--sgs-radius, 8px) var(--sgs-radius, 8px) 0;
+}
+
+/* The chevron points back at the section it restores: right for something at the left edge,
+   up for something at the bottom. A direction, not a decoration. */
+.sgs-mark--left svg { transform: rotate(-90deg); }
+
+.sgs-mark--bottom {
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    width: 56px;
+    height: 13px;
+    border-bottom: none;
+    border-radius: var(--sgs-radius, 8px) var(--sgs-radius, 8px) 0 0;
+}
+
+.sgs-mark--bottom svg { transform: rotate(180deg); }
+
+body.sgs-mark--left-shown .sgs-mark--left { display: flex; }
+body:not(.sgs-dock-open) .sgs-mark--bottom { display: flex; }

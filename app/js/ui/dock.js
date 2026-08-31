@@ -116,6 +116,9 @@ function buildDock() {
     const dock = document.createElement('div');
     dock.id = 'sgs-dock';
     dock.className = 'sgs-dock';
+    // The framework contract (app/js/utils/furniture.js): marks this as something the camera
+    // pads around and popups must not cover, with no id registered anywhere else.
+    dock.setAttribute('data-sgs-furniture', '');
     dock.style.height = `${_height}px`;
 
     // Top-edge resize grip: a thin strip with a centred pill, overlaid so it costs no

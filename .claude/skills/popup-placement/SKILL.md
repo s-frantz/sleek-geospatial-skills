@@ -21,9 +21,11 @@ not an opinion baked into the code.
 
 ## What counts as "fits"
 
-A candidate is rejected if it would leave the visible area, or land on the app's own
-**furniture**: the control stack, the panel while it occludes the left edge, an open dock, and
-any popup already on screen. Those are things a person needs to keep reaching.
+A candidate is rejected if it would leave the visible area, or land on anything marked
+`data-sgs-furniture` WHILE it occludes an edge (see the `chrome-aware-camera` skill and
+`app/js/utils/furniture.js`), plus any popup already on screen. This file names no ids — the
+control stack, the panel, an open dock all qualify because they carry the attribute, not
+because `popup-placement.js` knows they exist.
 
 Everything else is fair game, including the map and the feature itself.
 
@@ -82,7 +84,8 @@ you take the placement strategy, take the leader line too.
 
 ## Checklist
 
-- [ ] New furniture is added to `furnitureRects()`, or popups will sit on it.
+- [ ] New furniture carries `data-sgs-furniture`, or popups will sit on it. Nothing to add
+      here — `obstacles()` asks the DOM via `furniture.js`, it holds no list of its own.
 - [ ] The placement decision stays pure; only the wrapper touches the DOM.
 - [ ] Placement re-runs on `move`, `resize`, and any furniture change.
 - [ ] Changing the setting re-places what is ALREADY open. A setting that only applies to the

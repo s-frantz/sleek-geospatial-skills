@@ -21,11 +21,11 @@
  * with the machine.
  *
  * ── What counts as furniture ─────────────────────────────────────────────────────────────
- * ADJACENT candidates are rejected if they land on the app's own chrome: the panel while it
- * occludes the left edge (a geometric question — see visible-area.js), the control stacks,
- * and the dock. A panel the user has dragged into the middle of the map is NOT furniture any
- * more: it is something they chose to put there and can move again, so a popup may land on
- * it — the popup is information they just asked for, and is easily dismissed.
+ * ADJACENT candidates are rejected if they land on anything marked `data-sgs-furniture` WHILE
+ * it occludes an edge (a geometric question — see furniture.js). Furniture parked away from
+ * every edge is NOT furniture any more: it is something the user chose to put there and can
+ * move again, so a popup may land on it — the popup is information they just asked for, and
+ * is easily dismissed. This file has no list of ids to keep in sync; it asks the DOM.
  *
  * ── The last resort ──────────────────────────────────────────────────────────────────────
  * When nothing fits, the popup sits ON the anchor rather than in a far corner. A popup
@@ -34,7 +34,7 @@
  */
 
 import { getPrefs, setPrefs } from '../utils/prefs.js';
-import { dockedPanelRight } from '../utils/visible-area.js';
+import { edgeFurniture, edgeCover } from '../utils/furniture.js';
 
 /**
  * @typedef {{left: number, top: number, right: number, bottom: number}} Rect
@@ -87,38 +87,25 @@ export function safeArea() {
 }
 
 /**
- * The app's own furniture, as screen rects an ADJACENT popup must not cover.
- * The panel is included only while it occludes the left edge; see the header.
+ * Every element marked `data-sgs-furniture` WHILE it occludes an edge, as screen rects an
+ * ADJACENT popup must not cover. Nothing here names a specific piece of chrome — an app that
+ * adds a third panel or an inspector on the right needs to change nothing in this file for
+ * its popups to route around it too.
  * @returns {Rect[]}
  */
 export function obstacles() {
-    if (typeof document === 'undefined') return [];
-    /** @type {Rect[]} */
-    const out = [];
-    /** @param {Element|null} el */
-    const push = (el) => {
-        if (!el) return;
-        // The rect alone decides visibility: display none is a zero rect, and offsetParent
-        // is null for every fixed element regardless (see visible-area.js).
-        const r = el.getBoundingClientRect();
-        if (r.width > 0 && r.height > 0) out.push(rect(r.left, r.top, r.width, r.height));
-    };
-    if (dockedPanelRight() > 0) push(document.getElementById('sgs-panel'));
-    push(document.querySelector('.maplibregl-ctrl-top-right'));
-    push(document.querySelector('.maplibregl-ctrl-bottom-right'));
-    push(document.getElementById('sgs-dock'));
-    return out;
+    return edgeFurniture().map((f) => rect(f.rect.left, f.rect.top, f.rect.width, f.rect.height));
 }
 
 /**
- * Where a CLEAN popup's column starts: right of the panel while the panel occludes the left
- * edge, the viewport edge otherwise. Recomputed per open, so the answer tracks the live
- * panel rather than a value remembered from an older layout.
+ * Where a CLEAN popup's column starts: right of whatever furniture occludes the left edge,
+ * the viewport edge otherwise. Recomputed per open, so the answer tracks live geometry rather
+ * than a value remembered from an older layout.
  * @returns {number}
  */
 export function cleanBaseLeft() {
-    const panelRight = dockedPanelRight();
-    return panelRight > 0 ? panelRight + EDGE : EDGE;
+    const cover = edgeCover();
+    return cover.left > 0 ? cover.left + EDGE : EDGE;
 }
 
 /**

@@ -1,0 +1,78 @@
+/* ── Quick settings popover — TIER 2 component ─────────────────────────────────────────────
+   Self-contained: positioned by quick-settings.js (left of the gear, clamped to viewport).
+   The z-index is deliberately above the control stack, so a popover opening left of the gear
+   is drawn ON the stack rather than sliding under the buttons below it. */
+
+.sgs-quick {
+    position: fixed;
+    z-index: 15;
+    width: 264px;
+    max-height: calc(100vh - 80px);
+    overflow: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--sgs-bg, #fff);
+    border: 1px solid var(--sgs-line, #d9dce2);
+    border-radius: var(--sgs-radius, 8px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+    color: var(--sgs-fg, #1b1e24);
+}
+
+.sgs-set-row { display: flex; align-items: center; gap: 10px; }
+.sgs-set-label { color: var(--sgs-fg-dim, #5c636e); margin-right: auto; }
+
+.sgs-seg { display: flex; border: 1px solid var(--sgs-line, #d9dce2); border-radius: var(--sgs-radius-sm, 5px); overflow: hidden; }
+
+.sgs-seg-btn {
+    padding: 3px 9px;
+    border: 0;
+    border-left: 1px solid var(--sgs-line, #d9dce2);
+    background: var(--sgs-bg, #fff);
+    color: var(--sgs-fg-dim, #5c636e);
+    font: inherit;
+    cursor: pointer;
+}
+
+.sgs-seg-btn:first-child { border-left: 0; }
+.sgs-seg-btn:hover { background: var(--sgs-hover, rgba(0,0,0,.06)); }
+.sgs-seg-btn[aria-checked="true"] { background: var(--sgs-accent, #2f6fd0); color: var(--sgs-accent-fg, #fff); }
+
+/* The shortcut inventory, ruled off as its own quiet band. */
+.sgs-shortcuts {
+    border-top: 1px solid var(--sgs-line-soft, #e9ebef);
+    margin-top: 2px;
+    padding-top: 9px;
+    display: grid;
+    gap: 2px;
+    font-size: 11px;
+}
+
+.sgs-shortcut {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 3px 0;
+    color: var(--sgs-fg-dim, #5c636e);
+    line-height: 1.35;
+}
+
+/* The key chip is a DRAWN BOX and the description is bare text, so they need more air between
+   them than two plain runs of text would: the flex gap alone reads as smushed against the
+   chip's border. The gap does the work and this adds the last of it. */
+.sgs-shortcut span { padding-left: 2px; }
+
+.sgs-shortcut kbd {
+    flex: none;
+    font-family: var(--sgs-mono, ui-monospace, monospace);
+    font-size: 10px;
+    line-height: 1.5;
+    min-width: 78px;
+    text-align: center;
+    padding: 2px 6px;
+    border: 1px solid var(--sgs-line, #d9dce2);
+    border-radius: var(--sgs-radius-sm, 5px);
+    background: var(--sgs-bg-sunk, #f4f5f7);
+    color: var(--sgs-fg, #1b1e24);
+}

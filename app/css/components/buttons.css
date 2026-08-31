@@ -1,0 +1,38 @@
+/* ── Buttons — TIER 2 component ────────────────────────────────────────────────────────────
+   One icon-button shell everywhere off the map: panel berth, popup head, window head, rows.
+   The glyph inherits `color`, so hover is a single rule for the whole app. Self-contained. */
+
+.sgs-icon-btn {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    flex: none;
+    padding: 0;
+    border: 0;
+    border-radius: var(--sgs-radius-sm, 5px);
+    background: none;
+    color: var(--sgs-fg-dim, #5c636e);
+    cursor: pointer;
+}
+
+.sgs-icon-btn:hover { background: var(--sgs-hover, rgba(0,0,0,.06)); color: var(--sgs-fg, #1b1e24); }
+.sgs-icon-btn:focus-visible { outline: 2px solid var(--sgs-accent, #2f6fd0); outline-offset: 1px; }
+
+.sgs-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--sgs-line, #d9dce2);
+    border-radius: var(--sgs-radius-sm, 5px);
+    background: var(--sgs-bg, #fff);
+    color: var(--sgs-fg, #1b1e24);
+    font: inherit;
+    cursor: pointer;
+}
+
+.sgs-btn:hover { background: var(--sgs-hover, rgba(0,0,0,.06)); }
+.sgs-btn--primary {
+    background: var(--sgs-accent, #2f6fd0);
+    border-color: var(--sgs-accent, #2f6fd0);
+    color: var(--sgs-accent-fg, #fff);
+}
+.sgs-btn--primary:hover { filter: brightness(1.08); }

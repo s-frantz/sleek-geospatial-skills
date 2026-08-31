@@ -22,7 +22,22 @@
 </script>
 
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css">
+
+<!-- Three tiers, loaded in dependency order. See docs/working (private) and CONTRIBUTING.md
+     for what each tier promises and how it is meant to travel between apps. -->
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/components/swatch.css">
+<link rel="stylesheet" href="css/components/source-pill.css">
+<link rel="stylesheet" href="css/components/field-badge.css">
+<link rel="stylesheet" href="css/components/field-table.css">
+<link rel="stylesheet" href="css/components/buttons.css">
+<link rel="stylesheet" href="css/components/tooltip.css">
+<link rel="stylesheet" href="css/components/overlay-window.css">
+<link rel="stylesheet" href="css/components/quick-settings.css">
+<link rel="stylesheet" href="css/components/map-controls.css">
+<link rel="stylesheet" href="css/components/edge-mark.css">
+<link rel="stylesheet" href="css/components/debug-guides.css">
+<link rel="stylesheet" href="css/furniture.css">
 <link rel="icon" href="data:,">
 </head>
 <body>
@@ -31,7 +46,10 @@
 
 <!-- The left panel. Its postures live in panel.js; its geometry reaches CSS through
      --sgs-panel-w / --sgs-panel-h. See the `panel-anatomy` skill. -->
-<div id="sgs-panel" class="sgs-panel">
+<!-- data-sgs-furniture: the framework contract. Any element carrying this attribute is
+     scanned by app/js/utils/furniture.js for camera padding and popup obstacle avoidance —
+     no id to register anywhere else. See CONTRIBUTING.md. -->
+<div id="sgs-panel" class="sgs-panel" data-sgs-furniture>
     <div class="sgs-panel-head">
         <span class="sgs-panel-title">Layers</span>
         <div class="sgs-berth" id="sgs-panel-berth"></div>

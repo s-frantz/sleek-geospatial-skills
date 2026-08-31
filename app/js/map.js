@@ -31,3 +31,13 @@ export const map = new maplibregl.Map({
 // Exposed so Playwright specs can drive and interrogate the real camera rather than
 // re-implementing it. See the `verify-in-the-browser` skill.
 window.sgsMap = map;
+
+// MapLibre creates its four corner containers synchronously as part of construction, before
+// any control is added. Marking them as furniture (see app/js/utils/furniture.js) means the
+// control stacks participate in camera padding and popup obstacle avoidance the same way any
+// other furniture does, with no id hardcoded into the framework tier. An empty corner
+// contributes a zero rect and is filtered out automatically.
+for (const corner of ['top-left', 'top-right', 'bottom-left', 'bottom-right']) {
+    const el = map.getContainer().querySelector(`.maplibregl-ctrl-${corner}`);
+    if (el) el.setAttribute('data-sgs-furniture', '');
+}

@@ -6,7 +6,7 @@ description: The side panel's geometry - four postures (auto, manual width, manu
 # Panel anatomy
 
 `app/js/ui/panel.js`, `#sgs-panel` in `app/index.html`, and the `.sgs-panel` block in
-`app/style.css`.
+`app/css/furniture.css`.
 
 ## Four postures
 

@@ -1,0 +1,269 @@
+/* ============================================================================================
+   furniture.css — TIER 3: the demo's OWN furniture. Yours to rewrite.
+
+   This is not a shared library file. It is the specific visual chrome of THIS app's panel,
+   dock, and popups — copied once at instantiation, then owned. A second panel, a right-docked
+   inspector, a form instead of a layer list: none of that happens by editing a shared file,
+   it happens by writing new furniture here (or replacing this file outright) and giving each
+   root element `data-sgs-furniture` so the FRAMEWORK tier (app/js/utils/furniture.js,
+   visible-area.js, popup-placement.js) can compute padding and obstacle avoidance around it
+   with no further wiring. See docs — CONTRIBUTING.md and the `panel-anatomy` / `stow` /
+   `popup-placement` skills — for what the framework promises and what it leaves to you.
+
+   The one deliberate exception: the rule below coupling the dock's open state to the panel's
+   bottom edge is THIS app's specific choice about how its two pieces of furniture share space.
+   The framework does not generalize that — it has no opinion on how your furniture arranges
+   around itself, only on padding the camera and keeping popups off of it. Write your own
+   version of this rule for your own furniture.
+   ========================================================================================= */
+
+/* ── The left panel ─────────────────────────────────────────────────────────────────────── */
+
+.sgs-panel {
+    position: absolute;
+    left: var(--sgs-panel-inset, 10px);
+    top: var(--sgs-panel-inset, 10px);
+    bottom: var(--sgs-panel-inset, 10px);
+    z-index: 5;
+
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    max-width: 60vw;
+
+    background: var(--sgs-bg, #fff);
+    border: 1px solid var(--sgs-line, #d9dce2);
+    border-radius: var(--sgs-radius, 8px);
+    box-shadow: var(--sgs-shadow, 0 6px 20px rgba(0,0,0,.16));
+    overflow: hidden;
+}
+
+/* auto: width fits content, height reaches the bottom inset. No inline styles at all, which
+   is what makes "double-click a grip" a genuine return to the default rather than a guess at
+   what the default was. */
+.sgs-panel:not(.sgs-panel--manual-w) { width: max-content; }
+.sgs-panel--manual-w { width: var(--sgs-panel-w); }
+
+/* manual-h: the panel releases its bottom anchor and hugs the height it was given. */
+.sgs-panel--manual-h { bottom: auto; height: var(--sgs-panel-h); }
+
+/* float: unpinned. Left and top come from JavaScript; the bottom anchor goes, so the panel
+   hugs its content. This is also the state in which furniture.js reports no edge occlusion —
+   see edgeOf() in app/js/utils/furniture.js. */
+.sgs-panel--float {
+    bottom: auto;
+    max-height: 70vh;
+    cursor: default;
+}
+
+/* FOLDED: the head stays in its slot and keeps its controls; the body collapses and the
+   panel hugs the bar. Same shape as the folded dock, deliberately. */
+.sgs-panel--folded {
+    bottom: auto;
+    height: auto;
+    min-width: 0;
+    width: max-content;
+}
+
+.sgs-panel--folded .sgs-grip { display: none; }
+.sgs-panel--folded .sgs-panel-head { border-bottom: none; }
+.sgs-panel--folded .sgs-panel-fold svg { transform: rotate(-90deg); }
+
+/* CLOSED: the section leaves the layout entirely. What remains is its MARK (edge-mark.css),
+   berthed on the left edge — the panel's own edge, so the tab is where the panel went. */
+.sgs-panel.sgs-closed { display: none; }
+
+.sgs-panel-fold svg { transition: transform 120ms ease; }
+
+.sgs-panel-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 6px 6px 10px;
+    border-bottom: 1px solid var(--sgs-line-soft, #e9ebef);
+    background: var(--sgs-bg-sunk, #f4f5f7);
+    cursor: grab;
+    user-select: none;
+}
+
+.sgs-panel-head:active { cursor: grabbing; }
+
+.sgs-panel-title {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin-right: auto;
+    white-space: nowrap;
+}
+
+/* A BERTH is a corner of chrome that already exists, never a dedicated lane. */
+.sgs-berth { display: flex; align-items: center; gap: 2px; }
+
+.sgs-panel-body { overflow: auto; padding: 6px; }
+
+/* Grips. Invisible until hovered: a resize affordance that is always drawn is furniture in
+   its own right, and there are two of them. */
+.sgs-grip { position: absolute; z-index: 1; }
+.sgs-grip--w { top: 0; right: 0; width: 6px; height: 100%; cursor: ew-resize; }
+.sgs-grip--h { left: 0; bottom: 0; height: 6px; width: 100%; cursor: ns-resize; }
+.sgs-grip:hover { background: var(--sgs-accent, #2f6fd0); opacity: 0.35; }
+
+/* ── Panel rows ─────────────────────────────────────────────────────────────────────────── */
+
+.sgs-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 4px 4px 6px;
+    border-radius: var(--sgs-radius-sm, 5px);
+    white-space: nowrap;
+}
+
+.sgs-row:hover { background: var(--sgs-hover, rgba(0,0,0,.06)); }
+
+.sgs-row-label { display: flex; align-items: center; gap: 7px; cursor: pointer; margin-right: auto; }
+.sgs-row-text { padding-right: 8px; }
+
+/* Row actions fade in on hover, but they are never removed from the accessibility tree and
+   they come back on focus, so the keyboard can reach them. */
+.sgs-row-actions { display: flex; gap: 1px; opacity: 0; transition: opacity 90ms ease; }
+.sgs-row:hover .sgs-row-actions,
+.sgs-row:focus-within .sgs-row-actions { opacity: 1; }
+
+/* ── The bottom dock ────────────────────────────────────────────────────────────────────── */
+
+/* Open: a full-width band (small inset each side), height owned by dock.js as an inline style
+   and PUBLISHED as --sgs-dock-h so the panel-coupling rule below can stay out of its way. */
+.sgs-dock {
+    position: fixed;
+    left: var(--sgs-panel-inset, 10px);
+    right: var(--sgs-panel-inset, 10px);
+    bottom: var(--sgs-panel-inset, 10px);
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+
+    background: var(--sgs-bg, #fff);
+    border: 1px solid var(--sgs-line, #d9dce2);
+    border-radius: var(--sgs-radius, 8px);
+    box-shadow: 0 -6px 20px rgba(16, 20, 28, 0.14), 0 1px 3px rgba(16, 20, 28, 0.1);
+    overflow: hidden;
+}
+
+/* THIS APP'S OWN CHOICE: the dock displaces the panel, so while it is open the panel's bottom
+   sits just above it. The framework does not know this rule exists — it only ever computes
+   padding and obstacle rects from live geometry (furniture.js). If you add a third piece of
+   furniture, decide its own arrangement rule the same way: bespoke CSS, not a framework
+   feature. The exempt postures already gave up their bottom anchor, and each pairing must be
+   restated here because this three-class selector would otherwise outweigh theirs. */
+body.sgs-dock-open .sgs-panel { bottom: calc(var(--sgs-dock-h, 250px) + 16px); }
+body.sgs-dock-open .sgs-panel--manual-h,
+body.sgs-dock-open .sgs-panel--float,
+body.sgs-dock-open .sgs-panel--folded { bottom: auto; }
+
+/* Top-edge resize grip: a thin strip with a centred pill, overlaid absolutely so it adds zero
+   height to the head. */
+.sgs-dock-grip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    z-index: 2;
+    cursor: ns-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sgs-dock-grip::before {
+    content: "";
+    width: 36px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--sgs-line, #d9dce2);
+}
+
+.sgs-dock-grip:hover::before { background: var(--sgs-fg-dim, #5c636e); }
+
+.sgs-dock-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    border-bottom: 1px solid var(--sgs-line-soft, #e9ebef);
+    background: var(--sgs-bg-sunk, #f4f5f7);
+    flex: none;
+}
+
+.sgs-dock-swatch,
+.sgs-dock-pill { display: inline-flex; align-items: center; flex: none; }
+.sgs-dock-title { font-weight: 600; }
+.sgs-dock-count { color: var(--sgs-fg-dim, #5c636e); }
+.sgs-dock-spacer { flex: 1; }
+.sgs-dock-body { overflow: auto; }
+
+/* Folded: the head alone, still a full-width bar, still reporting. The whole bar unfolds. */
+.sgs-dock--folded .sgs-dock-body { display: none; }
+.sgs-dock--folded .sgs-dock-grip { display: none; }
+.sgs-dock--folded .sgs-dock-head { border-bottom: none; cursor: pointer; }
+.sgs-dock--folded .sgs-dock-fold svg { transform: rotate(180deg); }
+
+/* The dock's mark is .sgs-mark--bottom; see components/edge-mark.css. */
+
+/* ── Popups ─────────────────────────────────────────────────────────────────────────────── */
+
+/* The leader layer sits under the popups and over the map, and never takes a pointer event: a
+   line you cannot click is a line that cannot get in the way. */
+.sgs-leaders {
+    position: fixed;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    width: 100%;
+    height: 100%;
+}
+
+.sgs-leader {
+    stroke: var(--sgs-fg-dim, #5c636e);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+    opacity: 0.6;
+}
+
+.sgs-popups { position: fixed; inset: 0; z-index: 7; pointer-events: none; }
+
+.sgs-popup {
+    position: fixed;
+    pointer-events: auto;
+    width: 280px;
+    max-height: 45vh;
+    display: flex;
+    flex-direction: column;
+
+    background: var(--sgs-bg, #fff);
+    border: 1px solid var(--sgs-line, #d9dce2);
+    border-top: 2px solid var(--sgs-popup-accent, var(--sgs-accent, #2f6fd0));
+    border-radius: var(--sgs-radius, 8px);
+    box-shadow: var(--sgs-shadow, 0 6px 20px rgba(0,0,0,.16));
+    overflow: hidden;
+}
+
+.sgs-popup-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 5px 5px 10px;
+    border-bottom: 1px solid var(--sgs-line-soft, #e9ebef);
+    cursor: grab;
+    user-select: none;
+}
+
+.sgs-popup-title {
+    font-weight: 600;
+    margin-right: auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sgs-popup-body { overflow: auto; padding: 4px 0; }

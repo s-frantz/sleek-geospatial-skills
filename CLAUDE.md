@@ -6,20 +6,30 @@ trade.
 
 ## Read the skill first
 
-`.claude/skills/` holds ten skills. Before changing anything, read the one that covers it:
+`.claude/skills/` holds eleven skills. Before changing anything, read the one that covers it:
 
 | touching | read |
 |---|---|
 | `index.html`, `app/vendor/` | `boot-order` |
-| colours, `style.css` tokens, theme | `theme-tokens` |
+| colours, `css/tokens.css`, theme | `theme-tokens` |
 | map controls, `control-stack.js` | `map-control-icons` |
 | `icons.js`, any glyph art | `icon-centering` |
-| `panel.js`, panel CSS | `panel-anatomy` |
+| `panel.js`, `css/furniture.css` | `panel-anatomy` |
 | any collapse, hide or minimise | `stow` |
 | modals, dialogs, the Escape key | `overlay-window` |
 | popups, tooltips, anything anchored | `popup-placement` |
 | `fitBounds`, `easeTo`, zoom-to | `chrome-aware-camera` |
 | tests, or claiming something works | `verify-in-the-browser` |
+| `furniture.js`, `data-sgs-furniture`, the camera/popup contract | `chrome-aware-camera` |
+| `sgs.json`, `sgs:status`, syncing an app against this repo | `upgrading-an-app` |
+
+## Editing sgs-components.json
+
+Adding a file to an existing component's list is a normal change. Adding a NEW component id
+is bigger than it looks: every app that has already run `sgs:init` gets a component in its
+`sgs.json` the next time someone regenerates it, or is simply missing one if they don't. Prefer
+folding a new file into the nearest existing component over minting a new id, unless it is
+genuinely likely to change on its own schedule.
 
 ## House rules
 

@@ -1,0 +1,63 @@
+/* ── Field tables — TIER 2 component ───────────────────────────────────────────────────────
+   Two surfaces, one vocabulary: the dock's row table and the popup's TYPE | FIELD | VALUE
+   table both read as badge-then-name, so they are one file rather than two that must be kept
+   in sync by hand. Self-contained: knows nothing about the panel or dock that hosts it. */
+
+.sgs-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+
+.sgs-table th,
+.sgs-table td {
+    padding: 4px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--sgs-line-soft, #e9ebef);
+    white-space: nowrap;
+}
+
+.sgs-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--sgs-bg, #fff);
+    color: var(--sgs-fg-dim, #5c636e);
+    font-weight: 600;
+    z-index: 1;
+    border-bottom: 1px solid var(--sgs-line, #d9dce2);
+}
+
+/* The header cell reads like a popup field row: badge, then name. Same vocabulary across the
+   two surfaces that show attributes. */
+.sgs-th-field { display: flex; align-items: center; gap: 6px; }
+
+.sgs-table tbody tr:hover { background: var(--sgs-hover, rgba(0,0,0,.06)); }
+.sgs-table tbody tr:focus { outline: 2px solid var(--sgs-accent, #2f6fd0); outline-offset: -2px; }
+
+/* TYPE | FIELD | VALUE. The type column is first because it is fixed-width and monospace, so
+   it forms a clean left rail the eye can skip; last, it would ragged-edge against
+   variable-length values. Each column is ruled off the next, which is what makes a dense field
+   list scannable without alternating row colours. */
+.sgs-fields { border-collapse: collapse; width: 100%; }
+
+.sgs-fields tr { border-bottom: 1px solid var(--sgs-line-soft, #e9ebef); }
+.sgs-fields tr:last-child { border-bottom: none; }
+
+.sgs-fields th,
+.sgs-fields td { padding: 5px 8px; vertical-align: top; word-break: break-word; }
+
+.sgs-field-type-col {
+    width: 1%;
+    white-space: nowrap;
+    border-right: 1px solid var(--sgs-line-soft, #e9ebef);
+    padding-left: 10px;
+}
+
+.sgs-fields th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--sgs-fg-dim, #5c636e);
+    background: var(--sgs-bg-sunk, #f4f5f7);
+    white-space: nowrap;
+    width: 1%;
+    max-width: 130px;
+    border-right: 1px solid var(--sgs-line-soft, #e9ebef);
+}
+
+.sgs-fields td:last-child { font-variant-numeric: tabular-nums; padding-right: 10px; }

@@ -35,9 +35,36 @@ table, built from a hardcoded array in `app/js/layers.js`. There is no layer mod
 schema and no symbology, because those are the parts most likely to be wrong for your data. The
 geometry and the relationships are the parts worth taking.
 
+## Building your own app on this
+
+```bash
+node scripts/sgs-init.mjs path/to/your-app
+```
+
+Scaffolds a complete, self-contained copy — nothing is ever imported live from this repo, so
+your app stays runnable if this one disappears. What travels: a small token canon
+(`app/css/tokens.css`, referenced elsewhere with a CSS fallback), self-contained components
+(`app/css/components/*.css` + paired `.js`), and a framework CONTRACT rather than fixed code —
+mark any element `data-sgs-furniture` and it participates in camera padding and popup obstacle
+avoidance with nothing to register anywhere else. The demo furniture (`app/js/main.js`,
+`panel.js`, `dock.js`, `popup.js`, `app/css/furniture.css`) is yours from the moment it's
+copied — a second panel, a form instead of a layer list, happens by writing new furniture, not
+by editing something shared.
+
+```bash
+npm run sgs:status path/to/your-app
+```
+
+Each component in your app's `sgs.json` carries a watermark — the release tag it was last
+synced from — rather than a live version pin. This reports which watermarked components have
+genuinely changed content upstream since then (not merely how many releases have passed).
+Full detail, the upgrade process, and how to contribute a fix back are in
+[CONTRIBUTING.md](CONTRIBUTING.md) and the [`upgrading-an-app`](.claude/skills/upgrading-an-app/SKILL.md)
+skill.
+
 ## What is in the skills
 
-`.claude/skills/`, ten of them. Each points at real files and a runnable command.
+`.claude/skills/`, eleven of them. Each points at real files and a runnable command.
 
 | skill | the short version |
 |---|---|
@@ -51,6 +78,7 @@ geometry and the relationships are the parts worth taking.
 | [`popup-placement`](.claude/skills/popup-placement/SKILL.md) | CLEAN versus ADJACENT, and what a popup refuses to sit on |
 | [`chrome-aware-camera`](.claude/skills/chrome-aware-camera/SKILL.md) | why `fitBounds` puts your feature under the panel |
 | [`verify-in-the-browser`](.claude/skills/verify-in-the-browser/SKILL.md) | four rungs of proof, and the one rung not shipped |
+| [`upgrading-an-app`](.claude/skills/upgrading-an-app/SKILL.md) | two mechanical steps, then two that need real judgment |
 
 If you use Claude Code, cloning the repo is enough: skills in `.claude/skills/` are picked up
 automatically. If you do not, they are ordinary Markdown and read fine on their own.
@@ -89,12 +117,16 @@ read in `app/js/` is exactly what the browser runs.
 
 ```
 app/          the runnable application
-  index.html  style.css  data/  vendor/
+  index.html  data/  vendor/
+  css/        tokens.css  components/*.css  furniture.css
   js/         main.js map.js layers.js icons.js  ui/  utils/
 scripts/      serve.mjs  icon-ink.mjs  icon-targets.json
+               sgs-init.mjs  sgs-status.mjs  sgs-components.json  (the catalog)
 tests/        unit/ (rung 2)  e2e/ (rung 3)
-.claude/skills/   the ten skills
+.claude/skills/   the eleven skills
 types/        ambient declarations for the vendored globals
+CONTRIBUTING.md   starting an app, upgrading one, contributing a fix back
+CHANGELOG.md      one entry per release; Breaking: lines name affected components
 ```
 
 ## Licence

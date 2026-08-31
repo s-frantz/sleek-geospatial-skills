@@ -1,0 +1,46 @@
+{
+  "_comment": "The component catalog: which files make up each watermark-able unit. Read by sgs-init.mjs (what to copy into a new app) and sgs-status.mjs (what to diff a watermark against). Paths are repo-relative. Adding a file to an existing component's list is a normal PR; adding a new component id is a bigger one, since every app's sgs.json gains a line the next time it runs sgs:status.",
+
+  "tokens": ["app/css/tokens.css"],
+  "swatch": ["app/css/components/swatch.css"],
+  "source-pill": ["app/css/components/source-pill.css"],
+  "field-badge": ["app/css/components/field-badge.css", "app/js/ui/field-badge.js"],
+  "field-table": ["app/css/components/field-table.css"],
+  "buttons": ["app/css/components/buttons.css"],
+  "tooltip": ["app/css/components/tooltip.css", "app/js/ui/tooltip.js"],
+  "overlay-window": ["app/css/components/overlay-window.css", "app/js/ui/overlay-window.js"],
+  "quick-settings": ["app/css/components/quick-settings.css", "app/js/ui/quick-settings.js"],
+  "map-controls": [
+    "app/css/components/map-controls.css",
+    "app/js/ui/control-glyphs.js",
+    "app/js/ui/control-stack.js",
+    "app/js/ui/settings-control.js"
+  ],
+  "edge-mark": ["app/css/components/edge-mark.css", "app/js/ui/stow.js"],
+  "debug-guides": ["app/css/components/debug-guides.css"],
+  "icons": ["app/js/icons.js"],
+  "theme": ["app/js/ui/theme.js"],
+  "dismiss-stack": ["app/js/ui/dismiss-stack.js"],
+  "primitives": ["app/js/utils/draggable.js", "app/js/utils/prefs.js", "app/js/utils/geo.js"],
+  "type-pill": ["app/js/ui/type-pill.js"],
+  "symbology": ["app/js/ui/symbology.js"],
+
+  "framework": [
+    "app/js/utils/furniture.js",
+    "app/js/utils/visible-area.js",
+    "app/js/ui/popup-placement.js"
+  ],
+
+  "furniture-demo": [
+    "app/css/furniture.css",
+    "app/js/main.js",
+    "app/js/map.js",
+    "app/js/layers.js",
+    "app/js/ui/panel.js",
+    "app/js/ui/dock.js",
+    "app/js/ui/popup.js",
+    "app/js/ui/layer-rows.js",
+    "app/js/ui/about-window.js",
+    "app/index.html"
+  ]
+}

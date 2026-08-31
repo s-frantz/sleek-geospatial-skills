@@ -18,7 +18,7 @@ description: Light, dark and system themes with no flash of the wrong colours - 
 System is the ABSENCE of the attribute. Writing `data-theme="system"` gives you a fourth thing
 every rule has to handle and buys nothing: the absence already says it. See `app/js/ui/theme.js`.
 
-The consequence for CSS is a specific three-block shape, in `app/style.css`:
+The consequence for CSS is a specific three-block shape, in `app/css/tokens.css`:
 
 ```css
 :root { --sgs-bg: #fff; /* every token, always */ }

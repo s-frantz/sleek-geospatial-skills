@@ -1,0 +1,18 @@
+/* ── Development guides — TIER 2 component (opt-in, dev only) ─────────────────────────────
+   Turned on by adding `sgs-guides` to <body>. Red marks a button's own centre lines; the
+   glyph's ink should sit symmetrically about them. Guides SHOW a problem; they do not measure
+   it, which is what `npm run icons` is for. See the `icon-centering` skill. */
+
+body.sgs-guides .sgs-ctrl-btn,
+body.sgs-guides .sgs-icon-btn { position: relative; }
+
+body.sgs-guides .sgs-ctrl-btn::after,
+body.sgs-guides .sgs-icon-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(to right, transparent calc(50% - 0.5px), rgba(255, 0, 0, 0.75) calc(50% - 0.5px), rgba(255, 0, 0, 0.75) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+        linear-gradient(to bottom, transparent calc(50% - 0.5px), rgba(255, 0, 0, 0.75) calc(50% - 0.5px), rgba(255, 0, 0, 0.75) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+}

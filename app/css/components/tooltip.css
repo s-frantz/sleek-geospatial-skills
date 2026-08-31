@@ -1,0 +1,29 @@
+/* ── Tooltip — TIER 2 component ────────────────────────────────────────────────────────────
+   ONE shared bubble, positioned by tooltip.js: centred under its element, clamped to the
+   viewport, flipped above when cramped. Pointer-events none so it can never trap a hover.
+   Self-contained: reads only `[data-side]`, which tooltip.js sets. */
+
+.sgs-tooltip {
+    position: fixed;
+    z-index: 40;
+    max-width: 260px;
+    padding: 4px 9px;
+    background: var(--sgs-bg, #fff);
+    border: 1px solid var(--sgs-line, #d9dce2);
+    border-radius: var(--sgs-radius-sm, 5px);
+    box-shadow: var(--sgs-shadow, 0 6px 20px rgba(0,0,0,.16));
+    color: var(--sgs-fg, #1b1e24);
+    font-size: 12px;
+    line-height: 1.4;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 80ms ease;
+}
+
+.sgs-tooltip--visible { opacity: 1; }
+
+/* The 4px slide is TOWARD the element, so the bubble reads as coming from the thing it names
+   rather than merely appearing near it. */
+.sgs-tooltip { transform: translateY(-3px); }
+.sgs-tooltip[data-side="left"] { transform: translateX(4px); }
+.sgs-tooltip--visible { transform: none; }

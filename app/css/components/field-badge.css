@@ -1,0 +1,39 @@
+/* ── Field type badge — TIER 2 component ───────────────────────────────────────────────────
+   Three monospace characters, coloured by kind. The colours are fixed hexes shared by both
+   themes — a type is a type — so only the plate behind them changes.
+   Self-contained: no knowledge of table or popup layout around it. */
+
+.sgs-field-badge {
+    display: inline-block;
+    flex: none;
+    font-family: var(--sgs-mono, ui-monospace, monospace);
+    font-size: 9px;
+    line-height: 12px;
+    min-width: 22px;
+    text-align: center;
+    padding: 1px 3px;
+    border-radius: var(--sgs-radius-sm, 5px);
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--sgs-fg-dim, #5c636e);
+    user-select: none;
+}
+
+:root[data-theme="dark"] .sgs-field-badge { background: rgba(255, 255, 255, 0.05); }
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .sgs-field-badge { background: rgba(255, 255, 255, 0.05); }
+}
+
+.sgs-field-badge[data-type="string"]   { color: #c9a227; }
+.sgs-field-badge[data-type="integer"]  { color: #4caf50; }
+.sgs-field-badge[data-type="float"]    { color: #5c9bd4; }
+.sgs-field-badge[data-type="datetime"] { color: #ab7bd4; }
+.sgs-field-badge[data-type="boolean"]  { color: #e08050; }
+
+.sgs-field-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

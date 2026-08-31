@@ -11,7 +11,9 @@
     "test:unit": "vitest run",
     "test": "playwright test",
     "icons": "node scripts/icon-ink.mjs",
-    "verify": "npm run typecheck && npm run test:unit && npm test && npm run icons"
+    "verify": "npm run typecheck && npm run test:unit && npm test && npm run icons",
+    "sgs:init": "node scripts/sgs-init.mjs",
+    "sgs:status": "node scripts/sgs-status.mjs"
   },
   "keywords": [
     "maplibre",
