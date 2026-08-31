@@ -52,16 +52,19 @@ confession that the controls do not reverse.
 
 ## Floating changes what the panel IS
 
-A docked panel occludes the left edge, so the camera pads for it and popups avoid it. A
-floating panel sits anywhere, so `dockedPanelRight()` returns 0 and both stop treating it as an
-obstacle. Reserving a band for something that may be in the middle of the map buys nothing, and
-reserving a band around wherever it currently is would make the camera jump every time it
-moved. See `chrome-aware-camera`.
+A docked panel hugs the left edge, so the camera pads for it and popups avoid it. A floating
+panel sits anywhere, so `edgeOf()` (`app/js/utils/furniture.js`) reads its rect as hugging no
+edge at all and both stop treating it as an obstacle — the SAME `data-sgs-furniture` marker
+stays on the element the whole time; only its live geometry changes. Reserving a band for
+something that may be in the middle of the map buys nothing, and reserving a band around
+wherever it currently is would make the camera jump every time it moved. See
+`chrome-aware-camera`.
 
 ## Checklist
 
 - [ ] New geometry is a new posture and a new branch in `apply()`, never a style written from a
       handler.
-- [ ] Anything the camera must avoid is reported by `visible-area.js`, not hardcoded.
+- [ ] The panel element keeps its `data-sgs-furniture` attribute through every posture — the
+      camera and popup placement read it generically, so there is nothing else to wire.
 - [ ] New persisted geometry goes in `prefs.js` and stays out of anything shared.
 - [ ] The panel's interior is your business. The panel's frame is this file's.

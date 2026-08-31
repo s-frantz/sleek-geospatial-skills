@@ -65,6 +65,11 @@ Two bugs in this repo's own tests, both worth generalising:
 2. The same helper then found a point that was on a polygon but underneath the panel, so the
    click went to the layer list. It now checks `document.elementFromPoint` as well:
    `queryRenderedFeatures` answers about the MAP and knows nothing about the DOM over it.
+3. Selectors used `[title^="Show"]` to find a button. `tooltip.js` LIFTS an element's `title`
+   into `data-tip` the first time it is hovered, so the attribute is gone by the second
+   interaction — a test that hovers once (to trigger a tooltip check) and then tries to
+   select by `title` again passes on the first pass and hangs on the second. `aria-label` is
+   never rewritten, so every spec here selects by that instead.
 
 **A test whose setup is a guess reports on the guess.**
 

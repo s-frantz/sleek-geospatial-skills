@@ -1,0 +1,36 @@
+name: Tag release
+
+# A merge to main always carries a version bump (enforced by version-check.yml on the PR), so
+# a merge and a release are the same event: tag v<package.json version> automatically. Skips
+# quietly if that tag already exists, so a direct push that doesn't touch package.json (rare;
+# admins can bypass the PR requirement) doesn't fail the run.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tag v<version> from package.json if it doesn't exist yet
+        run: |
+          set -e
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          TAG="v$VERSION"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "$TAG already exists — nothing to do."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+          echo "Tagged $TAG."

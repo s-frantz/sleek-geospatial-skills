@@ -41,17 +41,31 @@ declaration then colours the whole stack, in every theme and every state:
 .maplibregl-ctrl-group.sgs-ctrl button.sgs-ctrl-btn:hover { color: var(--sgs-fg); }
 ```
 
-The counter-example is in the same stylesheet. MapLibre's own zoom buttons carry their glyphs
-as background images baked in one colour, so dark mode needs:
+MapLibre's OWN zoom, compass, and geolocate buttons do not have this property — their glyphs
+are background images baked in one fixed colour, which reads as a different visual family next
+to `currentColor` glyphs, and in dark mode stays black unless inverted. **Do not reach for an
+invert filter to fix this.** `app/js/ui/control-glyphs.js` (`adoptControlGlyphs()`) replaces
+the baked artwork with this app's own glyph inside the same `<span>` MapLibre already renders,
+so the whole stack becomes one family with one set of colour rules and dark mode needs nothing
+special at all:
 
-```css
-:root[data-theme="dark"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
-    filter: invert(1) brightness(1.4);
-}
+```js
+map.addControl(new maplibregl.NavigationControl(), 'top-right');
+// ...every control that should get this treatment...
+adoptControlGlyphs();   // call once, after every control for this session is mounted
 ```
 
-An inverted PNG in a dark theme is a compromise, not a result. That asymmetry is the whole
-argument for `currentColor`.
+**The reset itself is INLINE, in `control-glyphs.js`, not a stylesheet rule** — this is the
+one place in the app that deliberately breaks rule 1's own advice. It was a stylesheet rule
+first, and it half worked: MapLibre writes its icon rules at several different specificities,
+so a single rule caught the zoom buttons and silently missed the compass and geolocate, whose
+baked artwork went on rendering UNDERNEATH the adopted svg — a glyph with a phantom extra bar
+through it, and `npm run icons` reporting 22.5px of ink in a 17px box, which is what actually
+found it. An inline style beats every stylesheet rule without `!important`'s side effect of
+stopping the next person reasoning about the cascade, and it sits two lines from the thing it
+undoes instead of in a file that has to be found. See `app/css/components/map-controls.css`
+for what's left in the stylesheet once the reset itself moved out: only state colour, which
+the cascade genuinely is the right tool for.
 
 ## 3. One shell, many buttons
 
@@ -69,6 +83,9 @@ map.addControl(makeControl([{ glyph: 'info', title: 'About', onClick: () => {} }
 - [ ] Button built through `makeControl`, not by hand.
 - [ ] Glyph from `icons.js`, stroked `currentColor`, no fill.
 - [ ] `title` AND `aria-label`, saying the same thing.
-- [ ] Rules that must beat MapLibre's are written at matching specificity.
+- [ ] Rules that must beat MapLibre's are written at matching specificity, not `!important`.
+- [ ] Adopting one of MapLibre's own controls (zoom, compass, geolocate)? Use
+      `adoptControlGlyphs()`, never an invert filter, and never a stylesheet reset — inline
+      only, right where the glyph is injected.
 - [ ] Run `npm run icons`. A new control is a new glyph, and it will not be the right size by
       accident. See `icon-centering`.

@@ -15,8 +15,8 @@
  *      one place where padding, sizing and the focus ring are decided.
  *
  * The styling trap is in the `map-control-icons` skill: MapLibre's own selectors are specific
- * enough that a plain class rule loses to them, which is one of the rare places `!important`
- * is the correct answer rather than a smell.
+ * enough that a plain class rule silently loses to them. Matching the specificity (see
+ * `.sgs-ctrl-btn`'s rule in map-controls.css) beats reaching for `!important`.
  */
 
 import { icon, GLYPH } from '../icons.js';

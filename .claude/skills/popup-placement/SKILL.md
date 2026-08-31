@@ -32,20 +32,17 @@ Everything else is fair game, including the map and the feature itself.
 Note what is deliberately NOT furniture: the basemap attribution. It is small and fixed, and
 avoiding it would push popups around for no benefit.
 
-## The clean column descends past furniture, it does not surrender
+## The clean column clears the LEFT edge; it does not currently watch the top
 
-The control stack lives at the top right and the clean column runs down the right edge, so they
-collide immediately. The correct response is to start the column BELOW the stack, not to
-abandon the strategy:
-
-```js
-for (const b of furniture) {
-    if (b.right > column.left && b.left < column.right) top = Math.max(top, b.bottom + GAP);
-}
-```
-
-Without this the first popup fails to fit, falls through to the adjacent search, and CLEAN
-quietly stops being clean. It looks like a placement bug and is really a control-flow one.
+`cleanBaseLeft()` starts the column just right of whatever furniture hugs the left edge (the
+panel, in this demo) — recomputed per open, from live geometry, never cached. The column's
+top is a fixed constant (`CLEAN_TOP` in `popup.js`), not obstacle-checked. This is a real,
+known gap rather than a design decision: `obstacles()`/`edgeFurniture()` currently only feed
+ADJACENT mode's placement search (below). If your app puts furniture near the top of the clean
+column's path — a tall top-right control stack a long cascade could reach, say — that's the
+first place to look before assuming the bug is somewhere cleverer. Fixing it would mean
+folding the same `edgeFurniture()` check CLEAN already uses for its left edge into a top
+clearance too.
 
 ## Slide on the CROSS axis only
 
@@ -66,15 +63,23 @@ obviously about the thing underneath it.
 What is protected is the anchor POINT the leader line comes from, not the geometry. A large
 polygon can be covered without much being lost.
 
-## Keep the decision pure
+## Keep the decision pure — as a DEFAULT, not a second function
 
-`choosePlacement` takes the visible area, the furniture and the existing popups as **arguments**
-rather than reading them from the document. `placementFor` is the thin wrapper that goes and
-gets the real numbers.
+`adjacentPlacement(anchor, size, blocked, safe)` is the one function, and the DOM boundary is
+its two trailing parameters' DEFAULT VALUES rather than a separate wrapper:
 
-That split is what makes `tests/unit/placement.spec.js` possible: the decision is arithmetic,
-and arithmetic can be tested without a browser or a fixture. A function that reads the document
-can only be tested by building a document, and then the test is mostly about the fixture.
+```js
+export function adjacentPlacement(anchor, size, blocked = obstacles(), safe = safeArea()) {
+```
+
+Call it bare at runtime and it reads the live document through `obstacles()`/`safeArea()`. Call
+it from a test with explicit arrays and it never touches a browser — the arithmetic is
+identical either way, because it's the same function, not a pure core plus a thin caller.
+
+That is what makes `tests/unit/placement.spec.js` possible: the decision is arithmetic, and
+arithmetic can be tested without a browser or a fixture. A function that reads the document
+directly can only be tested by building a document, and then the test is mostly about the
+fixture.
 
 ## Take the leader line with it
 
@@ -86,7 +91,8 @@ you take the placement strategy, take the leader line too.
 
 - [ ] New furniture carries `data-sgs-furniture`, or popups will sit on it. Nothing to add
       here — `obstacles()` asks the DOM via `furniture.js`, it holds no list of its own.
-- [ ] The placement decision stays pure; only the wrapper touches the DOM.
+- [ ] The placement decision takes its inputs as arguments; only their DEFAULT values touch
+      the DOM, so a test can override them without building a fixture.
 - [ ] Placement re-runs on `move`, `resize`, and any furniture change.
 - [ ] Changing the setting re-places what is ALREADY open. A setting that only applies to the
       next click cannot be evaluated by the person changing it.

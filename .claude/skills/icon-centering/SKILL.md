@@ -45,7 +45,7 @@ difference against the button's own face colour, and prints:
 | column | meaning | passes when |
 |---|---|---|
 | `ink w x h` | the glyph's real bounding box, CSS px | long axis within `sizeTolerance` of `want` |
-| `want` | what the CALLER asked for, read off `data-ink` | |
+| `want` | the intended size — see below | |
 | `dx`, `dy` | ink centre minus BUTTON centre | both within `centreTolerance` |
 | `headroom` | ink to each button edge | left equals right, top equals bottom |
 
@@ -53,6 +53,34 @@ Negative `dy` means the glyph sits high. Left and right headroom that disagree i
 eye registers as "that one looks pushed over" without being able to say why.
 
 It exits non-zero when anything of ours is out of tolerance, so it belongs in a verify chain.
+A row for a button the measurer found but this app didn't draw (a third-party control it
+doesn't recognise) prints `(not ours)` and is informational only — it never fails the build.
+
+### Where `want` comes from
+
+Three sources, in priority order, from `scripts/icon-ink.mjs`:
+
+```js
+const want = TARGETS.want[name] ?? meta.ink ?? TARGETS.defaultWant;
+```
+
+1. **`scripts/icon-targets.json`'s `want` block** — an explicit override for one glyph, used
+   ONLY when the glyph genuinely should read a different size than its neighbours (see below).
+2. **`data-ink`**, the size the glyph's own caller asked for via `icon(name, size)`. Most
+   glyphs are covered here — a 17px control glyph and a 13px row glyph are measured against
+   their own request, not one repo-wide number.
+3. **`defaultWant`** in the same JSON file, the fallback for a glyph nobody has opinionated
+   about at all.
+
+The override in (1) exists for exactly one documented reason today: a plus and a minus are
+bare strokes reaching the full extent of their box with nothing in between, so the eye reads
+their whole box as the glyph. A gear measured to the same number is a dense shape whose bulk
+sits inboard of its widest teeth — matched by the ruler, the cross reads a size larger than
+its neighbours. `icon-targets.json` sets `plus`/`minus` to 14.5 against everything else's 17,
+**with the reasoning written in the file itself**, because this is the one place in the repo
+where a number is an optical judgement rather than a measurement — writing it out loud in the
+targets file is what keeps it from being quietly mistaken for one if it moved into
+`SIZE_FACTOR`.
 
 ### 2. Fix ONE problem
 
@@ -78,6 +106,10 @@ change is stale.
 - **Never** adjust a number because a screenshot looked better afterwards.
 - Guides (`document.body.classList.add('sgs-guides')`) draw the button's centre lines in red.
   They SHOW a problem; they do not measure it.
+- The measurer insets **2 CSS px** (`INSET_CSS` in `scripts/icon-ink.mjs`) before it starts
+  looking for the button's own face colour. A rounded corner's pixels are transparent, which
+  resolved to black in the very first version of this script, made the whole button read as
+  "ink", and reported every glyph as filling its box — a caught bug, not a hypothetical one.
 
 ## When to run it
 

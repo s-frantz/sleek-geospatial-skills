@@ -102,11 +102,22 @@ knowing who's reading it.
 2. Fix it here.
 3. Update the relevant `SKILL.md` with why, if the fix changes a convention rather than just a
    bug.
-4. Open a PR carrying exactly those three things.
+4. Bump `package.json`'s `"version"` — usually the patch number (`1.0.0` → `1.0.1`); reach for
+   minor or major only when the change is genuinely bigger than a fix. This is enforced: a PR
+   whose version isn't strictly greater than `main`'s fails the required `Version bump
+   required` check and cannot merge (`.github/workflows/version-check.yml`).
+5. If the fix is contract-breaking for anything downstream, add a `Breaking:` line to the
+   CHANGELOG entry for this version, naming the affected component ids.
+6. Open a PR carrying all of the above.
 
 Nothing in the PR needs to say — or should say — where the underlying issue was actually
-found. If a change is contract-breaking for anything downstream, flag it with a `Breaking:`
-line in the CHANGELOG entry for the release that ships it, naming the affected component ids.
+found.
+
+**A merge to main IS a release.** `.github/workflows/tag-release.yml` tags `v<version>`
+automatically on every push to `main`, reading the version straight from `package.json`. There
+is no separate "cut a release" step — bumping the version in your PR is that step, which is
+also why the bump is required rather than suggested: a tag that doesn't move on every merge is
+a tag `sgs:status` can no longer trust.
 
 PRs are reviewed and merged by maintainers only. This is what makes the demo trustworthy as
 the thing every app's `sgs:status` diffs against — an unreviewed merge into it would be wrong

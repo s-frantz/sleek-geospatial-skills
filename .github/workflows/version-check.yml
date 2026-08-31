@@ -1,0 +1,47 @@
+name: Version bump required
+
+# Every merged PR is a release (see tag-release.yml), so every PR must bump package.json's
+# "version" before it can merge. This is a required status check — see CONTRIBUTING.md for
+# why (it's what keeps watermarking in CONTRIBUTING.md / sgs-status.mjs meaningful: a tag that
+# doesn't move on every merge is a tag consuming apps can't trust).
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  version-check:
+    name: Version bump required
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare package.json version against the base branch
+        run: |
+          set -e
+          BASE_VERSION=$(git show "origin/${GITHUB_BASE_REF}:package.json" | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).version));")
+          HEAD_VERSION=$(node -e "console.log(require('./package.json').version)")
+          echo "Base ($GITHUB_BASE_REF): $BASE_VERSION"
+          echo "This PR:            $HEAD_VERSION"
+          node -e "
+            const parse = (v) => v.split('.').map(Number);
+            const [bMaj, bMin, bPat] = parse(process.argv[1]);
+            const [hMaj, hMin, hPat] = parse(process.argv[2]);
+            const greater = (hMaj > bMaj)
+              || (hMaj === bMaj && hMin > bMin)
+              || (hMaj === bMaj && hMin === bMin && hPat > bPat);
+            if (!greater) {
+              console.error('');
+              console.error('package.json \"version\" must increase to merge.');
+              console.error('  base:    ' + process.argv[1]);
+              console.error('  this PR: ' + process.argv[2]);
+              console.error('Bump it (usually the patch number, e.g. 1.0.0 -> 1.0.1) and push again.');
+              process.exit(1);
+            }
+            console.log('OK: ' + process.argv[1] + ' -> ' + process.argv[2]);
+          " "$BASE_VERSION" "$HEAD_VERSION"

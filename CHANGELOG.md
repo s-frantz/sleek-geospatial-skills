@@ -9,9 +9,12 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check —
 not narrate the commit that produced it.
 
-## [0.1.0] - 2026-08-31
+## [1.0.0] - 2026-08-31
 
-First tagged release. Baseline watermark for every component in `scripts/sgs-components.json`.
+First stable release. Baseline watermark for every component in `scripts/sgs-components.json`.
+Starting here, every merged PR is required to bump this file's version (see CONTRIBUTING.md) —
+a release tag is cut automatically on every push to `main`, so a merge and a release are the
+same event from here on.
 
 - Three sharing tiers made explicit: `app/css/tokens.css` (the canon, referenced with
   fallbacks), `app/css/components/*.css` + their paired `.js` (self-contained, watermarked
@@ -22,3 +25,9 @@ First tagged release. Baseline watermark for every component in `scripts/sgs-com
 - `npm run sgs:init <dir>` scaffolds a new, fully self-contained app. `npm run sgs:status
   [dir]` reports which watermarked components have genuinely changed upstream since the app's
   tag (not merely how many releases have passed).
+- Every skill in `.claude/skills/` audited against the code it describes. Two had drifted
+  materially: `map-control-icons` still taught an invert-filter fix for MapLibre's baked
+  glyphs, superseded by the adopted-glyph approach; `stow` still used FOLD/STOW/MARK/BERTH
+  vocabulary the code had already moved on from (FOLD/CLOSE). `popup-placement` described a
+  furniture-avoidance algorithm for CLEAN mode's top edge that was never actually implemented
+  — corrected to say so plainly rather than describe fictional code.
