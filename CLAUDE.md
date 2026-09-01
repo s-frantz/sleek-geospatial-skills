@@ -6,7 +6,7 @@ trade.
 
 ## Read the skill first
 
-`.claude/skills/` holds eleven skills. Before changing anything, read the one that covers it:
+`.claude/skills/` holds fourteen skills. Before changing anything, read the one that covers it:
 
 | touching | read |
 |---|---|
@@ -22,14 +22,20 @@ trade.
 | tests, or claiming something works | `verify-in-the-browser` |
 | `furniture.js`, `data-sgs-furniture`, the camera/popup contract | `chrome-aware-camera` |
 | `sgs.json`, `sgs:status`, syncing an app against this repo | `upgrading-an-app` |
+| creating a new app, `sgs:init`, the capability interview | `starting-an-app` |
+| `sgs:drift`, sending a fix back, ejecting a component | `contributing-upstream` |
+| adding a component id, a capability, a skill, or anything at all | `maintenance` |
 
-## Editing sgs-components.json
+Framework terms (clone, app, manifest, watermark, drift, ejected, tier, capability) are
+defined once, in `VOCABULARY.md` — link there, never redefine.
 
-Adding a file to an existing component's list is a normal change. Adding a NEW component id
-is bigger than it looks: every app that has already run `sgs:init` gets a component in its
-`sgs.json` the next time someone regenerates it, or is simply missing one if they don't. Prefer
-folding a new file into the nearest existing component over minting a new id, unless it is
-genuinely likely to change on its own schedule.
+## Editing sgs-components.json or sgs-capabilities.json
+
+Adding a file to an existing component's list is a normal change. Minting, renaming or
+splitting a component id is bigger than it looks: every existing app's `sgs.json` still names
+the old id, and `sgs:status`/`sgs:drift` report it as unknown until the manifest is updated —
+so the CHANGELOG entry must say what manifests should do. The `maintenance` skill carries the
+tests an addition must pass; read it before growing either file.
 
 ## House rules
 

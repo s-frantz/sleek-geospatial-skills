@@ -9,6 +9,31 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check —
 not narrate the commit that produced it.
 
+## [1.1.0] - 2026-09-01
+
+Breaking: furniture-demo
+
+- The `furniture-demo` component id is SPLIT into `app-shell` (index.html, main.js, map.js,
+  layers.js, furniture.css), `panel` (panel.js, layer-rows.js), `dock`, `popups`,
+  `about-window`, and `demo-layers` (the two GeoJSON files) — the pieces change on their own
+  schedules and the setup interview needs to omit them independently. An app whose `sgs.json`
+  says `"furniture-demo"` should replace that line with the six new ids at the same tag.
+- `npm run sgs:drift` (new): the mirror of `sgs:status` — diffs the APP'S OWN copies against
+  what their watermark tag shipped, per file, straight out of the clone's history. Drift is
+  the candidate list for contributing upstream.
+- `sgs:init` learns capability selection: `--with popups,settings,demo-data` copies the core
+  set plus the named capabilities (`scripts/sgs-capabilities.json`), filters `index.html`'s
+  stylesheet links to match, writes a manifest naming only what was copied, and refuses to
+  scaffold inside the clone. No flags still means the full demo.
+- Three new skills: `starting-an-app` (the setup wizard: clone placement, outer gitignore,
+  the capability interview, the de-wiring table), `contributing-upstream` (drift triage and
+  the clean-room flow), and `maintenance` (the anti-bloat laws and the skill-accuracy audit
+  ritual).
+- `VOCABULARY.md` (new): every framework term — clone, app, manifest, watermark, drift,
+  behind, ejected, tier, component, capability — defined once; everything else links.
+- CONTRIBUTING.md documents the filesystem convention: clone-beside-app, gitignored by the
+  outer repo, never edited, not the version pin (the manifest is).
+
 ## [1.0.0] - 2026-08-31
 
 First stable release. Baseline watermark for every component in `scripts/sgs-components.json`.

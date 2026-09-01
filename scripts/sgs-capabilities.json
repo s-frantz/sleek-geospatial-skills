@@ -1,0 +1,50 @@
+{
+  "_comment": "Capability -> component sets, read by sgs-init.mjs (--with) and by the starting-an-app skill's interview. `core` is copied into every app unconditionally: it is the boot path (app-shell), the contracts (tokens, framework), and the pieces the shell imports on every start. Each capability lists EVERY component it needs, so resolving a capability is a set-union, never a graph walk. A component may appear under several capabilities (swatch, field-badge); the union dedupes. Removing a capability's WIRING from main.js and index.html is agent work the starting-an-app skill owns; this file only decides which files exist.",
+
+  "core": [
+    "tokens",
+    "icons",
+    "theme",
+    "buttons",
+    "map-controls",
+    "dismiss-stack",
+    "primitives",
+    "framework",
+    "app-shell"
+  ],
+
+  "capabilities": {
+    "layer-panel": {
+      "components": ["panel", "edge-mark", "swatch", "source-pill"],
+      "asks": "A left panel with layer rows (visibility, swatch, zoom-to)?"
+    },
+    "table-dock": {
+      "components": ["dock", "edge-mark", "field-table", "field-badge", "swatch", "source-pill", "type-pill", "symbology"],
+      "asks": "A table across the bottom showing a layer's features?"
+    },
+    "popups": {
+      "components": ["popups", "field-table", "field-badge", "type-pill", "symbology", "swatch", "source-pill"],
+      "asks": "Click-a-feature popups with leader lines and placement strategies?"
+    },
+    "tooltips": {
+      "components": ["tooltip"],
+      "asks": "Themed hover tooltips replacing the browser's title bubbles?"
+    },
+    "settings": {
+      "components": ["quick-settings"],
+      "asks": "The gear popover: theme switch, popup placement, shortcut inventory?"
+    },
+    "about-window": {
+      "components": ["about-window", "overlay-window"],
+      "asks": "A large modal window shell (about box, welcome pane, report)?"
+    },
+    "dev-guides": {
+      "components": ["debug-guides"],
+      "asks": "The red centre-line guides for icon work (dev-only CSS)?"
+    },
+    "demo-data": {
+      "components": ["demo-layers"],
+      "asks": "Keep the two demo GeoJSON layers, or start with your own data?"
+    }
+  }
+}

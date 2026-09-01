@@ -42,8 +42,9 @@ For each changed component, in order:
 - **Is this component ejected** (`"panel": "ejected@v0.2.0"` in the app's `sgs.json`)? Then the
   upstream change is informational only — the app owns its own implementation now. Read it
   anyway; it may still be worth hand-porting the lesson, just not the file.
-- **Has the app's copy diverged from what it started as?** If not — the file is still
-  essentially what `sgs:init` wrote — the upstream version can usually be taken wholesale.
+- **Has the app's copy diverged from what it started as?** Don't guess — `npm run sgs:drift`
+  answers this exactly, per file (see the `contributing-upstream` skill). A component drift
+  reports clean can take the upstream version wholesale.
 - **If it has diverged**, the question is not "does the diff apply" but "does the LESSON
   apply": what problem did the upstream change solve, and does this app have that problem too?
 
@@ -68,3 +69,7 @@ files — on purpose. A tool that silently rewrites a customized component is a 
 trust with a customized component, which defeats the entire point of watermarking instead of
 importing live. See CONTRIBUTING.md for the tiers this reasons about, and the `map-control-icons` /
 `panel-anatomy` / `popup-placement` skills for what specific components actually promise.
+
+It also does not cover the opposite direction — the app's own changes flowing back up. That is
+`sgs:drift` plus the `contributing-upstream` skill, and running both directions together is the
+healthy habit: a file that is both drifted and behind is a lesson learned twice independently.

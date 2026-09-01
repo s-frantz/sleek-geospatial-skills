@@ -3,7 +3,36 @@
 This repo ships two things: a set of agent skills (`.claude/skills/`), and a small runnable
 app that exists so those skills point at real files and real measurements instead of
 describing conventions in the abstract. This doc covers three things people do with it:
-starting an app from it, upgrading one, and contributing a fix back.
+starting an app from it, upgrading one, and contributing a fix back. Terms used here are
+defined once, in [VOCABULARY.md](VOCABULARY.md).
+
+## The filesystem convention
+
+The model is npm's, adapted: the **clone plays `node_modules`** and the **manifest plays
+`package.json`**.
+
+```
+my-app/                          (its own repo, or one folder of a monorepo)
+  .gitignore                     <- contains: sleek-geospatial-skills/
+  sleek-geospatial-skills/       <- the CLONE: gitignored, never edited, kept at latest
+  sgs.json                       <- the MANIFEST: the app's actual version pin
+  app/  tests/  package.json ... <- the APP: copied once by sgs:init, tracked normally
+```
+
+Rules that make it work:
+
+- **The clone is never edited.** `git -C sleek-geospatial-skills status` is always clean. The
+  one exception is a contribution branch (see `contributing-upstream`), returned to clean
+  after the PR.
+- **The clone is not the pin.** `git -C sleek-geospatial-skills pull` is always safe: every
+  watermark in `sgs.json` stays reachable through the clone's history (`git show
+  v1.0.0:app/...`), whatever is checked out. Tooling reads the manifest, the way npm reads an
+  old `package.json` regardless of npm's own version.
+- **One clone per app**, beside it — the same trade as one `node_modules` per project, and it
+  is also what puts `.claude/skills/` where an agent working on the app will find it.
+- Note that gitignore cannot hide edits to the clone's own tracked files — nothing can. A
+  dirty clone is loudly visible in `git status`, which is the point: it means a mistake
+  happened, and the fix is moving the edit out to the app (or onto a contribution branch).
 
 ## Three tiers, one rule each
 
@@ -19,22 +48,40 @@ runnable if this repo disappears entirely.
 
 ## Starting an app
 
+The full flow — clone placement, a capability interview, de-wiring what you leave out — is the
+`starting-an-app` skill. The mechanical core:
+
 ```bash
-node scripts/sgs-init.mjs path/to/your-app
-cd path/to/your-app
-npm install
-npm start
+cd my-app
+git clone https://github.com/s-frantz/sleek-geospatial-skills
+node sleek-geospatial-skills/scripts/sgs-init.mjs .                        # everything, or:
+node sleek-geospatial-skills/scripts/sgs-init.mjs . --with popups,settings,demo-data
+npm install && npm start
 ```
 
-This works identically whether `path/to/your-app` is a sibling repo (you forked this one) or a
-directory inside an existing monorepo of several apps (you cloned this repo once, into
-`.sgs/`, and run `sgs:init` from there for each app). Nothing about the tooling assumes one
-layout over the other — see the file layout your own repo already uses and put apps wherever
-that convention says to.
+With no flags you get the complete demo, green as copied. `--with` takes capability names
+from `scripts/sgs-capabilities.json` (the core set ships regardless); the script then filters
+`index.html`'s stylesheet links to what was copied and writes `sgs.json` naming only those
+components. JS wiring for omitted capabilities is agent work — the skill carries the table.
 
-`.claude/skills/` is not copied. It lives once — in this repo, or in your monorepo's shared
-`.sgs/` clone — because two copies of the same skill visible to one agent at once is a bug
-generator, not a convenience.
+The scripts take paths, so other layouts (a single shared clone at a monorepo root, a fork)
+work too; per-app clone is simply the documented default, for the reasons in the convention
+above.
+
+`.claude/skills/` is not copied. It lives once, in the clone — two copies of the same skill
+visible to one agent at once is a bug generator, not a convenience.
+
+## Checking your own changes
+
+```bash
+npm run sgs:drift path/to/your-app
+```
+
+The mirror of `sgs:status`: instead of asking whether upstream moved past your watermark, it
+asks whether YOUR COPY did — each file diffed against what its watermark tag shipped, read
+straight out of the clone's history. Drift is information, not error (the furniture tier
+exists to drift); what it produces is the candidate list for contributing back. The
+`contributing-upstream` skill triages it.
 
 ## Checking for updates
 

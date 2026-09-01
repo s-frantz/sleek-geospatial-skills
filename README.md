@@ -38,33 +38,40 @@ geometry and the relationships are the parts worth taking.
 ## Building your own app on this
 
 ```bash
-node scripts/sgs-init.mjs path/to/your-app
+cd my-app
+git clone https://github.com/s-frantz/sleek-geospatial-skills
+node sleek-geospatial-skills/scripts/sgs-init.mjs . --with popups,settings,demo-data
 ```
 
-Scaffolds a complete, self-contained copy — nothing is ever imported live from this repo, so
-your app stays runnable if this one disappears. What travels: a small token canon
-(`app/css/tokens.css`, referenced elsewhere with a CSS fallback), self-contained components
-(`app/css/components/*.css` + paired `.js`), and a framework CONTRACT rather than fixed code —
-mark any element `data-sgs-furniture` and it participates in camera padding and popup obstacle
-avoidance with nothing to register anywhere else. The demo furniture (`app/js/main.js`,
-`panel.js`, `dock.js`, `popup.js`, `app/css/furniture.css`) is yours from the moment it's
-copied — a second panel, a form instead of a layer list, happens by writing new furniture, not
-by editing something shared.
+The clone plays `node_modules` (gitignored by your repo, never edited, kept at latest); the
+scaffold is a one-time copy your repo tracks normally; and `sgs.json` — not the clone — is
+your version pin. Nothing is ever imported live from this repo, so your app stays runnable if
+this one disappears. `--with` picks capabilities in plain language (see
+`scripts/sgs-capabilities.json`); no flags copies the whole demo. The
+[`starting-an-app`](.claude/skills/starting-an-app/SKILL.md) skill is the full wizard,
+interview included.
+
+What travels: a small token canon (`app/css/tokens.css`, referenced elsewhere with a CSS
+fallback), self-contained components (`app/css/components/*.css` + paired `.js`), and a
+framework CONTRACT rather than fixed code — mark any element `data-sgs-furniture` and it
+participates in camera padding and popup obstacle avoidance with nothing to register anywhere
+else. The demo furniture (`main.js`, `panel.js`, `dock.js`, `popup.js`, `furniture.css`) is
+yours from the moment it's copied.
 
 ```bash
-npm run sgs:status path/to/your-app
+npm run sgs:status path/to/your-app    # did upstream move past my watermarks?
+npm run sgs:drift  path/to/your-app    # did MY COPY move away from my watermarks?
 ```
 
-Each component in your app's `sgs.json` carries a watermark — the release tag it was last
-synced from — rather than a live version pin. This reports which watermarked components have
-genuinely changed content upstream since then (not merely how many releases have passed).
-Full detail, the upgrade process, and how to contribute a fix back are in
-[CONTRIBUTING.md](CONTRIBUTING.md) and the [`upgrading-an-app`](.claude/skills/upgrading-an-app/SKILL.md)
-skill.
+Both read the clone's git history against `sgs.json`'s per-component watermarks; neither is
+fooled by tag churn or by your customizations. Status feeds the
+[`upgrading-an-app`](.claude/skills/upgrading-an-app/SKILL.md) skill; drift feeds
+[`contributing-upstream`](.claude/skills/contributing-upstream/SKILL.md). Terms:
+[VOCABULARY.md](VOCABULARY.md). Full detail: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## What is in the skills
 
-`.claude/skills/`, eleven of them. Each points at real files and a runnable command.
+`.claude/skills/`, fourteen of them. Each points at real files and a runnable command.
 
 | skill | the short version |
 |---|---|
@@ -73,12 +80,15 @@ skill.
 | [`map-control-icons`](.claude/skills/map-control-icons/SKILL.md) | the specificity trap that silently ignores your control CSS |
 | [`icon-centering`](.claude/skills/icon-centering/SKILL.md) | size and centring are two problems; measure both |
 | [`panel-anatomy`](.claude/skills/panel-anatomy/SKILL.md) | four postures, one applier, geometry as CSS variables |
-| [`stow`](.claude/skills/stow/SKILL.md) | FOLD, STOW, MARK, BERTH, and the test that picks one |
+| [`stow`](.claude/skills/stow/SKILL.md) | FOLD, CLOSE, MARK, BERTH, and the test that picks one |
 | [`overlay-window`](.claude/skills/overlay-window/SKILL.md) | one modal shell, and one owner for the Escape key |
 | [`popup-placement`](.claude/skills/popup-placement/SKILL.md) | CLEAN versus ADJACENT, and what a popup refuses to sit on |
 | [`chrome-aware-camera`](.claude/skills/chrome-aware-camera/SKILL.md) | why `fitBounds` puts your feature under the panel |
 | [`verify-in-the-browser`](.claude/skills/verify-in-the-browser/SKILL.md) | four rungs of proof, and the one rung not shipped |
 | [`upgrading-an-app`](.claude/skills/upgrading-an-app/SKILL.md) | two mechanical steps, then two that need real judgment |
+| [`starting-an-app`](.claude/skills/starting-an-app/SKILL.md) | the setup wizard: clone placement, capability interview, de-wiring |
+| [`contributing-upstream`](.claude/skills/contributing-upstream/SKILL.md) | drift triage, and the clean-room path back |
+| [`maintenance`](.claude/skills/maintenance/SKILL.md) | the anti-bloat laws, and the skill-accuracy audit ritual |
 
 If you use Claude Code, cloning the repo is enough: skills in `.claude/skills/` are picked up
 automatically. If you do not, they are ordinary Markdown and read fine on their own.
@@ -121,11 +131,13 @@ app/          the runnable application
   css/        tokens.css  components/*.css  furniture.css
   js/         main.js map.js layers.js icons.js  ui/  utils/
 scripts/      serve.mjs  icon-ink.mjs  icon-targets.json
-               sgs-init.mjs  sgs-status.mjs  sgs-components.json  (the catalog)
+               sgs-init.mjs  sgs-status.mjs  sgs-drift.mjs
+               sgs-components.json (the registry)  sgs-capabilities.json (the interview map)
 tests/        unit/ (rung 2)  e2e/ (rung 3)
-.claude/skills/   the eleven skills
+.claude/skills/   the fourteen skills
 types/        ambient declarations for the vendored globals
-CONTRIBUTING.md   starting an app, upgrading one, contributing a fix back
+VOCABULARY.md     every framework term, defined once
+CONTRIBUTING.md   the filesystem convention; starting, upgrading, contributing
 CHANGELOG.md      one entry per release; Breaking: lines name affected components
 ```
 
