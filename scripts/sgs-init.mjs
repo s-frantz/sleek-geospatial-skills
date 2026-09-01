@@ -130,14 +130,44 @@ for (const id of chosen) {
     }
 }
 
-// Tooling and vendor: everything an app needs to run and verify, none of it watermarked.
-// Tests are copied as a starting point; specs for omitted capabilities will fail and should
-// be deleted or rewritten — the starting-an-app skill walks that.
-const EXTRA = ['app/vendor', 'package.json', 'tsconfig.json', 'playwright.config.js', 'vitest.config.js', 'types', 'tests'];
+// Tooling and vendor: everything an app needs to RUN and VERIFY on its own, none of it
+// watermarked. Tests are copied as a starting point; specs for omitted capabilities will fail
+// and should be deleted or rewritten — the starting-an-app skill walks that.
+//
+// serve.mjs and icon-ink.mjs come too, because package.json's `start`, `icons` and `verify`
+// call them by path: an app without them has a package.json that lies about what it can do.
+// Both resolve their own paths from `import.meta.url`, so they work unchanged from the app's
+// own scripts/ directory. sgs-init/status/drift deliberately do NOT come — those must run
+// from the clone, whose git history is the reference they read.
+const EXTRA = [
+    'app/vendor', 'tsconfig.json', 'playwright.config.js', 'vitest.config.js', 'types', 'tests',
+    'scripts/serve.mjs', 'scripts/icon-ink.mjs', 'scripts/icon-targets.json',
+];
 for (const rel of EXTRA) {
     const src = path.join(REPO_ROOT, rel);
-    if (existsSync(src)) cpSync(src, path.join(target, rel), { recursive: true });
+    if (!existsSync(src)) continue;
+    const dst = path.join(target, rel);
+    mkdirSync(path.dirname(dst), { recursive: true });
+    cpSync(src, dst, { recursive: true });
 }
+
+// package.json is REWRITTEN rather than copied: an app is not a copy of this package. It gets
+// its own name and a 0.1.0 version (this repo's version lives in the manifest as the
+// watermark, and letting an app inherit "1.1.0" would misreport it as a release of the
+// framework). The sgs:* scripts are re-pointed at the clone by relative path, computed here,
+// so `npm run sgs:status` works from inside the app whatever the layout — clone beside the
+// app, clone at a monorepo root, anywhere.
+const pkg = JSON.parse(readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
+const cloneRel = path.relative(target, REPO_ROOT).split(path.sep).join('/');
+pkg.name = path.basename(target).toLowerCase().replace(/[^a-z0-9._-]+/g, '-') || 'my-app';
+pkg.version = '0.1.0';
+pkg.description = `A MapLibre application built from sleek-geospatial-skills @ ${tag}.`;
+pkg.private = true;
+delete pkg.keywords;
+delete pkg.scripts['sgs:init'];
+pkg.scripts['sgs:status'] = `node ${cloneRel}/scripts/sgs-status.mjs .`;
+pkg.scripts['sgs:drift'] = `node ${cloneRel}/scripts/sgs-drift.mjs .`;
+writeFileSync(path.join(target, 'package.json'), JSON.stringify(pkg, null, 2) + '\n');
 
 // index.html links every component stylesheet; drop the lines for CSS files that were not
 // copied, so a trimmed app boots with no 404s. JS wiring in main.js cannot be filtered this
@@ -180,8 +210,12 @@ console.log('    The app files this script just wrote are tracked normally.');
 if (omittedCaps.length) {
     console.log('');
     console.log('Omitted capabilities still have WIRING in app/js/main.js (imports, control');
-    console.log('registrations, key handlers) and copied test specs that exercise them. Use the');
-    console.log('starting-an-app skill to de-wire and trim tests — then run npm run verify.');
+    console.log('registrations, key handlers) and copied test specs that exercise them.');
+    console.log('`npm run typecheck` lists every dangling import — that IS your de-wiring');
+    console.log('checklist. The starting-an-app skill has the table; then npm run verify.');
+    console.log('');
+    console.log('Expect `npm run sgs:drift` to report app-shell drifted on day one: index.html');
+    console.log('was trimmed to the capabilities you chose. That is drift working, not a fault.');
 }
 console.log('');
 console.log('Next:');

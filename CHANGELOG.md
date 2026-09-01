@@ -9,6 +9,24 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check —
 not narrate the commit that produced it.
 
+## [1.1.1] - 2026-09-01
+
+Fixes a scaffolding bug that broke a new app's very first commands.
+
+- `sgs:init` now copies `scripts/serve.mjs`, `scripts/icon-ink.mjs` and
+  `scripts/icon-targets.json` into the app. Previously the app received a `package.json`
+  referencing all three but no `scripts/` directory, so `npm start`, `npm run icons` and
+  `npm run verify` failed immediately in every scaffolded app.
+- `sgs:init` now REWRITES `package.json` instead of copying it: the app gets its own name
+  (from its directory) and version `0.1.0` rather than inheriting this package's identity,
+  and `sgs:status`/`sgs:drift` are re-pointed at the clone by a computed relative path, so
+  they work from inside the app whatever the layout. `sgs:init` is dropped from an app's
+  scripts, since an app does not scaffold.
+- The scaffold report now points at `npm run typecheck` as the de-wiring checklist (dangling
+  imports for omitted capabilities are exactly what it lists), and warns that a trimmed
+  scaffold reports `app-shell` drift on day one because `index.html` was filtered — drift
+  working, not a fault.
+
 ## [1.1.0] - 2026-09-01
 
 Breaking: furniture-demo
