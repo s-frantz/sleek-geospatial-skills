@@ -9,6 +9,17 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check —
 not narrate the commit that produced it.
 
+## [1.1.2] - 2026-09-01
+
+- `sgs:status` and `sgs:drift` now fail loudly when the clone cannot answer, instead of
+  reporting confident nonsense. Both read release history from the clone; pointed at a
+  directory copied without `.git`, drift previously reported EVERY file as "newer than the
+  watermark" and status reported "no releases yet". Both now check up front and exit 1 with
+  the fix.
+- A watermark naming a tag the clone doesn't have (a stale clone, or a typo) now says so per
+  component and suggests `git -C <clone> fetch --tags`, rather than silently treating every
+  file as new.
+
 ## [1.1.1] - 2026-09-01
 
 Fixes a scaffolding bug that broke a new app's very first commands.

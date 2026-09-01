@@ -36,6 +36,20 @@ if (!existsSync(manifestPath)) {
     process.exit(1);
 }
 
+// Every answer here comes from the clone's git history; without it the tag list is empty and
+// this would report "no releases yet" — a quiet wrong answer. Check loudly instead.
+try {
+    execFileSync('git', ['-C', REPO_ROOT, 'rev-parse', '--git-dir'], { stdio: 'pipe' });
+} catch {
+    console.error(`Not a git repository: ${REPO_ROOT}`);
+    console.error('');
+    console.error('sgs:status compares release history against your watermarks, and reads that');
+    console.error('from the clone. A directory copied without .git cannot answer it. Replace it');
+    console.error('with a real clone:');
+    console.error('    git clone https://github.com/s-frantz/sleek-geospatial-skills');
+    process.exit(1);
+}
+
 /** @param {string[]} args @returns {string} */
 function git(args) {
     return execFileSync('git', ['-C', REPO_ROOT, ...args], { encoding: 'utf8' }).trim();

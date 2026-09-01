@@ -37,15 +37,45 @@ const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 const catalog = JSON.parse(readFileSync(path.join(SCRIPT_DIR, 'sgs-components.json'), 'utf8'));
 delete catalog._comment;
 
+// This script's whole answer comes from the clone's git history. Without it, every `git show`
+// fails and every file would be reported as "newer than the watermark" — a confident wrong
+// answer, which is worse than no answer. So both preconditions are checked up front and
+// loudly: the clone must be a git repository, and a component's watermark tag must exist in
+// it. A directory copied without .git (or a stale clone missing a newer tag) fails here with
+// something a person can act on.
+try {
+    execFileSync('git', ['-C', REPO_ROOT, 'rev-parse', '--git-dir'], { stdio: 'pipe' });
+} catch {
+    console.error(`Not a git repository: ${REPO_ROOT}`);
+    console.error('');
+    console.error('sgs:drift compares your files against what a release tag shipped, and reads');
+    console.error('that from the clone\'s history. A directory copied without .git cannot answer');
+    console.error('it. Replace it with a real clone:');
+    console.error('    git clone https://github.com/s-frantz/sleek-geospatial-skills');
+    process.exit(1);
+}
+
+/** @param {string} tag @returns {boolean} */
+function tagExists(tag) {
+    try {
+        execFileSync('git', ['-C', REPO_ROOT, 'rev-parse', '--verify', `${tag}^{commit}`], { stdio: 'pipe' });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 /**
- * A file's content at a tag, or null if it did not exist there.
+ * A file's content at a tag, or null if it did not exist in that release. Callers must have
+ * established that the tag itself exists, so null here means "the file is newer than the
+ * watermark", never "the reference is unreadable".
  * @param {string} tag @param {string} rel
  * @returns {string|null}
  */
 function atTag(tag, rel) {
     try {
         return execFileSync('git', ['-C', REPO_ROOT, 'show', `${tag}:${rel}`], {
-            encoding: 'utf8', maxBuffer: 16 * 1024 * 1024,
+            encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'],
         });
     } catch {
         return null;
@@ -70,6 +100,11 @@ for (const [id, value] of Object.entries(manifest.components ?? {})) {
 
     const ejected = typeof value === 'string' && value.startsWith('ejected@');
     const tag = ejected ? value.slice('ejected@'.length) : value;
+
+    if (!tagExists(tag)) {
+        console.log(`  ${label}  watermark ${tag} is not in this clone — try \`git -C <clone> fetch --tags\``);
+        continue;
+    }
 
     /** @type {string[]} */ const modified = [];
     /** @type {string[]} */ const missing = [];
