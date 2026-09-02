@@ -6,7 +6,7 @@ trade.
 
 ## Read the skill first
 
-`.claude/skills/` holds fourteen skills. Before changing anything, read the one that covers it.
+`.claude/skills/` holds fifteen skills. Before changing anything, read the one that covers it.
 
 Names carry their category: `app-` procedures act on an app, `repo-` procedures act on this
 repo, `ui-` and `map-` conventions are consulted while building. Procedures run in a rough
@@ -28,16 +28,17 @@ order (`app-start`, then `app-verify` forever, then `app-upgrade` paired with
 | `furniture.js`, `data-sgs-furniture`, the camera/popup contract | `map-camera` |
 | `sgs.json`, `sgs:status`, syncing an app against this repo | `app-upgrade` |
 | creating a new app, `sgs:init`, the capability interview | `app-start` |
+| adopting into an app that already exists, `--eject`, `--manifest-only` | `app-adopt` |
 | `sgs:drift`, sending a fix back, ejecting a component | `app-contribute` |
 | adding a component id, a capability, a skill, or anything at all | `repo-maintain` |
 
 Framework terms (clone, app, manifest, watermark, drift, ejected, tier, capability) are
 defined once, in `VOCABULARY.md` — link there, never redefine.
 
-Twelve of these fourteen also travel into apps: a component owns the SKILL.md that describes
+Twelve of these fifteen also travel into apps: a component owns the SKILL.md that describes
 it, listed among its files in `sgs-components.json`, so `sgs:init` copies it exactly when it
-copies the code. Writing or moving a skill means editing that file too. `app-start` and
-`repo-maintain` belong to no component and stay here.
+copies the code. Writing or moving a skill means editing that file too. `app-start`,
+`app-adopt` and `repo-maintain` belong to no component and stay here.
 
 ## Editing sgs-components.json or sgs-capabilities.json
 

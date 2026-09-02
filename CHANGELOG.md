@@ -9,19 +9,7 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
-## [0.1.1] - 2026-09-01
-
-- **CONTRIBUTING.md describes how a change reaches `main`**, now that the branch is protected:
-  a pull request, one approving review, a passing version-bump check, and an up-to-date branch.
-  The owner bypass is documented as deliberate rather than left to be discovered, because on a
-  single-maintainer repository an approval only the author could give would block everything.
-- **The em-dash house rule says what is enforced.** It read "no em-dashes" while the corpus
-  carried hundreds, so CLAUDE.md and every other file gave contributors different instructions.
-  It is now stated as a practice, with an explicit instruction NOT to sweep: a repo-wide
-  cosmetic diff collides with everything in flight and reads as drift in every downstream app
-  at once. Closes the disagreement without spending a release on whitespace.
-
-## [0.1.0] - 2026-09-01
+## [0.1.0] - 2026-09-02
 
 The first release. Everything below is what the repo IS, not what changed in it.
 
@@ -62,6 +50,14 @@ answers "did I move past my watermark", and neither one ever edits your files.
 - `sgs:init` scaffolds an app from a capability interview, copying each capability's components
   AND the skills that describe them, so an agent opening the app finds instructions for the
   code that is actually there at the version it is pinned to.
+- **An app that already exists has its own way in.** `app-adopt` offers three answers per
+  capability instead of two, and the third is the one that matters: `--eject` records a
+  component as yours, copies its SKILL.md and none of its code, so you adopt the lessons
+  without adopting the files. `--manifest-only` goes further, for an application whose layout
+  is too far from this one to scaffold into: skills, vocabulary, tools and a manifest of
+  ejections, no application code, and nothing existing overwritten. `sgs:init` also reports
+  what it could NOT eject and why, because "the dock imports foldPanel from the panel" is the
+  coupling that makes adoption hard and silence about it teaches nobody anything.
 - `sgs:status` and `sgs:drift` locate a clone themselves and fail loudly rather than reporting
   confident nonsense when they cannot answer.
 - `sgs-decisions.md` records why an app is shaped the way it is, so the next session reads a
@@ -86,3 +82,14 @@ are worth using and the names may still shift under you.
 **From here on, every change arrives as a pull request**, every merged PR bumps the version
 (enforced), and every merge tags a release. That is the point at which a version number starts
 meaning something to somebody, and it is why the pace slows down rather than up.
+
+`main` is protected accordingly: pull request required, one approving review dismissed on
+push, the version-bump check required, branch up to date before merge, no force pushes or
+deletions. The repository owner can bypass all of it, deliberately, because on a
+single-maintainer repository an approval only the author could give would mean nothing merges
+at all. CONTRIBUTING.md documents the flow and which number to bump.
+
+One house rule was corrected rather than enforced: CLAUDE.md said "no em-dashes" while the
+corpus carried hundreds, so the file stating the rule and every other file gave contributors
+different instructions. It now states the practice, and explicitly forbids the repo-wide sweep
+that would collide with everything in flight for a change with no behaviour in it.

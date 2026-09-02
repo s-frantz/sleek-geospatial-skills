@@ -5,6 +5,11 @@ description: The setup wizard - clone placement, the outer gitignore, reading th
 
 # Starting an app
 
+**Wrong skill if the app already exists.** This one interviews a blank page: it asks whether
+you want a layer panel, which is not a question for somebody who has one. Use `app-adopt`
+instead, which offers three answers per capability rather than two and knows how to take the
+lessons without the files.
+
 Terms are in [VOCABULARY.md](../../../VOCABULARY.md); the filesystem convention is in
 [CONTRIBUTING.md](../../../CONTRIBUTING.md). The short version: the APP is a one-time copy
 the outer repo tracks normally, the MANIFEST (`sgs.json`) is its pin, and the CLONE is a tool

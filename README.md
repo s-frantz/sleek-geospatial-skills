@@ -80,7 +80,7 @@ watermark it could not read. Status feeds the
 
 ## What is in the skills
 
-`.claude/skills/`, fourteen of them. Each points at real files and a runnable command.
+`.claude/skills/`, fifteen of them. Each points at real files and a runnable command.
 
 A skill's name says which of two kinds it is, and the two kinds are used completely
 differently:
@@ -96,7 +96,8 @@ differently:
 
 | # | skill | when |
 |---|---|---|
-| 1 | [`app-start`](.claude/skills/app-start/SKILL.md) | once, at the beginning: clone placement, the capability interview, scaffolding, de-wiring what you left out |
+| 1 | [`app-start`](.claude/skills/app-start/SKILL.md) | once, at the beginning, on a blank page: clone placement, the capability interview, scaffolding, de-wiring what you left out |
+| 1b | [`app-adopt`](.claude/skills/app-adopt/SKILL.md) | instead of the above when the app already exists: the shape question, three answers per capability, the bake-off protocol |
 | 2 | [`app-verify`](.claude/skills/app-verify/SKILL.md) | constantly, from then on: the four rungs, and the rule that if you cannot print the number you are asserting, you are eyeballing |
 | 3 | [`app-upgrade`](.claude/skills/app-upgrade/SKILL.md) | periodically: did upstream move past me, and does the lesson apply |
 | 4 | [`app-contribute`](.claude/skills/app-contribute/SKILL.md) | periodically, paired with the above: did I move past my watermark, and does it belong back here |
@@ -122,9 +123,10 @@ where a lesson was learned twice independently.
 If you use Claude Code, cloning the repo is enough: skills in `.claude/skills/` are picked up
 automatically. If you do not, they are ordinary Markdown and read fine on their own.
 
-Twelve of the fourteen also travel INTO an app, scoped to its capabilities, because a
-component owns the skill that describes it. `app-start` and `repo-maintain` stay here:
-one is for an app that does not exist yet, the other is for this repo.
+Twelve of the fifteen also travel INTO an app, scoped to its capabilities, because a
+component owns the skill that describes it. `app-start`, `app-adopt` and `repo-maintain` stay
+here: two are for a decision taken before the app has any of these files, the third is for this
+repo.
 
 ### The naming law
 
@@ -132,11 +134,11 @@ one is for an app that does not exist yet, the other is for this repo.
 adjective, no "-guide" or "-conventions" suffix. Adding one means picking its prefix first,
 and if no prefix fits, that is a signal about the skill rather than about the scheme.
 
-The one skill this scheme names but does not yet contain is **`app-adopt`**: the path for
-somebody who already has an application and wants to bring it under these conventions rather
-than start from the demo. `app-start` interviews a blank page and has no branch for "I already
-have one of those, here it is." Tracked as an issue; not shipped, because a skill describing
-behaviour that does not exist is worse than no skill.
+The scheme's first real test was `app-adopt`, which the naming made obvious before the skill
+existed: `app-start` interviews a blank page, so the person arriving with an application
+already written had no entry point. It has one now, and `sgs:init` grew the two flags it needs
+(`--eject` and `--manifest-only`) rather than the skill describing a workflow the tools could
+not perform.
 
 ### The decision log
 

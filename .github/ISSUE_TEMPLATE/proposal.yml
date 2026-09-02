@@ -64,6 +64,7 @@ body:
         - map-camera
         - app-verify
         - app-start
+        - app-adopt
         - app-upgrade
         - app-contribute
         - repo-maintain

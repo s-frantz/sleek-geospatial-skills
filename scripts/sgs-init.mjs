@@ -58,8 +58,52 @@ const listArg = (flag) => {
 const withCaps = listArg('--with');
 const explicitComponents = listArg('--components');
 
+/**
+ * Capabilities the app ALREADY HAS its own version of.
+ *
+ * Not the same as leaving one out, and the difference is the whole point of the flag. An
+ * omitted capability is absent: no files, no watermark, invisible to sgs:status and sgs:drift,
+ * and indistinguishable a month later from one nobody thought about. An EJECTED one is a
+ * decision on the record: no code copied, but the component watermarked `ejected@<tag>` in
+ * sgs.json so status reports upstream movement as FYI, and its SKILL.md copied, because the
+ * reason to keep your own panel is never that you did not want to know how this one works.
+ *
+ * That asymmetry is the thing worth taking: you can adopt the LESSONS without adopting the
+ * FILES. Before this flag the only route to an ejected component was to scaffold it, delete
+ * the code, and hand-edit the manifest, which is three steps to express one decision and
+ * quietly loses the skill along the way.
+ *
+ * Takes CAPABILITY names or COMPONENT ids, unlike --with. An app arriving with code of its own
+ * rarely overlaps this repo along capability lines: it has a tooltip but no dock, or its own
+ * popup and nothing else. Making the adopter round their real situation up to the nearest
+ * capability would be asking them to eject files they wanted.
+ */
+const ejectCaps = listArg('--eject');
+
+/**
+ * Adopt the conventions without taking any of the code.
+ *
+ * For an application whose layout is too far from this one to scaffold into: a single file, a
+ * bundler, a framework, anything where copying `app/js/ui/panel.js` would put a file nobody is
+ * going to import next to code that already does that job. `--eject` answers "I have my own
+ * panel"; this answers "I have my own everything, including the boot path and the contracts",
+ * which `--eject` refuses because core is what the rest is written against.
+ *
+ * What lands: the skills, the vocabulary, the two version tools, and a manifest with every
+ * component marked `ejected@<tag>`. What does not: any application code, any test, any vendor
+ * file, and the package.json, because the target already has one.
+ *
+ * The manifest is the point. Without it the app has read some documentation; with it,
+ * `sgs:status` can still say "the lesson in map-popups moved since you read it", which is the
+ * only thing an app that took no code could ever want from upstream.
+ *
+ * NOTHING existing is overwritten in this mode, because unlike a fresh scaffold the target is
+ * somebody's working repository.
+ */
+const manifestOnly = args.includes('--manifest-only');
+
 if (!targetArg) {
-    console.error('Usage: node scripts/sgs-init.mjs <target-dir> [--with cap1,cap2 | --components id1,id2]');
+    console.error('Usage: node scripts/sgs-init.mjs <target-dir> [--with cap1,cap2 | --components id1,id2] [--eject cap-or-component,...] [--manifest-only]');
     process.exit(1);
 }
 const target = path.resolve(targetArg);
@@ -105,15 +149,83 @@ if (explicitComponents) {
         for (const id of entry.components) chosen.add(id);
     }
 } else {
-    // No selection: the full demo, capability names included so the report reads honestly.
+    // No selection: the full demo, minus anything named to --eject, and capability names
+    // recorded so the report reads honestly. Without the subtraction, `--eject layer-panel`
+    // on its own would take the panel by default and then refuse itself for the conflict,
+    // which is the script arguing with a flag the caller passed on purpose.
+    const ejectedTokens = new Set(ejectCaps ?? []);
     for (const [cap, entry] of Object.entries(capMap.capabilities)) {
+        if (ejectedTokens.has(cap)) continue;
         capsTaken.push(cap);
         for (const id of entry.components) chosen.add(id);
     }
 }
 
-const omittedCaps = Object.keys(capMap.capabilities).filter((c) => !capsTaken.includes(c));
-const omittedComponents = Object.keys(catalog).filter((id) => !chosen.has(id));
+// Ejected components: resolved from capability names OR component ids, then subtracted from
+// `chosen` so nothing copies their code.
+/** @type {Set<string>} */
+const ejected = new Set();
+/** @type {string[]} the capability-shaped tokens, so the report can name them as given */
+const ejectedCapNames = [];
+/** @type {Array<{id: string, neededBy: string[]}>} ejections a taken capability overruled */
+const overruled = [];
+if (ejectCaps) {
+    for (const token of ejectCaps) {
+        const entry = capMap.capabilities[token];
+        if (entry) {
+            if (capsTaken.includes(token) && withCaps) {
+                console.error(`"${token}" is in both --with and --eject. Taking it and owning it are different answers; pick one.`);
+                process.exit(1);
+            }
+            ejectedCapNames.push(token);
+            for (const id of entry.components) ejected.add(id);
+        } else if (catalog[token]) {
+            ejected.add(token);
+        } else {
+            console.error(`Unknown capability or component "${token}".`);
+            console.error(`Capabilities: ${Object.keys(capMap.capabilities).join(', ')}`);
+            console.error(`Components:   ${Object.keys(catalog).join(', ')}`);
+            process.exit(1);
+        }
+    }
+
+    // Core is not ejectable. It is the boot path and the contracts every other component is
+    // written against, so an app that ejects it is not an app built from this repo, it is an
+    // app that read the skills. That is a legitimate outcome and the app-adopt skill covers
+    // it, but it ends with a manifest and no scaffold, which is not something this script
+    // should pretend to have done.
+    for (const id of capMap.core) {
+        if (ejected.has(id)) {
+            console.error(`Refusing to eject "${id}": it is core, and everything else is written against it.`);
+            console.error('If you are keeping your own boot path and contracts, do not scaffold at all.');
+            console.error('The app-adopt skill covers that case: a manifest, the skills, and no code.');
+            process.exit(1);
+        }
+    }
+
+    // A component reachable from a TAKEN capability outranks the ejection, because the taken
+    // capability needs the file to work. Ejecting the layer panel while keeping popups must
+    // not remove the swatch: popups draws one too, and half a capability is not an answer
+    // anybody gave. Only components nothing taken depends on are actually ejected.
+    //
+    // But it is not enough to quietly keep the file. "I asked to own the panel and the panel
+    // is still here" is the adopter learning nothing, and the first version of this flag did
+    // exactly that: `--eject layer-panel` on a default scaffold reported no ejections at all,
+    // because the dock imports foldPanel from the panel. That coupling is the single most
+    // useful thing the flag can tell somebody adopting this into an app they already have, so
+    // it is collected and printed rather than resolved in silence.
+    for (const id of [...ejected]) {
+        if (!chosen.has(id)) continue;
+        const neededBy = capsTaken.filter((c) => capMap.capabilities[c].components.includes(id));
+        overruled.push({ id, neededBy });
+        ejected.delete(id);
+    }
+    for (const id of ejected) chosen.delete(id);
+}
+
+const omittedCaps = Object.keys(capMap.capabilities)
+    .filter((c) => !capsTaken.includes(c) && !ejectedCapNames.includes(c));
+const omittedComponents = Object.keys(catalog).filter((id) => !chosen.has(id) && !ejected.has(id));
 
 // ── Copy ─────────────────────────────────────────────────────────────────────────────────
 /** @param {string[]} gitArgs @returns {string|null} */
@@ -132,8 +244,48 @@ if (!latestTag) {
 
 mkdirSync(target, { recursive: true });
 
-for (const id of chosen) {
+/**
+ * Copy, refusing to clobber. In manifest-only mode the target is an existing repository, so a
+ * file already there is the app's own and always wins; a fresh scaffold has nothing to
+ * protect and copies unconditionally.
+ * @param {string} rel @returns {boolean} did it write?
+ */
+function place(rel) {
+    const dst = path.join(target, rel);
+    if (manifestOnly && existsSync(dst)) {
+        skipped.push(rel);
+        return false;
+    }
+    mkdirSync(path.dirname(dst), { recursive: true });
+    cpSync(path.join(REPO_ROOT, rel), dst, { recursive: true });
+    return true;
+}
+/** @type {string[]} */
+const skipped = [];
+
+if (manifestOnly) {
+    // Every component is ejected, so every component-owned skill travels, plus VOCABULARY.md
+    // and the version tools. The app keeps its own everything else.
+    for (const id of Object.keys(catalog)) {
+        for (const rel of catalog[id]) {
+            if (rel.startsWith('.claude/skills/') || rel === 'VOCABULARY.md') place(rel);
+        }
+    }
+    for (const rel of ['scripts/sgs-clone.mjs', 'scripts/sgs-status.mjs', 'scripts/sgs-drift.mjs']) place(rel);
+}
+
+for (const id of manifestOnly ? [] : chosen) {
     for (const rel of catalog[id]) {
+        const dst = path.join(target, rel);
+        mkdirSync(path.dirname(dst), { recursive: true });
+        cpSync(path.join(REPO_ROOT, rel), dst);
+    }
+}
+
+// Ejected: the skill, not the code. See --eject above for why that asymmetry is the point.
+for (const id of manifestOnly ? [] : ejected) {
+    for (const rel of catalog[id]) {
+        if (!rel.startsWith('.claude/skills/')) continue;
         const dst = path.join(target, rel);
         mkdirSync(path.dirname(dst), { recursive: true });
         cpSync(path.join(REPO_ROOT, rel), dst);
@@ -160,7 +312,7 @@ const EXTRA = [
     'scripts/serve.mjs', 'scripts/icon-ink.mjs', 'scripts/icon-targets.json',
     'scripts/sgs-clone.mjs', 'scripts/sgs-status.mjs', 'scripts/sgs-drift.mjs',
 ];
-for (const rel of EXTRA) {
+for (const rel of manifestOnly ? [] : EXTRA) {
     const src = path.join(REPO_ROOT, rel);
     if (!existsSync(src)) continue;
     const dst = path.join(target, rel);
@@ -186,7 +338,7 @@ delete pkg.keywords;
 delete pkg.scripts['sgs:init'];
 pkg.scripts['sgs:status'] = 'node scripts/sgs-status.mjs .';
 pkg.scripts['sgs:drift'] = 'node scripts/sgs-drift.mjs .';
-writeFileSync(path.join(target, 'package.json'), JSON.stringify(pkg, null, 2) + '\n');
+if (!manifestOnly) writeFileSync(path.join(target, 'package.json'), JSON.stringify(pkg, null, 2) + '\n');
 
 // index.html links every component stylesheet; drop the lines for CSS files that were not
 // copied, so a trimmed app boots with no 404s. JS wiring in main.js cannot be filtered this
@@ -195,7 +347,7 @@ const omittedCss = new Set();
 for (const id of omittedComponents) {
     for (const rel of catalog[id]) if (rel.endsWith('.css')) omittedCss.add(path.posix.basename(rel));
 }
-if (omittedCss.size > 0) {
+if (omittedCss.size > 0 && !manifestOnly) {
     const htmlPath = path.join(target, 'app/index.html');
     if (existsSync(htmlPath)) {
         const kept = readFileSync(htmlPath, 'utf8').split('\n').filter((line) => {
@@ -207,11 +359,17 @@ if (omittedCss.size > 0) {
 }
 
 // ── Manifest ─────────────────────────────────────────────────────────────────────────────
-// Only the components actually copied. sgs:status and sgs:drift iterate this list, so an
-// omitted component is invisible to both rather than reported as missing.
+// The components actually copied, plus the ones deliberately owned. sgs:status and sgs:drift
+// iterate this list, so an OMITTED component is invisible to both rather than reported as
+// missing, while an EJECTED one is reported as informational. That is the difference between
+// "not here" and "here, mine": only the second is a decision the tools can tell you about.
 /** @type {Record<string, string>} */
 const components = {};
-for (const id of Object.keys(catalog)) if (chosen.has(id)) components[id] = tag;
+for (const id of Object.keys(catalog)) {
+    if (manifestOnly) components[id] = `ejected@${tag}`;
+    else if (chosen.has(id)) components[id] = tag;
+    else if (ejected.has(id)) components[id] = `ejected@${tag}`;
+}
 writeFileSync(path.join(target, 'sgs.json'), JSON.stringify({ instantiated: tag, components }, null, 2) + '\n');
 
 // ── The app's CLAUDE.md ──────────────────────────────────────────────────────────────────
@@ -357,6 +515,38 @@ Types, unit, geometry, ink. All four, and quote what came back.
 
 // ── Report ───────────────────────────────────────────────────────────────────────────────
 const rel = path.relative(process.cwd(), target) || '.';
+if (manifestOnly) {
+    console.log(`Adopted sleek-geospatial-skills @ ${tag} into ${rel}, conventions only.`);
+    console.log('');
+    console.log('What is here:');
+    console.log('  .claude/skills/       every skill, at this pin');
+    console.log('  VOCABULARY.md         the terms the skills use');
+    console.log('  scripts/sgs-*.mjs     the two version tools and the clone finder');
+    console.log('  sgs.json              every component marked ejected: you own all of it');
+    console.log('  sgs-decisions.md      why this app is shaped this way; read it before asking');
+    if (skipped.length) {
+        console.log('');
+        console.log(`Left alone, because they already existed (${skipped.length}):`);
+        for (const rel2 of skipped.slice(0, 8)) console.log(`  ${rel2}`);
+        if (skipped.length > 8) console.log(`  ... and ${skipped.length - 8} more`);
+        console.log('Nothing is overwritten in this mode. Diff any of these against the clone');
+        console.log('yourself if you want the newer version.');
+    }
+    console.log('');
+    console.log('No application code was copied, which is the point: your app keeps its own');
+    console.log('boot path, its own contracts, its own layout. The manifest is what makes this');
+    console.log('more than having read some documentation, because `sgs:status` can now tell');
+    console.log('you when a lesson you adopted has moved.');
+    console.log('');
+    console.log('Add these to your package.json scripts, since yours was not touched:');
+    console.log('  "sgs:status": "node scripts/sgs-status.mjs"');
+    console.log('  "sgs:drift":  "node scripts/sgs-drift.mjs"');
+    console.log('');
+    console.log('`sgs:drift` will report nothing: it does not diff files you own, and you own');
+    console.log('all of them. `sgs:status` is the one that has something to say.');
+    console.log('');
+    console.log('Next: the app-adopt skill, which is the interview for exactly this situation.');
+} else {
 console.log(`Scaffolded ${rel} from sleek-geospatial-skills @ ${tag}.`);
 console.log(`  capabilities: ${capsTaken.length ? capsTaken.join(', ') : '(explicit component list)'}`);
 if (omittedCaps.length) console.log(`  omitted:      ${omittedCaps.join(', ')}`);
@@ -367,6 +557,26 @@ console.log('  .claude/skills/       the skills for the capabilities above, at t
 console.log('  CLAUDE.md             generated: which skills are here and what they cover');
 console.log('  sgs.json              the version pin, one watermark per component');
 console.log('  sgs-decisions.md      why this app is shaped this way; read it before asking');
+if (ejected.size > 0) {
+    console.log('');
+    console.log(`Ejected (skill copied, code not): ${[...ejected].sort().join(', ')}`);
+    console.log('Those are watermarked ejected@' + tag + '. sgs:status will report upstream');
+    console.log('movement on them as FYI, and sgs:drift will not diff files you own.');
+    console.log('Record WHY in sgs-decisions.md while the reason is still fresh.');
+}
+if (overruled.length > 0) {
+    console.log('');
+    console.log('NOT ejected, because something you took needs the file:');
+    for (const { id, neededBy } of overruled) {
+        console.log(`  ${id.padEnd(14)} needed by ${neededBy.join(', ')}`);
+    }
+    console.log('');
+    console.log('The file is here and watermarked normally. You have two honest ways forward:');
+    console.log('eject the capability that needs it as well, or keep this copy and make your');
+    console.log('own version satisfy what the dependent component imports from it. Whichever');
+    console.log('you pick, write it down in sgs-decisions.md: this is the coupling that makes');
+    console.log('adoption hard, and the next person will hit it in the same place.');
+}
 console.log('');
 console.log('What is NOT here, and does not need to be: any path to the clone. The app runs,');
 console.log('builds, tests and ships with no clone on the machine. `npm run sgs:status` and');
@@ -387,3 +597,4 @@ if (omittedCaps.length) {
 console.log('');
 console.log('Next:');
 console.log(`  cd ${rel} && npm install && npm start   # http://localhost:4173`);
+}
