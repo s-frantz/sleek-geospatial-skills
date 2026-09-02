@@ -61,7 +61,15 @@ which and why.
 the alternative it beat, and several record a bug that has actually happened. That is the
 repo's main content, so do not compress it away.
 
-**No em-dashes** in code, comments, docs or UI copy. Commas, colons and full stops.
+**Avoid em-dashes** in code, comments, docs and UI copy. Commas, colons and full stops.
+
+Stated as a practice rather than an absolute, because the absolute was not true: the rule
+read "no em-dashes" while the corpus carried hundreds, so a contributor reading this file and
+a contributor reading any other one got different instructions. The rule now says what is
+actually enforced. Do not open a pull request that sweeps them out of files you were not
+otherwise touching: it would collide with everything in flight and show up as drift in every
+downstream app at once, for a change with no behaviour in it. Remove them from lines you are
+editing anyway, and the count goes down without anyone running a campaign.
 
 **No decorative accent stripes.** A coloured bar down the left of a callout, along the top of
 a card, or beside a heading is the most reliable visual tell of generated UI. It is decoration
