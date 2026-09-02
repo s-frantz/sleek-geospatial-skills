@@ -2,12 +2,24 @@
 
 Every release is a tag (`vX.Y.Z`). `npm run sgs:status`, run from an app's directory, diffs
 your `sgs.json` watermarks against this repo's history between the tag you last synced from
-and the latest one — it does not read this file for that. What THIS file is for: a `Breaking:`
+and the latest one. It does not read this file for that. What THIS file is for: a `Breaking:`
 line names which component ids changed in a way that isn't just "pull the new version," so
 `sgs:status` can flag it rather than reporting a silent content diff.
 
-A line here should say what changed and, if relevant, what a consuming app needs to check —
-not narrate the commit that produced it.
+A line here should say what changed and, if relevant, what a consuming app needs to check.
+It should not narrate the commit that produced it.
+
+## [0.1.1] - 2026-09-01
+
+- **CONTRIBUTING.md describes how a change reaches `main`**, now that the branch is protected:
+  a pull request, one approving review, a passing version-bump check, and an up-to-date branch.
+  The owner bypass is documented as deliberate rather than left to be discovered, because on a
+  single-maintainer repository an approval only the author could give would block everything.
+- **The em-dash house rule says what is enforced.** It read "no em-dashes" while the corpus
+  carried hundreds, so CLAUDE.md and every other file gave contributors different instructions.
+  It is now stated as a practice, with an explicit instruction NOT to sweep: a repo-wide
+  cosmetic diff collides with everything in flight and reads as drift in every downstream app
+  at once. Closes the disagreement without spending a release on whitespace.
 
 ## [0.1.0] - 2026-09-01
 
@@ -32,7 +44,7 @@ answers "did I move past my watermark", and neither one ever edits your files.
   (`furniture.js`, `visible-area.js`, `popup-placement.js`), and components on top. The
   framework knows nothing about any specific panel: a `data-sgs-furniture` attribute plus a
   live geometric read, never a static label saying where something is.
-- **A left panel and a bottom dock**, sharing one geometry model — three independent facts
+- **A left panel and a bottom dock**, sharing one geometry model: three independent facts
   behind one applier, a berth each, pin and snap, and TIGHT / PINNED / FULL as the three things
   a size axis can be.
 - **Popups** that choose between a CLEAN column and an ADJACENT anchor, refuse to cover the
@@ -60,9 +72,9 @@ answers "did I move past my watermark", and neither one ever edits your files.
 
 ### Why this is 0.1.0, and why the history behind it is not in this file
 
-An earlier draft of this repo tagged four releases in two days, each one a genuine improvement
-and none of them a release anybody could have consumed — nothing had been cloned, so every
-`Breaking:` line was a warning addressed to no one. A version number that moves faster than its
+An earlier draft of this repo tagged four releases in two days. Each one was a genuine
+improvement and none of them was a release anybody could have consumed: nothing had been
+cloned, so every `Breaking:` line was a warning addressed to no one. A version number that moves faster than its
 consumers is not information, it is noise wearing a contract's clothing. Those tags are gone
 and this is the first entry.
 

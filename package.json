@@ -1,6 +1,6 @@
 {
   "name": "sleek-geospatial-skills",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Conventions and agent skills for building MapLibre applications, with a small runnable app to practise them on.",
   "license": "MIT",
   "private": false,

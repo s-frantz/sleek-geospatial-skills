@@ -165,6 +165,36 @@ upstream contract can't express — record it rather than silently drifting:
 `sgs:status` keeps reporting on it (informationally: "upstream changed since v0.2.0, FYI
 only") without ever suggesting you pull the new version wholesale.
 
+## How a change reaches main
+
+`main` is protected. Every change arrives as a pull request, and there is no exception for
+small ones:
+
+- **A pull request is required.** Direct pushes to `main` are refused.
+- **One approving review is required**, and a review is dismissed if the branch is pushed to
+  again, so an approval always refers to the code that will actually merge.
+- **`Version bump required` must pass.** `package.json`'s version has to increase, because a
+  merge to `main` tags a release automatically (`.github/workflows/tag-release.yml`) and a tag
+  that does not move on every merge is a tag consuming apps cannot trust.
+- **The branch must be up to date with `main` before merging**, so the checks that passed are
+  the checks for the merged result rather than for a stale base.
+- **Force pushes and branch deletion are refused**, and review conversations must be resolved.
+
+The repository owner can bypass these, which is deliberate and not an oversight: on a
+single-maintainer repository, requiring an approval that only the author can give would mean
+nothing could ever merge. The rules are there so that everybody ELSE goes through review, and
+so the owner has to choose to bypass rather than doing it by accident.
+
+### Which number to bump
+
+Patch for a fix or a doc change, minor for a new component, capability or convention. The
+version is `0.x` on purpose: `1.0.0` is a promise about stability, and the conventions here are
+still moving. Do not bump to `1.0.0` to mark a big change; that number means something
+different, and it will be spent once.
+
+Every merge is a release, so keep a pull request to one idea. Two unrelated changes in one
+merge means one tag that two different apps each want half of.
+
 ## Proposing an addition
 
 A fix to something that already exists follows the section below. Something the repo does not
