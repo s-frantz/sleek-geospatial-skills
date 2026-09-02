@@ -1,5 +1,5 @@
 ---
-name: icon-centering
+name: ui-icons
 description: Size and centre icons objectively by measuring the drawn ink with npm run icons, treating SIZE and CENTRING as the two separate problems they are. Use whenever an icon "looks off", a new control button is added, or glyph art changes.
 ---
 
@@ -106,6 +106,17 @@ change is stale.
 - **Never** adjust a number because a screenshot looked better afterwards.
 - Guides (`document.body.classList.add('sgs-guides')`) draw the button's centre lines in red.
   They SHOW a problem; they do not measure it.
+- **A glyph is only responsible for its own box.** The measurer subtracts the button's
+  sub-pixel position before comparing ink centre to box centre, because an element screenshot
+  is cropped on whole device pixels: a button whose box starts at x=181.86 is captured from
+  x=181 and everything in it sits 0.86px late in the crop. The panel is `width: max-content`,
+  so its width comes from text metrics and is fractional almost always, and renaming a demo
+  layer once reported the pin as 1px off centre with the art untouched. Charging that to the
+  glyph would have put a compensation for one label's width into `NUDGE`, where it would be
+  wrong for every other label forever. The crop origin is FLOORED, which is measured rather
+  than assumed: rounding to nearest moved the reported offset the wrong way.
+- The corollary: genuinely half-pixel chrome renders soft and this tool will not say so. That
+  is a layout check, and it is not this one.
 - The measurer insets **2 CSS px** (`INSET_CSS` in `scripts/icon-ink.mjs`) before it starts
   looking for the button's own face colour. A rounded corner's pixels are transparent, which
   resolved to black in the very first version of this script, made the whole button read as

@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { edgeOf, coverFromEdgeFurniture, HOME } from '../../app/js/utils/furniture.js';
+import { edgeOf, coverFromEdgeFurniture, nearBerth, makeBorrow, HOME, SNAP } from '../../app/js/utils/furniture.js';
 
 const VIEWPORT = { width: 1280, height: 800 };
 
@@ -86,5 +86,85 @@ describe('coverFromEdgeFurniture — the N-ary case', () => {
     it('ignores furniture that occupies no edge', () => {
         const cover = coverFromEdgeFurniture([], VIEWPORT);
         expect(cover).toEqual({ left: 0, right: 0, top: 0, bottom: 0 });
+    });
+});
+
+describe('nearBerth', () => {
+    const berth = { x: 10, y: 10 };
+
+    it('catches a rect inside the radius on both axes', () => {
+        expect(nearBerth({ left: 30, top: 40 }, berth)).toBe(true);
+    });
+
+    it('does not catch a rect that is close on one axis and far on the other', () => {
+        // The reason it is per-axis and not radial: a panel sitting hard against the left
+        // edge but 300px down the screen is not "nearly home" in any sense a reader means.
+        expect(nearBerth({ left: 10, top: 340 }, berth)).toBe(false);
+        expect(nearBerth({ left: 700, top: 10 }, berth)).toBe(false);
+    });
+
+    it('is symmetric: overshooting the berth is as near as falling short', () => {
+        expect(nearBerth({ left: 10 - SNAP, top: 10 }, berth)).toBe(true);
+        expect(nearBerth({ left: 10 + SNAP, top: 10 }, berth)).toBe(true);
+        expect(nearBerth({ left: 10 + SNAP + 1, top: 10 }, berth)).toBe(false);
+    });
+
+    it('has a catch radius wider than the occlusion threshold, so anything that snaps was already occluding', () => {
+        expect(SNAP).toBeGreaterThan(HOME);
+    });
+});
+
+describe('makeBorrow', () => {
+    /** A thing that can be folded, standing in for the layer panel. */
+    function subject(folded = false) {
+        const state = { folded, takes: 0, gives: 0 };
+        const borrow = makeBorrow({
+            available: () => !state.folded,
+            take: () => { state.folded = true; state.takes++; },
+            give: () => { state.folded = false; state.gives++; },
+        });
+        return { state, borrow };
+    }
+
+    it('takes once and gives back once', () => {
+        const { state, borrow } = subject();
+        borrow.want(true);
+        borrow.want(true);
+        expect(state.folded).toBe(true);
+        expect(state.takes).toBe(1);
+        borrow.want(false);
+        expect(state.folded).toBe(false);
+        expect(state.gives).toBe(1);
+    });
+
+    it('will not give back what it never took', () => {
+        // The dock rises, the reader folds the panel themselves, the dock comes down. Before
+        // this contract the dock unfolded a panel it had never folded.
+        const { state, borrow } = subject(true);
+        borrow.want(true);
+        expect(borrow.held()).toBe(false);
+        expect(state.takes).toBe(0);
+        borrow.want(false);
+        expect(state.gives).toBe(0);
+        expect(state.folded).toBe(true);
+    });
+
+    it('release is want(false), and is safe when nothing is held', () => {
+        const { state, borrow } = subject();
+        borrow.release();
+        expect(state.gives).toBe(0);
+        borrow.want(true);
+        borrow.release();
+        expect(state.gives).toBe(1);
+        expect(borrow.held()).toBe(false);
+    });
+
+    it('can take again after giving back', () => {
+        const { state, borrow } = subject();
+        borrow.want(true);
+        borrow.want(false);
+        borrow.want(true);
+        expect(state.takes).toBe(2);
+        expect(state.folded).toBe(true);
     });
 });

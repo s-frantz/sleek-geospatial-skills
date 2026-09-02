@@ -14,8 +14,8 @@
 export const BASEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 
 /** Where the demo data is. @type {[number, number]} */
-export const INITIAL_CENTER = [-122.64, 45.52];
-export const INITIAL_ZOOM = 11.2;
+export const INITIAL_CENTER = [-122.657, 45.535];
+export const INITIAL_ZOOM = 12.6;
 
 export const map = new maplibregl.Map({
     container: 'map',
@@ -29,7 +29,7 @@ export const map = new maplibregl.Map({
 });
 
 // Exposed so Playwright specs can drive and interrogate the real camera rather than
-// re-implementing it. See the `verify-in-the-browser` skill.
+// re-implementing it. See the `app-verify` skill.
 window.sgsMap = map;
 
 // MapLibre creates its four corner containers synchronously as part of construction, before

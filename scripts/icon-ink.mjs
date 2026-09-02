@@ -19,7 +19,7 @@
  *
  * SIZE and CENTRING are separate problems with separate fixes: SIZE_FACTOR and NUDGE in
  * app/js/icons.js. Fix one at a time and re-measure. Do not adjust either because a
- * screenshot looked better afterwards. See the `icon-centering` skill.
+ * screenshot looked better afterwards. See the `ui-icons` skill.
  *
  * Exits non-zero when any of our own controls is out of tolerance, so it works in a chain.
  * MapLibre's built-in zoom buttons are measured too, but only reported: their artwork is not
@@ -179,8 +179,27 @@ async function main() {
         // file exists for the rare glyph that should genuinely read a different size from its
         // neighbours, and for the buttons that are not ours.
         const want = TARGETS.want[name] ?? meta.ink ?? TARGETS.defaultWant;
-        const dx = ink.cx - box.width / 2;
-        const dy = ink.cy - box.height / 2;
+
+        // Correct for where the BUTTON sits, before asking where the ink sits inside it.
+        //
+        // The screenshot is cropped on whole device pixels, FLOORED (measured, not assumed:
+        // rounding to nearest moved the pin's reported offset the wrong way, from 1.00 to
+        // 1.14, and flooring put it at the 0.14 that matches the button's own fraction). A
+        // button whose CSS box starts at x=181.86 is captured from x=181, so everything
+        // inside it sits 0.86px later in the crop than its box centre would suggest.
+        // The panel is `width: max-content`, which means its width comes from text metrics
+        // and is fractional almost always: renaming a demo layer moved this button by 0.86px
+        // and reported the pin glyph as 1px off centre, art that had not been touched.
+        //
+        // What this tool is for is the glyph's centring INSIDE its button, which is a fact
+        // about the art. Where the button landed is a fact about the layout, and charging it
+        // to the glyph would put a compensation for one label's width into the icon table.
+        // Subtracting the crop offset separates the two. It also means genuine half-pixel
+        // chrome renders soft and goes unreported here; that is a layout check, not this one.
+        const cropDx = box.x - Math.floor(box.x);
+        const cropDy = box.y - Math.floor(box.y);
+        const dx = ink.cx - (box.width / 2 + cropDx);
+        const dy = ink.cy - (box.height / 2 + cropDy);
         const long = Math.max(ink.w, ink.h);
 
         const sizeBad = ours && Math.abs(long - want) > TARGETS.sizeTolerance;

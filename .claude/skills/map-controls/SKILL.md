@@ -1,5 +1,5 @@
 ---
-name: map-control-icons
+name: map-controls
 description: Style MapLibre's control stack without fighting it - the specificity trap that silently ignores your CSS, currentColor glyphs, and why the library's own baked-image buttons need dark-mode treatment yours do not. Use when adding a custom map control, or when control CSS "does nothing".
 ---
 
@@ -67,6 +67,25 @@ undoes instead of in a file that has to be found. See `app/css/components/map-co
 for what's left in the stylesheet once the reset itself moved out: only state colour, which
 the cascade genuinely is the right tool for.
 
+### State colour has to carry every state the control has
+
+Geolocate has three, and MapLibre already tracks them: `-background` means it is watching your
+position while the camera is free, and `-active` means it is watching AND the camera is locked
+to you. Painting both the same accent made "I know where you are" and "I am following you"
+look identical, so the button could not answer the question a reader presses it to ask.
+
+The fix is in the art, not in a second control. The glyph is a ring around a dot, so it can say
+both things at once: the dot paints from its own custom property (`--sgs-locate-dot`), the ring
+from `color`. The DOT alone lights up on `-background`, the WHOLE glyph on `-active`, reading
+outward from the centre in the direction the behaviour grows.
+
+Error is the exception and stays whole-glyph in both states: a half-lit error would be read as
+a degree of success.
+
+**Before styling an adopted control, list the classes MapLibre actually toggles on it.** A
+state the framework distinguishes and the stylesheet flattens is information thrown away in the
+one place the reader was looking for it.
+
 ## 3. One shell, many buttons
 
 Every custom button goes through `makeControl` in `app/js/ui/control-stack.js`. One place
@@ -88,4 +107,4 @@ map.addControl(makeControl([{ glyph: 'info', title: 'About', onClick: () => {} }
       `adoptControlGlyphs()`, never an invert filter, and never a stylesheet reset — inline
       only, right where the glyph is injected.
 - [ ] Run `npm run icons`. A new control is a new glyph, and it will not be the right size by
-      accident. See `icon-centering`.
+      accident. See `ui-icons`.

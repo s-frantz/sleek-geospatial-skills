@@ -132,3 +132,81 @@ export function edgeCover(root) {
     const viewport = { width: window.innerWidth, height: window.innerHeight };
     return coverFromEdgeFurniture(edgeFurniture(root), viewport);
 }
+
+/**
+ * The catch radius when a reader drags furniture back toward its berth, in px.
+ *
+ * Deliberately larger than HOME, and the difference is the whole argument: HOME judges a rect
+ * AT REST ("is this thing occluding the left edge?"), while SNAP is a target a hand in motion
+ * has to hit. The same number for both reads as principled and misses constantly.
+ *
+ * It is a multiple of HOME rather than an unrelated number so the two cannot drift apart:
+ * anything inside SNAP of its berth point is, by construction, already inside HOME of its
+ * berth EDGE — which is to say the framework is ALREADY padding the camera as though the
+ * furniture were docked while the furniture still believes it is floating. Snapping does not
+ * introduce a behaviour; it ends a disagreement the reader can see.
+ */
+export const SNAP = HOME * 2;
+
+/**
+ * Is this rect close enough to its berth point that letting go should re-berth it?
+ *
+ * Per-axis rather than Euclidean: a diagonal miss of 40px in both directions is not "nearly
+ * home" in any sense a reader would recognise, and the radial version catches it.
+ *
+ * Pure, and takes the berth point rather than deriving one, because only the furniture knows
+ * where its own berth is — the panel's is an inset corner, the dock's is an inset corner
+ * whose y depends on the dock's current height. Deriving it here would mean this file knowing
+ * about specific pieces of furniture, which is exactly what the marker attribute exists to
+ * avoid.
+ *
+ * @param {{left: number, top: number}} rect where the furniture is now
+ * @param {{x: number, y: number}} berth where it would sit if it were pinned
+ * @param {number} [snap]
+ * @returns {boolean}
+ */
+export function nearBerth(rect, berth, snap = SNAP) {
+    return Math.abs(rect.left - berth.x) <= snap && Math.abs(rect.top - berth.y) <= snap;
+}
+
+/**
+ * A change one piece of furniture makes to ANOTHER, which it may only undo while it is still
+ * the one holding it.
+ *
+ * This shape had been written by hand three times before it was named — the fold that pins the
+ * panel's width, the dock that folds the panel as it rises, the undock that pins the dock's
+ * width — and each copy got the same half right and the same half wrong. Taking is easy.
+ * GIVING BACK is where the bugs live, and there are two of them:
+ *
+ *   1. Giving back something you never took. The dock rises, the reader folds the panel
+ *      themselves, the dock comes down and unfolds it. The app has overruled a choice it was
+ *      not asked about.
+ *   2. Taking something that was already gone. The reader folds the panel, the dock rises and
+ *      "folds" it again, the dock comes down and gives back a fold that was never the dock's
+ *      to give. Same bug, entered from the other side, which is why `available` is part of
+ *      the contract and not the caller's problem.
+ *
+ * @param {object} spec
+ * @param {() => boolean} spec.available is the thing free to take right now?
+ * @param {() => void} spec.take
+ * @param {() => void} spec.give
+ * @returns {{want: (next: boolean) => void, release: () => void, held: () => boolean}}
+ */
+export function makeBorrow({ available, take, give }) {
+    let held = false;
+    return {
+        want(next) {
+            if (next === held) return;
+            if (next) {
+                if (!available()) return;
+                held = true;
+                take();
+            } else {
+                held = false;
+                give();
+            }
+        },
+        release() { this.want(false); },
+        held: () => held,
+    };
+}

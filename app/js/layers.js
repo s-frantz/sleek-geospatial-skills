@@ -29,14 +29,14 @@ import { bboxOf, isDegenerate } from './utils/geo.js';
 /** @type {LayerDef[]} */
 export const LAYERS = [
     {
-        id: 'districts',
-        label: 'Districts',
-        url: 'data/districts.geojson',
+        id: 'neighborhoods',
+        label: 'Neighborhoods',
+        url: 'data/neighborhoods.geojson',
         kind: 'fill',
         type: 'geojson-file',
         visible: true,
         color: '#3f7fd4',
-        fields: ['id', 'name', 'zone', 'households', 'area_km2'],
+        fields: ['id', 'name', 'coalition', 'area_km2', 'perimeter_km'],
     },
     {
         id: 'stations',
@@ -153,7 +153,7 @@ export function setLayerVisible(id, on) {
  * Bring a layer into view, in the part of the viewport that is actually visible.
  *
  * The padding is the whole point: without it this centres the layer under the panel. See the
- * `chrome-aware-camera` skill.
+ * `map-camera` skill.
  * @param {string} id
  * @returns {void}
  */

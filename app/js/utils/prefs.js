@@ -14,11 +14,22 @@ const KEY = 'sgs-prefs';
 
 /**
  * @typedef {object} Prefs
- * @property {'auto'|'manual-w'|'manual-h'|'float'} [panelPosture]
+ * @property {boolean} [panelFloat]  docked or loose
+ * @property {'auto'|'manual-w'|'manual-h'|'float'} [panelPosture] superseded by panelFloat
+ *           plus the presence of panelW/panelH; read once on restore for older readers, and
+ *           never written again. See the "not four postures" note in panel.js.
  * @property {number} [panelW]
  * @property {number} [panelH]
+ * @property {boolean} [panelFull]  the FULL takeover: overrides both size axes without
+ *           overwriting either, so releasing it restores the reader's own numbers
  * @property {number} [panelX]
  * @property {number} [panelY]
+ * @property {boolean} [dockFloat]  the table loose on the map rather than berthed at the foot
+ * @property {boolean} [dockFull]
+ * @property {number} [dockH]
+ * @property {number} [dockW]   only meaningful while dockFloat; berthed, the dock is full-bleed
+ * @property {number} [dockX]
+ * @property {number} [dockY]
  * @property {'clean'|'adjacent'} [popupPlacement]
  * @property {boolean} [panelStowed]
  */

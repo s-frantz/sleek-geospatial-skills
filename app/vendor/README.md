@@ -8,4 +8,4 @@ and nothing here can change under the app without a commit that says so.
 | `maplibre-gl.js` | MapLibre GL JS | 5.24.0 | BSD-3-Clause |
 | `maplibre-gl.css` | MapLibre GL JS | 5.24.0 | BSD-3-Clause |
 
-See the `boot-order` skill for why these load with `defer` ahead of the module entry point.
+See the `ui-boot` skill for why these load with `defer` ahead of the module entry point.

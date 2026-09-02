@@ -1,5 +1,5 @@
 ---
-name: popup-placement
+name: map-popups
 description: Decide where a map popup opens - CLEAN column versus ADJACENT to the feature, refusing to cover the app's own furniture, and covering the anchor as the last resort rather than fleeing to a corner. Use when building popups, tooltips, or anything that opens at a point on a map.
 ---
 
@@ -22,7 +22,7 @@ not an opinion baked into the code.
 ## What counts as "fits"
 
 A candidate is rejected if it would leave the visible area, or land on anything marked
-`data-sgs-furniture` WHILE it occludes an edge (see the `chrome-aware-camera` skill and
+`data-sgs-furniture` WHILE it occludes an edge (see the `map-camera` skill and
 `app/js/utils/furniture.js`), plus any popup already on screen. This file names no ids — the
 control stack, the panel, an open dock all qualify because they carry the attribute, not
 because `popup-placement.js` knows they exist.

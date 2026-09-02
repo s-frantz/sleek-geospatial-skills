@@ -8,31 +8,41 @@ defined once, in [VOCABULARY.md](VOCABULARY.md).
 
 ## The filesystem convention
 
-The model is npm's, adapted: the **clone plays `node_modules`** and the **manifest plays
-`package.json`**.
+An app is a full copy. Nothing in it imports from this repo at runtime, and an app builds,
+runs, tests and ships with no clone of this repo anywhere on the machine.
+
+That makes the clone a TOOL CHECKOUT, not a dependency. Exactly two commands want it,
+`sgs:status` and `sgs:drift`, because both answer their question by reading release history
+(`git show v0.1.0:app/...`) and a copied directory has none. Everything else in an app is
+already there.
 
 ```
-my-app/                          (its own repo, or one folder of a monorepo)
-  .gitignore                     <- contains: sleek-geospatial-skills/
-  sleek-geospatial-skills/       <- the CLONE: gitignored, never edited, kept at latest
-  sgs.json                       <- the MANIFEST: the app's actual version pin
-  app/  tests/  package.json ... <- the APP: copied once by sgs:init, tracked normally
+monorepo/                        (or a single app repo; the shape is the same)
+  .gitignore                     <- contains: .sgs/
+  .sgs/                          <- a CLONE. Optional, disposable, never edited.
+  products/my-app/
+    sgs.json                     <- the MANIFEST: the app's version pin
+    CLAUDE.md                    <- generated: which skills this app has
+    .claude/skills/              <- the skills for the capabilities it took
+    app/  tests/  scripts/ ...   <- the APP: copied once by sgs:init, tracked normally
 ```
 
 Rules that make it work:
 
-- **The clone is never edited.** `git -C sleek-geospatial-skills status` is always clean. The
-  one exception is a contribution branch (see `contributing-upstream`), returned to clean
-  after the PR.
-- **The clone is not the pin.** `git -C sleek-geospatial-skills pull` is always safe: every
-  watermark in `sgs.json` stays reachable through the clone's history (`git show
-  v1.0.0:app/...`), whatever is checked out. Tooling reads the manifest, the way npm reads an
-  old `package.json` regardless of npm's own version.
-- **One clone per app**, beside it — the same trade as one `node_modules` per project, and it
-  is also what puts `.claude/skills/` where an agent working on the app will find it.
-- Note that gitignore cannot hide edits to the clone's own tracked files — nothing can. A
-  dirty clone is loudly visible in `git status`, which is the point: it means a mistake
-  happened, and the fix is moving the edit out to the app (or onto a contribution branch).
+- **The app records no path to the clone.** `sgs:status` and `sgs:drift` LOCATE one at
+  runtime: `$SGS_CLONE`, then a directory named `.sgs` or `sleek-geospatial-skills` in the
+  app or any ancestor of it. A recorded path is a fact that goes stale the first time
+  somebody moves or re-clones; a search does not. So `sgs.json` stays purely a version pin.
+- **The clone is not the pin.** `git -C .sgs pull` is always safe: every watermark stays
+  reachable through the clone's history whatever is checked out. One clone at latest serves
+  twenty apps on twenty different versions.
+- **The clone is never edited.** `git -C .sgs status` is always clean. The one exception is a
+  contribution branch (see `app-contribute`), returned to clean after the PR. Gitignore
+  cannot hide edits to the clone's own tracked files, and nothing can: a dirty clone is
+  loudly visible, which is the point.
+- **Where you put it is your business.** One at the monorepo root is the documented default
+  because it is one clone and one gitignore line for any number of apps. One per app also
+  works. So does none, until you next want to ask a version question.
 
 ## Three tiers, one rule each
 
@@ -48,28 +58,46 @@ runnable if this repo disappears entirely.
 
 ## Starting an app
 
-The full flow — clone placement, a capability interview, de-wiring what you leave out — is the
-`starting-an-app` skill. The mechanical core:
+The full flow, a capability interview and the de-wiring of whatever you leave out, is the
+`app-start` skill. The mechanical core:
 
 ```bash
-cd my-app
-git clone https://github.com/s-frantz/sleek-geospatial-skills
-node sleek-geospatial-skills/scripts/sgs-init.mjs .                        # everything, or:
-node sleek-geospatial-skills/scripts/sgs-init.mjs . --with popups,settings,demo-data
-npm install && npm start
+cd monorepo
+git clone https://github.com/s-frantz/sleek-geospatial-skills .sgs
+echo '.sgs/' >> .gitignore
+node .sgs/scripts/sgs-init.mjs products/my-app                        # everything, or:
+node .sgs/scripts/sgs-init.mjs products/my-app --with popups,settings,demo-data
+cd products/my-app && npm install && npm start
 ```
 
 With no flags you get the complete demo, green as copied. `--with` takes capability names
 from `scripts/sgs-capabilities.json` (the core set ships regardless); the script then filters
 `index.html`'s stylesheet links to what was copied and writes `sgs.json` naming only those
-components. JS wiring for omitted capabilities is agent work — the skill carries the table.
+components. JS wiring for omitted capabilities is agent work, and the skill carries the table.
 
-The scripts take paths, so other layouts (a single shared clone at a monorepo root, a fork)
-work too; per-app clone is simply the documented default, for the reasons in the convention
-above.
+### Skills come with the app, capability-scoped
 
-`.claude/skills/` is not copied. It lives once, in the clone — two copies of the same skill
-visible to one agent at once is a bug generator, not a convenience.
+Each component in `scripts/sgs-components.json` owns the `SKILL.md` that describes it, so
+choosing a capability decides which instructions land in the app, and an app pinned to an old
+watermark keeps the skill that describes what it actually has rather than silently tracking
+the clone's latest. They land at `<app>/.claude/skills/`, alongside a generated `CLAUDE.md`
+listing what is there.
+
+Two skills stay behind on purpose: `app-start` (the app has already started) and
+`repo-maintain` (the laws for this repo, not for an app).
+
+Discovery, measured against Claude Code 2.1.185 rather than assumed:
+
+- Start a session IN the app directory and its skills are available immediately, and only its
+  skills. A clone sitting at the monorepo root does not leak `app-start` or
+  `repo-maintain` in, because discovery runs from the working directory downward, and the clone
+  is a sibling, not a child.
+- Start at the monorepo ROOT and an app's skills arrive lazily: they load the first time
+  Claude reads or edits a file inside that app, then stay for the session. So the first
+  question of a root-started session may be answered without them. Working in the app
+  directory avoids that entirely, and is the recommended habit.
+- If two skills share a name across directories, both stay available and the nested one takes
+  a directory-qualified name (`products/app-1:ui-furniture`).
 
 ## Checking your own changes
 
@@ -81,7 +109,7 @@ The mirror of `sgs:status`: instead of asking whether upstream moved past your w
 asks whether YOUR COPY did — each file diffed against what its watermark tag shipped, read
 straight out of the clone's history. Drift is information, not error (the furniture tier
 exists to drift); what it produces is the candidate list for contributing back. The
-`contributing-upstream` skill triages it.
+`app-contribute` skill triages it.
 
 ## Checking for updates
 
@@ -136,6 +164,23 @@ upstream contract can't express — record it rather than silently drifting:
 
 `sgs:status` keeps reporting on it (informationally: "upstream changed since v0.2.0, FYI
 only") without ever suggesting you pull the new version wholesale.
+
+## Proposing an addition
+
+A fix to something that already exists follows the section below. Something the repo does not
+have yet is a CANDIDATE, and it goes through the [proposal
+form](.github/ISSUE_TEMPLATE/proposal.yml) first, before any code.
+
+The form is the `repo-maintain` skill's admission test in order, so filling it in is the review.
+Candidates are refused by default and most should be: this is a conventions repo, and the
+scope list in CLAUDE.md is a refusal rather than a backlog. The gate that does the real work is
+the second one, naming the existing skill that should have covered this and does not. The
+strongest proposals point at a sentence already in a skill that promises behaviour with no code
+behind it; those usually turn out to be a fix to an existing component rather than a new id,
+which is the best outcome available and the smallest PR.
+
+A candidate that passes all five gates then follows the fix path below, reproduction and all.
+Passing the test earns a PR, not a merge.
 
 ## Contributing a fix back
 

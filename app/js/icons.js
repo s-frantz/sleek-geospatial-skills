@@ -17,7 +17,7 @@
  * BOTH TABLES ARE MEASURED, NEVER GUESSED. Run `npm run icons`: it screenshots each button,
  * finds the ink by pixel difference against the button's own face, and prints the offset. Do
  * not adjust a number here because a screenshot looked better afterwards. See the
- * `icon-centering` skill.
+ * `ui-icons` skill.
  */
 
 /**
@@ -58,6 +58,9 @@ const PATHS = {
     /** Diagonal arrows drawn inward: give the pixels back. */
     tight: '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>',
 
+    /** `tight` with both arrows reversed: take the room the app can spare. */
+    full: '<polyline points="9 3 3 3 3 9"/><polyline points="15 21 21 21 21 15"/><line x1="3" y1="3" x2="10" y2="10"/><line x1="21" y1="21" x2="14" y2="14"/>',
+
     info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8"/>',
 
     /**
@@ -66,13 +69,30 @@ const PATHS = {
      * 9.25 in a box centred at 12, so it renders 2.5px high and no amount of sizing fixes
      * it — the single most common way a compass glyph goes wrong.
      */
-    compass: '<circle cx="12" cy="12" r="9.5"/><polygon points="12 5 15 13 12 11.5 9 13 12 5"/><polyline points="9 13 12 19 15 13"/>',
+    // A needle, not a needle inside a ring. This glyph is the one thing on screen that
+    // ROTATES: MapLibre spins the compass button to the map's bearing. A ring is rotationally
+    // symmetric, so it contributes nothing while turning and costs the needle most of the
+    // box, which at 17px left the pointer too short to read an angle from. Two triangles
+    // meeting at the centre, north solid and south hollow, is the convention every physical
+    // compass uses for the same reason: the eye needs to know which end is the answer.
+    compass: '<polygon points="12 4.5 16 12 8 12" fill="currentColor"/><polygon points="12 19.5 16 12 8 12"/>',
 
     /** Crosshair with a centre dot: find my location. */
-    locate: '<circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><line x1="12" y1="1.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22.5" y2="12"/>',
+    // The centre dot paints from its own variable so the geolocate control can colour it
+    // independently of the ring. See map-controls.css: dot alone means "following you", the
+    // whole glyph means "following you AND the camera is locked on".
+    locate: '<circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="var(--sgs-locate-dot, currentColor)" stroke="none"/><line x1="12" y1="1.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22.5" y2="12"/>',
 
     /** Disclosure chevron, pointing down. Rotated by CSS for the other three directions. */
     chevron: '<polyline points="6 9 12 15 18 9"/>',
+
+    // The three theme states, as a set. They have to read as ONE choice at 13px, so they
+    // share a circle of the same radius and differ only inside it: the sun adds rays, the
+    // moon takes a bite, and system fills half. Three unrelated pictures at this size read as
+    // three unrelated controls.
+    sun: '<circle cx="12" cy="12" r="4.6"/><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.4" y1="5.4" x2="7.2" y2="7.2"/><line x1="16.8" y1="16.8" x2="18.6" y2="18.6"/><line x1="5.4" y1="18.6" x2="7.2" y2="16.8"/><line x1="16.8" y1="7.2" x2="18.6" y2="5.4"/>',
+    moon: '<path d="M20 14.2A8.5 8.5 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2z"/>',
+    'half-moon': '<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/>',
 };
 
 /**
@@ -97,14 +117,19 @@ const SIZE_FACTOR = {
     // The inward arrows sit well inside the viewBox: 11.00 measured against 13 requested,
     // so 13 / 11 = 1.18.
     tight: 1.18,
+    // `full` is `tight` mirrored. Measured at factor 1 it drew 10.00 of ink against the 12
+    // requested; 12 / 10 = 1.2, which measures back at 12.50 — inside the 1px size tolerance,
+    // and the honest number rather than one trimmed to land on 12.00 exactly.
+    full: 1.2,
 
     // The MapLibre controls we adopt. Plus and minus measured 11.00 of ink at factor 1, and
     // their TARGET is deliberately smaller than the stack's 17 — see icon-targets.json for
     // why a plus must not be matched to a gear by the ruler. 14.5 / 11 = 1.318.
     plus: 1.318,
     minus: 1.318,
-    // 17 / 15.00 measured.
-    compass: 1.133,
+    // The needle is narrow and its long axis is the shaft, which at the old factor drew 14.00
+    // against the 17 requested: 1.133 * 17 / 14.00 = 1.376.
+    compass: 1.376,
     // 17 / 16.00 measured.
     locate: 1.0625,
 };

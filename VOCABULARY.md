@@ -5,16 +5,18 @@ word here stops matching the code, fix one or the other in the same PR.
 
 ## The filesystem
 
-**CLONE** — a git clone of this repo, sitting beside an app it serves, gitignored by the
-outer repo and never edited. It plays the role `node_modules/` plays for npm: the skills live
-in it, the scripts run from it, and its full git history is the reference every watermark and
-drift check reads. It is NOT the version pin — the manifest is — so keeping it at latest
-(`git pull`) is always safe.
+**CLONE** - a git clone of this repo. It is a TOOL CHECKOUT, not a dependency: an app
+builds, runs, tests and ships without one. Exactly two commands want it, `sgs:status` and
+`sgs:drift`, because both answer their question out of release history (`git show
+v0.1.0:app/...`) and a copied directory has none. Never edited; not the version pin (the
+manifest is), so `git pull` on it is always safe and one clone at latest serves any number of
+apps on any number of older versions. Apps record no path to it: the tools LOCATE one at
+runtime (`$SGS_CLONE`, then `.sgs` or `sleek-geospatial-skills` in the app or any ancestor).
 
 **APP** — a directory of files copied out of the clone by `sgs:init`, tracked normally by
-whatever repo it lives in, owned outright from the moment of copying. Nothing in an app
-imports from the clone at runtime; deleting the clone breaks tooling and skills, never the
-app.
+whatever repo it lives in, owned outright from the moment of copying. It carries its own
+skills, its own tooling and its own manifest. Nothing in it imports from the clone at
+runtime; deleting the clone costs `sgs:status` and `sgs:drift` and nothing else.
 
 **SCAFFOLD** — the one-time copy that creates an app (`sgs:init`). There is no ongoing sync:
 after scaffolding, changes travel only by deliberate upgrade (downstream) or contribution
@@ -54,18 +56,48 @@ Every copied file belongs to exactly one **COMPONENT** (an id in
 | **APP-SHELL / FURNITURE** | this app's specific chrome and wiring (`main.js`, panel, dock, popups, `furniture.css`). Expected to be rewritten; drift here is the app being an app. |
 
 **CAPABILITY** — a plain-language feature ("a table across the bottom") that resolves to a
-set of components (`scripts/sgs-capabilities.json`). The `starting-an-app` interview asks in
+set of components (`scripts/sgs-capabilities.json`). The `app-start` interview asks in
 capabilities; the registry answers in components.
 
-## Contribution
+A component owns the **SKILL** that describes it, listed among its files, so a capability
+also decides which instructions reach the app and an old watermark keeps the skill that
+matches what it actually has. Two skills belong to no component and stay in the clone:
+`app-start` and `repo-maintain`.
+
+## Contribution and admission
+
+**LESSON** — the transferable content of a change: the convention it establishes, plus the
+bug that proves the convention was needed. A lesson is not code. The same lesson can be
+carried by two files that share no lines, which is why a lesson can move between codebases
+that may never reference each other, and why `sgs:drift` produces candidates rather than
+patches. Both directions of travel deal in lessons: `app-upgrade` hand-ports one into a
+customized component, `app-contribute` sends one back.
 
 **CLEAN-ROOM RESTATEMENT** — the only unit of contribution: a lesson reproduced as a failing
 test against THIS repo's demo, fixed here, with no provenance of where it was really found.
 See CONTRIBUTING.md.
 
+**CANDIDATE** — a lesson proposed for admission, before it has passed the admission test. A
+candidate names a convention, not a file to copy. It arrives as an issue (the proposal
+template) or out of `sgs:drift`, and it is refused by default: the `repo-maintain` skill's
+admission test is what turns one into a component, a capability or a skill. Most candidates
+should lose, which is the point.
+
 ## UI vocabulary
 
-Owned by the skills, not restated here: **FURNITURE / MARK / BERTH / FOLD / CLOSE** (`stow`,
-`chrome-aware-camera`), **CLEAN / ADJACENT** popup placement (`popup-placement`), postures
-**auto / manual-w / manual-h / float** (`panel-anatomy`), **INK / WANT / NUDGE**
-(`icon-centering`).
+Owned by the skills, not restated here: **FURNITURE / MARK / BERTH / PIN / SNAP / FOLD /
+CLOSE** (`ui-stow`, `map-camera`), **CLEAN / ADJACENT** popup placement
+(`map-popups`), **TIGHT / PINNED / FULL** sizing and the postures **auto / manual-w /
+manual-h / float** (`ui-furniture`), **INK / WANT / NUDGE** (`ui-icons`).
+
+### BORROW
+
+A change one piece of furniture makes to ANOTHER, which it may only undo while it is still the
+one holding it — and may only make if the other piece has it to give. `makeBorrow` in
+`app/js/utils/furniture.js`.
+
+Defined here rather than in a skill because it is not about furniture: it is about any state
+one control changes on another control's behalf. The name exists because the shape was written
+by hand three times before anyone noticed it was the same shape, and each hand-written copy got
+the same half wrong. Taking is easy; the two ways of getting GIVING BACK wrong are giving back
+something you never took, and taking something that was already gone.

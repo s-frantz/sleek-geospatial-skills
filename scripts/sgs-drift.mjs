@@ -5,13 +5,14 @@
  * The mirror image of sgs-status.mjs. Status asks "did upstream move past my watermark?"
  * and never reads the app's files. Drift asks "did MY COPY move away from my watermark?"
  * and never reads upstream's later history: each file the manifest's components name is
- * compared against `git show <watermark-tag>:<file>` in this clone, which is exactly the
- * bytes sgs-init copied on the day the watermark was written.
+ * compared against `git show <watermark-tag>:<file>` in a clone, which is exactly the bytes
+ * sgs-init copied on the day the watermark was written. The clone is located, not hardcoded
+ * (see sgs-clone.mjs), so this runs the same from the clone or from inside an app.
  *
  * Drift is INFORMATION, not error — the furniture tier is expected to drift, that is what
  * copying it is for — so this always exits 0. What drift is FOR: it is the candidate list
  * for contributing upstream. A modified framework or component file is a fix or a lesson
- * somebody may want; the `contributing-upstream` skill triages this output. A modified
+ * somebody may want; the `app-contribute` skill triages this output. A modified
  * app-shell is usually just your app being your app.
  *
  * Usage:
@@ -21,10 +22,8 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.dirname(SCRIPT_DIR);
+import { requireClone } from './sgs-clone.mjs';
 
 const appDir = path.resolve(process.argv[2] ?? process.cwd());
 const manifestPath = path.join(appDir, 'sgs.json');
@@ -33,27 +32,16 @@ if (!existsSync(manifestPath)) {
     process.exit(1);
 }
 
+const REPO_ROOT = requireClone(appDir, 'what your watermark actually shipped');
+
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-const catalog = JSON.parse(readFileSync(path.join(SCRIPT_DIR, 'sgs-components.json'), 'utf8'));
+const catalog = JSON.parse(readFileSync(path.join(REPO_ROOT, 'scripts', 'sgs-components.json'), 'utf8'));
 delete catalog._comment;
 
-// This script's whole answer comes from the clone's git history. Without it, every `git show`
-// fails and every file would be reported as "newer than the watermark" — a confident wrong
-// answer, which is worse than no answer. So both preconditions are checked up front and
-// loudly: the clone must be a git repository, and a component's watermark tag must exist in
-// it. A directory copied without .git (or a stale clone missing a newer tag) fails here with
-// something a person can act on.
-try {
-    execFileSync('git', ['-C', REPO_ROOT, 'rev-parse', '--git-dir'], { stdio: 'pipe' });
-} catch {
-    console.error(`Not a git repository: ${REPO_ROOT}`);
-    console.error('');
-    console.error('sgs:drift compares your files against what a release tag shipped, and reads');
-    console.error('that from the clone\'s history. A directory copied without .git cannot answer');
-    console.error('it. Replace it with a real clone:');
-    console.error('    git clone https://github.com/s-frantz/sleek-geospatial-skills');
-    process.exit(1);
-}
+// requireClone has already established that the clone is a git repository; the remaining
+// precondition is per component, because a stale clone can be missing a newer watermark's
+// tag. Without that check `git show` fails and the file reads as "newer than the watermark",
+// a confident wrong answer, which is worse than no answer.
 
 /** @param {string} tag @returns {boolean} */
 function tagExists(tag) {
@@ -89,6 +77,7 @@ const norm = (s) => s.replace(/\r\n/g, '\n');
 
 const nameWidth = Math.max(...Object.keys(manifest.components ?? {}).map((k) => k.length), 6);
 let anyDrift = false;
+let anyUnreadable = false;
 
 for (const [id, value] of Object.entries(manifest.components ?? {})) {
     const files = catalog[id];
@@ -102,7 +91,10 @@ for (const [id, value] of Object.entries(manifest.components ?? {})) {
     const tag = ejected ? value.slice('ejected@'.length) : value;
 
     if (!tagExists(tag)) {
-        console.log(`  ${label}  watermark ${tag} is not in this clone — try \`git -C <clone> fetch --tags\``);
+        // Unreadable, which is NOT the same as clean. Recorded so the summary cannot claim
+        // an all-clear it did not check.
+        anyUnreadable = true;
+        console.log(`  ${label}  watermark ${tag} is not in this clone, try \`git -C <clone> fetch --tags\``);
         continue;
     }
 
@@ -144,8 +136,13 @@ for (const [id, value] of Object.entries(manifest.components ?? {})) {
 console.log('');
 if (anyDrift) {
     console.log('Drift is a candidate list, not a problem list. To decide what (if anything)');
-    console.log('belongs upstream, use the contributing-upstream skill. To see a diff:');
+    console.log('belongs upstream, use the app-contribute skill. To see a diff:');
     console.log(`    git -C <clone> show <tag>:<file>   versus the app's copy`);
-} else {
+} else if (!anyUnreadable) {
     console.log('No drift: every watermarked file matches what its watermark shipped.');
+}
+if (anyUnreadable) {
+    console.log('Some watermarks could not be read, so this is NOT an all-clear. Fetch tags in');
+    console.log('the clone, or check sgs.json against the CHANGELOG for a renamed component.');
+    process.exit(1);
 }

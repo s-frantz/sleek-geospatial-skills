@@ -1,6 +1,6 @@
 /* ── Overlay window — TIER 2 component ─────────────────────────────────────────────────────
-   One modal shell with layout slots: HEAD, LEDE, COLS, ASIDE, FOOT. Self-contained: about
-   window is a consumer of this, not the thing itself. See the `overlay-window` skill. */
+   One modal shell with layout slots: HEAD, RAIL, LEDE, COLS, ASIDE, FOOT. Self-contained:
+   about window is a consumer of this, not the thing itself. See the `ui-window` skill. */
 
 .sgs-window-overlay {
     position: fixed;
@@ -43,6 +43,67 @@
 .sgs-window-title { font-weight: 600; font-size: 14px; margin-right: auto; }
 .sgs-window-body { overflow: auto; padding: 16px 18px 14px; }
 
+/* ── Pages: a rail down the left, one pane at a time on the right ──────────────────────────
+   A grid, so the rail keeps its width and the pane takes the rest. `min-height: 0` on the
+   split is what lets the pane scroll instead of pushing the window past its max-height: a
+   grid item's default min-height is auto, which refuses to shrink below its content and
+   quietly disables every overflow rule inside it. */
+.sgs-window-split {
+    display: grid;
+    grid-template-columns: 152px minmax(0, 1fr);
+    min-height: 0;
+    overflow: hidden;
+}
+
+.sgs-window-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 10px 8px;
+    overflow: auto;
+    border-right: 1px solid var(--sgs-line-soft, #e9ebef);
+    background: var(--sgs-bg-sunk, #f4f5f7);
+}
+
+.sgs-window-tab {
+    appearance: none;
+    text-align: left;
+    padding: 6px 9px;
+    border: 1px solid transparent;
+    border-radius: var(--sgs-radius-sm, 5px);
+    background: none;
+    color: var(--sgs-fg-dim, #5c636e);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.sgs-window-tab:hover { background: var(--sgs-bg, #fff); color: var(--sgs-fg, #1b1e24); }
+
+/* The selected page is marked by weight and by the surface it sits on, both of which survive
+   a monochrome print and a colour-blind reader. No accent bar: see CLAUDE.md on decoration
+   standing in for hierarchy. */
+.sgs-window-tab[aria-selected="true"] {
+    background: var(--sgs-bg, #fff);
+    border-color: var(--sgs-line, #d9dce2);
+    color: var(--sgs-fg, #1b1e24);
+    font-weight: 600;
+}
+
+.sgs-window-tab:focus-visible { outline: 2px solid var(--sgs-accent, #2f6fd0); outline-offset: 1px; }
+
+/* Narrow: the rail lies down above the pane rather than eating half a phone's width. */
+@media (max-width: 560px) {
+    .sgs-window-split { grid-template-columns: minmax(0, 1fr); }
+    .sgs-window-rail {
+        flex-direction: row;
+        overflow-x: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--sgs-line-soft, #e9ebef);
+    }
+    .sgs-window-tab { white-space: nowrap; }
+}
+
 .sgs-lede { margin: 0 0 14px; font-size: 14px; line-height: 1.55; color: var(--sgs-fg-dim, #5c636e); }
 
 /* Two columns that become one when there is not room for two. A grid rather than a flex row
@@ -54,8 +115,10 @@
 .sgs-aside {
     margin: 4px 0 16px;
     padding: 11px 13px;
+    /* An even border. The tinted background and the dimmed text already mark this as an
+       aside; a coloured bar down one side adds no information and reads as decoration
+       standing in for hierarchy (see CLAUDE.md). */
     border: 1px solid var(--sgs-line, #d9dce2);
-    border-left: 3px solid var(--sgs-accent, #2f6fd0);
     border-radius: var(--sgs-radius-sm, 5px);
     background: var(--sgs-bg-sunk, #f4f5f7);
     line-height: 1.55;

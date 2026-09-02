@@ -5,12 +5,28 @@
 
 .sgs-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 
+/* Ruled both ways. The popup's field table below already rules each column off the next,
+   and for the same reason: a dense grid of numbers is scannable across a row only if the eye
+   has a vertical edge to stop at. The two surfaces show the same attributes, so they get the
+   same treatment rather than one being ruled and the other striped. */
 .sgs-table th,
 .sgs-table td {
     padding: 4px 10px;
     text-align: left;
     border-bottom: 1px solid var(--sgs-line-soft, #e9ebef);
+    border-right: 1px solid var(--sgs-line-soft, #e9ebef);
     white-space: nowrap;
+}
+
+.sgs-table th:last-child,
+.sgs-table td:last-child { border-right: none; }
+
+/* The zoom-to rail. Fixed width and flush left, so it forms an edge the eye skips rather
+   than a column it has to read, the same job the type column does in the popup's table. */
+.sgs-table .sgs-go-col {
+    width: 1%;
+    padding: 0 2px 0 6px;
+    text-align: center;
 }
 
 .sgs-table thead th {

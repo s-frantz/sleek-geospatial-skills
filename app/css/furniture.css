@@ -7,8 +7,8 @@
    it happens by writing new furniture here (or replacing this file outright) and giving each
    root element `data-sgs-furniture` so the FRAMEWORK tier (app/js/utils/furniture.js,
    visible-area.js, popup-placement.js) can compute padding and obstacle avoidance around it
-   with no further wiring. See docs — CONTRIBUTING.md and the `panel-anatomy` / `stow` /
-   `popup-placement` skills — for what the framework promises and what it leaves to you.
+   with no further wiring. See docs — CONTRIBUTING.md and the `ui-furniture` / `ui-stow` /
+   `map-popups` skills — for what the framework promises and what it leaves to you.
 
    The one deliberate exception: the rule below coupling the dock's open state to the panel's
    bottom edge is THIS app's specific choice about how its two pieces of furniture share space.
@@ -56,14 +56,41 @@
     cursor: default;
 }
 
+/* FULL: the takeover. It has to outrank both --manual-w and --manual-h, which is the entire
+   reason it is a class and not a pair of numbers written over the reader's own — the cascade
+   does the overriding, so nothing is saved and nothing has to be restored. Declared after
+   both, so equal specificity resolves this way on source order. */
+.sgs-panel--full {
+    width: 60vw;
+    top: var(--sgs-panel-inset, 10px);
+    bottom: var(--sgs-panel-inset, 10px);
+    height: auto;
+}
+
+/* SNAPPING: shown while a dragged piece of furniture is inside the catch radius of its berth,
+   so "close enough" is something the reader can see rather than something they discover by
+   letting go. Outline rather than a moved shadow: it must not change the element's geometry
+   mid-drag, because the geometry is what the snap test is reading. */
+.sgs-snapping {
+    outline: 2px solid var(--sgs-accent, #2f6fd0);
+    outline-offset: 2px;
+}
+
 /* FOLDED: the head stays in its slot and keeps its controls; the body collapses and the
-   panel hugs the bar. Same shape as the folded dock, deliberately. */
+   panel hugs the bar. Same shape as the folded dock, deliberately.
+
+   The width is the exception: folding collapses the VERTICAL axis and must leave the other
+   one alone, so a pinned width survives the fold. Without the :not() this rule wins on source
+   order over .sgs-panel--manual-w and the panel visibly narrows to its header, which reads as
+   the panel moving rather than closing. panel.js pins the automatic width on fold for the
+   same reason, so in practice this rule now only fires between the two. */
 .sgs-panel--folded {
     bottom: auto;
     height: auto;
     min-width: 0;
-    width: max-content;
 }
+
+.sgs-panel--folded:not(.sgs-panel--manual-w) { width: max-content; }
 
 .sgs-panel--folded .sgs-grip { display: none; }
 .sgs-panel--folded .sgs-panel-head { border-bottom: none; }
@@ -159,20 +186,30 @@ body.sgs-dock-open .sgs-panel { bottom: calc(var(--sgs-dock-h, 250px) + 16px); }
 body.sgs-dock-open .sgs-panel--manual-h,
 body.sgs-dock-open .sgs-panel--float,
 body.sgs-dock-open .sgs-panel--folded { bottom: auto; }
+/* A dock that has left its berth is not the bottom of the map any more, so it stops
+   displacing the panel. dock.js publishes --sgs-dock-h as 0 while loose, which handles the
+   arithmetic; this restores the panel's own bottom anchor so it is not merely raised by
+   nothing, and gives back the FULL panel its full height. */
+body.sgs-dock-float .sgs-panel { bottom: var(--sgs-panel-inset, 10px); }
 
-/* Top-edge resize grip: a thin strip with a centred pill, overlaid absolutely so it adds zero
-   height to the head. */
+/* Resize grips: a thin strip with a centred pill, overlaid absolutely so each adds zero size
+   to the head. The height grip is on the top edge and always present; the width grip is on the
+   right and only matters loose. Both carry the modifier, the way the panel's do, so a test or
+   a stylesheet naming one never silently addresses both. */
 .sgs-dock-grip {
     position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sgs-dock-grip--h {
     top: 0;
     left: 0;
     right: 0;
     height: 8px;
-    z-index: 2;
     cursor: ns-resize;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .sgs-dock-grip::before {
@@ -202,9 +239,51 @@ body.sgs-dock-open .sgs-panel--folded { bottom: auto; }
 .sgs-dock-spacer { flex: 1; }
 .sgs-dock-body { overflow: auto; }
 
+/* Loose: the same card, off its berth. `right` goes because a floating band anchored to both
+   sides is not floating; the width becomes the reader's, and left/top come from dock.js. The
+   shadow flips from "lit from below" to all round, which is the cheapest honest signal that
+   the thing is now above the map rather than part of its frame. */
+.sgs-dock--float {
+    right: auto;
+    bottom: auto;
+    width: var(--sgs-dock-w, 60vw);
+    min-width: 280px;
+    box-shadow: var(--sgs-shadow, 0 6px 20px rgba(0,0,0,.16));
+}
+
+/* FULL: symmetric margins, the same limit maxHeight() enforces on the grip. Both are stated
+   because the reader can reach this state from either side of the berth. */
+.sgs-dock--full {
+    left: var(--sgs-panel-inset, 10px);
+    right: var(--sgs-panel-inset, 10px);
+    top: var(--sgs-panel-inset, 10px);
+    bottom: var(--sgs-panel-inset, 10px);
+    width: auto;
+}
+
+/* The width grip mirrors the height grip on the right edge, and only exists loose: berthed,
+   the dock spans the viewport and has no width to argue about. */
+.sgs-dock-grip--w {
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: 0;
+    width: 8px;
+    height: auto;
+    cursor: ew-resize;
+    display: none;
+}
+
+.sgs-dock--float:not(.sgs-dock--full) .sgs-dock-grip--w { display: flex; }
+.sgs-dock-grip--w::before { width: 3px; height: 36px; }
+
+.sgs-dock--float .sgs-dock-head { cursor: grab; }
+.sgs-dock--float .sgs-dock-head:active { cursor: grabbing; }
+
 /* Folded: the head alone, still a full-width bar, still reporting. The whole bar unfolds. */
 .sgs-dock--folded .sgs-dock-body { display: none; }
 .sgs-dock--folded .sgs-dock-grip { display: none; }
+.sgs-dock--full .sgs-dock-grip--w { display: none; }
 .sgs-dock--folded .sgs-dock-head { border-bottom: none; cursor: pointer; }
 .sgs-dock--folded .sgs-dock-fold svg { transform: rotate(180deg); }
 
@@ -241,8 +320,11 @@ body.sgs-dock-open .sgs-panel--folded { bottom: auto; }
     flex-direction: column;
 
     background: var(--sgs-bg, #fff);
+    /* No accent stripe along the top edge. The popup already says which layer it belongs to,
+       twice: the swatch in its head, in the same form as the layer row, and the leader line
+       back to the feature. A coloured bar is a third copy of information the reader has, and
+       a decorative rule that repeats what is next to it is a house tell (see CLAUDE.md). */
     border: 1px solid var(--sgs-line, #d9dce2);
-    border-top: 2px solid var(--sgs-popup-accent, var(--sgs-accent, #2f6fd0));
     border-radius: var(--sgs-radius, 8px);
     box-shadow: var(--sgs-shadow, 0 6px 20px rgba(0,0,0,.16));
     overflow: hidden;

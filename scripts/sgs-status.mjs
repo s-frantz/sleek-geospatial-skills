@@ -10,11 +10,14 @@
  * behind. That distinction is what keeps a whole-repo tag bump from reading as false staleness
  * on every component nobody touched.
  *
- * How: this script always runs FROM a clone of sleek-geospatial-skills (itself, or a copy at
- * .sgs/ in a monorepo) and never touches the app's copied files at all — it diffs the
- * SKILLS REPO's own history between the watermark tag and the latest tag, for exactly the
- * files sgs-components.json lists for that component. `git show`/`git diff` read any historical
+ * How: this script never touches the app's copied files at all — it diffs the SKILLS REPO's
+ * own history between the watermark tag and the latest tag, for exactly the files
+ * sgs-components.json lists for that component. `git show`/`git diff` read any historical
  * revision straight out of one object store; no second checkout, no temporary clone.
+ *
+ * The clone that history is read from is LOCATED, not hardcoded (see sgs-clone.mjs), so this
+ * runs the same whether it sits in the clone or was copied into an app by sgs:init. The app
+ * records no path to the clone: sgs.json stays purely a version pin.
  *
  * Usage:
  *   node scripts/sgs-status.mjs [path/to/app]   (defaults to cwd)
@@ -23,10 +26,8 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.dirname(SCRIPT_DIR);
+import { requireClone } from './sgs-clone.mjs';
 
 const appDir = path.resolve(process.argv[2] ?? process.cwd());
 const manifestPath = path.join(appDir, 'sgs.json');
@@ -36,23 +37,17 @@ if (!existsSync(manifestPath)) {
     process.exit(1);
 }
 
-// Every answer here comes from the clone's git history; without it the tag list is empty and
-// this would report "no releases yet" — a quiet wrong answer. Check loudly instead.
-try {
-    execFileSync('git', ['-C', REPO_ROOT, 'rev-parse', '--git-dir'], { stdio: 'pipe' });
-} catch {
-    console.error(`Not a git repository: ${REPO_ROOT}`);
-    console.error('');
-    console.error('sgs:status compares release history against your watermarks, and reads that');
-    console.error('from the clone. A directory copied without .git cannot answer it. Replace it');
-    console.error('with a real clone:');
-    console.error('    git clone https://github.com/s-frantz/sleek-geospatial-skills');
-    process.exit(1);
-}
+const REPO_ROOT = requireClone(appDir, 'which components have changed upstream');
+const CATALOG_DIR = path.join(REPO_ROOT, 'scripts');
 
 /** @param {string[]} args @returns {string} */
 function git(args) {
-    return execFileSync('git', ['-C', REPO_ROOT, ...args], { encoding: 'utf8' }).trim();
+    // stderr is piped, not inherited: a watermark naming a tag this clone lacks is a HANDLED
+    // case, and letting git's "fatal: bad revision" through makes a handled case read as a
+    // crash right above the line that explains it.
+    return execFileSync('git', ['-C', REPO_ROOT, ...args], {
+        encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
 }
 
 /** @param {string[]} args @returns {{ok: boolean, stdout: string}} */
@@ -65,7 +60,7 @@ function gitTry(args) {
 }
 
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-const catalog = JSON.parse(readFileSync(path.join(SCRIPT_DIR, 'sgs-components.json'), 'utf8'));
+const catalog = JSON.parse(readFileSync(path.join(CATALOG_DIR, 'sgs-components.json'), 'utf8'));
 
 // Tags, oldest first. If the repo has none yet (a fresh checkout with no release cut), every
 // component simply reads "current" — there is nothing to be behind.
@@ -119,12 +114,14 @@ function wasFlaggedBreaking(from, componentId) {
 
 const nameWidth = Math.max(...Object.keys(manifest.components ?? {}).map((k) => k.length), 6);
 let anyBehind = false;
+let anyUnreadable = false;
 
 for (const [id, value] of Object.entries(manifest.components ?? {})) {
     const files = catalog[id];
     const label = id.padEnd(nameWidth);
     if (!files) {
-        console.log(`  ${label}  unknown component (not in sgs-components.json — renamed upstream?)`);
+        anyUnreadable = true;
+        console.log(`  ${label}  unknown component (not in sgs-components.json, renamed upstream?)`);
         continue;
     }
 
@@ -139,13 +136,18 @@ for (const [id, value] of Object.entries(manifest.components ?? {})) {
         } else if (changed === 'same') {
             console.log(`  ${label}  ejected — no upstream change since ${tag}`);
         } else {
+            anyUnreadable = true;
             console.log(`  ${label}  ejected — watermark ${tag} not found upstream`);
         }
         continue;
     }
 
     if (changed === 'unknown') {
-        console.log(`  ${label}  watermark ${tag} not found upstream — check sgs.json`);
+        // Not "current": a question that could not be asked, so the summary must not
+        // report an all-clear it never checked. Same for the ejected branch above:
+        // ejected means "stop suggesting upgrades", not "stop reading".
+        anyUnreadable = true;
+        console.log(`  ${label}  watermark ${tag} not found upstream, check sgs.json`);
         continue;
     }
     if (changed === 'same') {
@@ -161,4 +163,10 @@ for (const [id, value] of Object.entries(manifest.components ?? {})) {
     console.log(`  ${label}  ${tag} → ${latest}  (${releasesBehind} release${releasesBehind === 1 ? '' : 's'}${note})`);
 }
 
-if (!anyBehind) console.log('\nEverything watermarked is current.');
+if (!anyBehind && !anyUnreadable) console.log('\nEverything watermarked is current.');
+if (anyUnreadable) {
+    console.log('');
+    console.log('Some watermarks could not be checked, so this is NOT an all-clear. Fetch tags in');
+    console.log('the clone, or check sgs.json against the CHANGELOG for a renamed component.');
+    process.exit(1);
+}

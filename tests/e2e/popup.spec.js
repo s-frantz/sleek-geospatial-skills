@@ -41,7 +41,7 @@ async function clickAFeature(page, nth = 0, ctrl = false) {
             for (let x = 40; x < w - 40; x += 12) {
                 const top = document.elementFromPoint(x, y);
                 if (!top || !top.closest('#map')) continue;
-                const hit = m.queryRenderedFeatures([x, y], { layers: ['districts-fill'] });
+                const hit = m.queryRenderedFeatures([x, y], { layers: ['neighborhoods-fill'] });
                 for (const f of hit) {
                     const id = f.properties.id;
                     if (!found.has(id)) found.set(id, { x, y });
@@ -186,8 +186,8 @@ test('escape closes the topmost popup only', async ({ page }) => {
 });
 
 test('a clean popup never covers the panel or the dock', async ({ page }) => {
-    await page.locator('.sgs-row[data-layer="districts"]').hover();
-    await page.locator('.sgs-row[data-layer="districts"] button[aria-label^="Show"]').click();
+    await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
+    await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
     await clickAFeature(page);
 
     const popup = await popupBox(page);

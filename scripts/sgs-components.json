@@ -1,46 +1,112 @@
 {
-  "_comment": "The component catalog: which files make up each watermark-able unit. Read by sgs-init.mjs (what to copy into a new app), sgs-status.mjs (what to diff a watermark against upstream), and sgs-drift.mjs (what to diff an app's own copy against its watermark). Paths are repo-relative. Adding a file to an existing component's list is a normal PR; adding, renaming or splitting a component id is a bigger one — every existing app's sgs.json still names the old id, and sgs-status/sgs-drift will report it as unknown until the app's manifest is updated (say how in the CHANGELOG entry). See the maintenance skill before minting a new id.",
-
-  "tokens": ["app/css/tokens.css"],
-  "swatch": ["app/css/components/swatch.css"],
-  "source-pill": ["app/css/components/source-pill.css"],
-  "field-badge": ["app/css/components/field-badge.css", "app/js/ui/field-badge.js"],
-  "field-table": ["app/css/components/field-table.css"],
-  "buttons": ["app/css/components/buttons.css"],
-  "tooltip": ["app/css/components/tooltip.css", "app/js/ui/tooltip.js"],
-  "overlay-window": ["app/css/components/overlay-window.css", "app/js/ui/overlay-window.js"],
-  "quick-settings": ["app/css/components/quick-settings.css", "app/js/ui/quick-settings.js"],
+  "_comment": "The component catalog: which files make up each watermark-able unit. Read by sgs-init.mjs (what to copy into a new app), sgs-status.mjs (what to diff a watermark against upstream), and sgs-drift.mjs (what to diff an app's own copy against its watermark). Paths are repo-relative. A component owns its SKILL.md alongside its code, so choosing a capability brings the instructions for it into the app and an app on an old watermark keeps the skill that describes what it actually has. Two skills are deliberately clone-only and appear in no component: app-start (an app has already started, and it links to repo-root docs) and repo-maintain (the laws for this repo, not for an app). Adding a file to an existing component's list is a normal PR; adding, renaming or splitting a component id is a bigger one - every existing app's sgs.json still names the old id, and sgs-status/sgs-drift will report it as unknown until the app's manifest is updated (say how in the CHANGELOG entry). See the repo-maintain skill before minting a new id.",
+  "tokens": [
+    "app/css/tokens.css"
+  ],
+  "swatch": [
+    "app/css/components/swatch.css"
+  ],
+  "source-pill": [
+    "app/css/components/source-pill.css"
+  ],
+  "field-badge": [
+    "app/css/components/field-badge.css",
+    "app/js/ui/field-badge.js"
+  ],
+  "field-table": [
+    "app/css/components/field-table.css"
+  ],
+  "buttons": [
+    "app/css/components/buttons.css"
+  ],
+  "tooltip": [
+    "app/css/components/tooltip.css",
+    "app/js/ui/tooltip.js"
+  ],
+  "overlay-window": [
+    "app/css/components/overlay-window.css",
+    "app/js/ui/overlay-window.js",
+    ".claude/skills/ui-window/SKILL.md"
+  ],
+  "quick-settings": [
+    "app/css/components/quick-settings.css",
+    "app/js/ui/quick-settings.js"
+  ],
   "map-controls": [
     "app/css/components/map-controls.css",
     "app/js/ui/control-glyphs.js",
     "app/js/ui/control-stack.js",
-    "app/js/ui/settings-control.js"
+    "app/js/ui/settings-control.js",
+    ".claude/skills/map-controls/SKILL.md"
   ],
-  "edge-mark": ["app/css/components/edge-mark.css", "app/js/ui/stow.js"],
-  "debug-guides": ["app/css/components/debug-guides.css"],
-  "icons": ["app/js/icons.js"],
-  "theme": ["app/js/ui/theme.js"],
-  "dismiss-stack": ["app/js/ui/dismiss-stack.js"],
-  "primitives": ["app/js/utils/draggable.js", "app/js/utils/prefs.js", "app/js/utils/geo.js"],
-  "type-pill": ["app/js/ui/type-pill.js"],
-  "symbology": ["app/js/ui/symbology.js"],
-
+  "edge-mark": [
+    "app/css/components/edge-mark.css",
+    "app/js/ui/stow.js",
+    ".claude/skills/ui-stow/SKILL.md"
+  ],
+  "debug-guides": [
+    "app/css/components/debug-guides.css"
+  ],
+  "icons": [
+    "app/js/icons.js",
+    ".claude/skills/ui-icons/SKILL.md"
+  ],
+  "theme": [
+    "app/js/ui/theme.js",
+    ".claude/skills/ui-theme/SKILL.md"
+  ],
+  "dismiss-stack": [
+    "app/js/ui/dismiss-stack.js"
+  ],
+  "primitives": [
+    "app/js/utils/draggable.js",
+    "app/js/utils/prefs.js",
+    "app/js/utils/geo.js"
+  ],
+  "type-pill": [
+    "app/js/ui/type-pill.js"
+  ],
+  "symbology": [
+    "app/js/ui/symbology.js"
+  ],
   "framework": [
     "app/js/utils/furniture.js",
     "app/js/utils/visible-area.js",
-    "app/js/ui/popup-placement.js"
+    "app/js/ui/popup-placement.js",
+    ".claude/skills/map-camera/SKILL.md"
   ],
-
   "app-shell": [
     "app/index.html",
     "app/js/main.js",
     "app/js/map.js",
     "app/js/layers.js",
-    "app/css/furniture.css"
+    "app/css/furniture.css",
+    ".claude/skills/ui-boot/SKILL.md"
   ],
-  "panel": ["app/js/ui/panel.js", "app/js/ui/layer-rows.js"],
-  "dock": ["app/js/ui/dock.js"],
-  "popups": ["app/js/ui/popup.js"],
-  "about-window": ["app/js/ui/about-window.js"],
-  "demo-layers": ["app/data/districts.geojson", "app/data/stations.geojson"]
+  "panel": [
+    "app/js/ui/panel.js",
+    "app/js/ui/layer-rows.js",
+    ".claude/skills/ui-furniture/SKILL.md"
+  ],
+  "dock": [
+    "app/js/ui/dock.js"
+  ],
+  "popups": [
+    "app/js/ui/popup.js",
+    ".claude/skills/map-popups/SKILL.md"
+  ],
+  "about-window": [
+    "app/js/ui/about-window.js"
+  ],
+  "demo-layers": [
+    "app/data/neighborhoods.geojson",
+    "app/data/stations.geojson",
+    "app/data/README.md"
+  ],
+  "workflow": [
+    "VOCABULARY.md",
+    ".claude/skills/app-verify/SKILL.md",
+    ".claude/skills/app-contribute/SKILL.md",
+    ".claude/skills/app-upgrade/SKILL.md"
+  ]
 }

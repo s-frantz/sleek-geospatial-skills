@@ -1,5 +1,5 @@
 ---
-name: verify-in-the-browser
+name: app-verify
 description: A four-rung ladder for proving a UI claim - types, unit arithmetic, browser geometry, and pixel ink - with the rule that if you cannot print the number you are asserting, you are eyeballing. Use before claiming any layout, placement or icon change works, and when deciding what kind of test a change needs.
 ---
 

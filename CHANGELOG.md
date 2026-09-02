@@ -9,79 +9,68 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check —
 not narrate the commit that produced it.
 
-## [1.1.2] - 2026-09-01
+## [0.1.0] - 2026-09-01
 
-- `sgs:status` and `sgs:drift` now fail loudly when the clone cannot answer, instead of
-  reporting confident nonsense. Both read release history from the clone; pointed at a
-  directory copied without `.git`, drift previously reported EVERY file as "newer than the
-  watermark" and status reported "no releases yet". Both now check up front and exit 1 with
-  the fix.
-- A watermark naming a tag the clone doesn't have (a stale clone, or a typo) now says so per
-  component and suggests `git -C <clone> fetch --tags`, rather than silently treating every
-  file as new.
+The first release. Everything below is what the repo IS, not what changed in it.
 
-## [1.1.1] - 2026-09-01
+### What this is
 
-Fixes a scaffolding bug that broke a new app's very first commands.
+A small runnable MapLibre application, and fourteen skills that explain the decisions inside
+it. The app is not a demo of the skills; the app is what the skills are ABOUT. Every claim in
+a skill points at a file you can open and a command you can run.
 
-- `sgs:init` now copies `scripts/serve.mjs`, `scripts/icon-ink.mjs` and
-  `scripts/icon-targets.json` into the app. Previously the app received a `package.json`
-  referencing all three but no `scripts/` directory, so `npm start`, `npm run icons` and
-  `npm run verify` failed immediately in every scaffolded app.
-- `sgs:init` now REWRITES `package.json` instead of copying it: the app gets its own name
-  (from its directory) and version `0.1.0` rather than inheriting this package's identity,
-  and `sgs:status`/`sgs:drift` are re-pointed at the clone by a computed relative path, so
-  they work from inside the app whatever the layout. `sgs:init` is dropped from an app's
-  scripts, since an app does not scaffold.
-- The scaffold report now points at `npm run typecheck` as the de-wiring checklist (dangling
-  imports for omitted capabilities are exactly what it lists), and warns that a trimmed
-  scaffold reports `app-shell` drift on day one because `index.html` was filtered — drift
-  working, not a fault.
+You do not depend on this at runtime. `sgs:init` copies a chosen subset of it into your
+repository once, records which components it copied and at which tag (`sgs.json`), and gets
+out of the way. From then on `sgs:status` answers "did upstream move past me" and `sgs:drift`
+answers "did I move past my watermark", and neither one ever edits your files.
 
-## [1.1.0] - 2026-09-01
+### The app
 
-Breaking: furniture-demo
+- **No build step.** Vendored MapLibre as a global with `defer`, one ES module entry point that
+  cannot race it, types from JSDoc checked by `tsc --noEmit`.
+- **Three tiers**: design tokens, a framework of pure geometry contracts
+  (`furniture.js`, `visible-area.js`, `popup-placement.js`), and components on top. The
+  framework knows nothing about any specific panel: a `data-sgs-furniture` attribute plus a
+  live geometric read, never a static label saying where something is.
+- **A left panel and a bottom dock**, sharing one geometry model — three independent facts
+  behind one applier, a berth each, pin and snap, and TIGHT / PINNED / FULL as the three things
+  a size axis can be.
+- **Popups** that choose between a CLEAN column and an ADJACENT anchor, refuse to cover the
+  app's own furniture, and cover the anchor only as a last resort.
+- **A camera** that pads around whatever furniture is currently on screen, so zoom-to never
+  lands a feature underneath the panel it was found in.
+- **Light, dark and system themes** with no flash of the wrong colours, and glyphs whose size
+  and centring are measured rather than eyeballed (`npm run icons`).
+- **Real data**: eight adjacent inner Portland neighborhoods from the city's own open data,
+  under a public domain dedication, plus six invented points. Small enough to read, real enough
+  to have honest geometry.
 
-- The `furniture-demo` component id is SPLIT into `app-shell` (index.html, main.js, map.js,
-  layers.js, furniture.css), `panel` (panel.js, layer-rows.js), `dock`, `popups`,
-  `about-window`, and `demo-layers` (the two GeoJSON files) — the pieces change on their own
-  schedules and the setup interview needs to omit them independently. An app whose `sgs.json`
-  says `"furniture-demo"` should replace that line with the six new ids at the same tag.
-- `npm run sgs:drift` (new): the mirror of `sgs:status` — diffs the APP'S OWN copies against
-  what their watermark tag shipped, per file, straight out of the clone's history. Drift is
-  the candidate list for contributing upstream.
-- `sgs:init` learns capability selection: `--with popups,settings,demo-data` copies the core
-  set plus the named capabilities (`scripts/sgs-capabilities.json`), filters `index.html`'s
-  stylesheet links to match, writes a manifest naming only what was copied, and refuses to
-  scaffold inside the clone. No flags still means the full demo.
-- Three new skills: `starting-an-app` (the setup wizard: clone placement, outer gitignore,
-  the capability interview, the de-wiring table), `contributing-upstream` (drift triage and
-  the clean-room flow), and `maintenance` (the anti-bloat laws and the skill-accuracy audit
-  ritual).
-- `VOCABULARY.md` (new): every framework term — clone, app, manifest, watermark, drift,
-  behind, ejected, tier, component, capability — defined once; everything else links.
-- CONTRIBUTING.md documents the filesystem convention: clone-beside-app, gitignored by the
-  outer repo, never edited, not the version pin (the manifest is).
+### The framework around it
 
-## [1.0.0] - 2026-08-31
+- `sgs:init` scaffolds an app from a capability interview, copying each capability's components
+  AND the skills that describe them, so an agent opening the app finds instructions for the
+  code that is actually there at the version it is pinned to.
+- `sgs:status` and `sgs:drift` locate a clone themselves and fail loudly rather than reporting
+  confident nonsense when they cannot answer.
+- `sgs-decisions.md` records why an app is shaped the way it is, so the next session reads a
+  decision instead of re-asking the question that produced it.
+- Contribution is CLEAN-ROOM: a lesson is reproduced against this repo's own demo, never
+  diffed out of the app where it was learned. That is what lets a private application
+  contribute on the same terms as a public one.
 
-First stable release. Baseline watermark for every component in `scripts/sgs-components.json`.
-Starting here, every merged PR is required to bump this file's version (see CONTRIBUTING.md) —
-a release tag is cut automatically on every push to `main`, so a merge and a release are the
-same event from here on.
+### Why this is 0.1.0, and why the history behind it is not in this file
 
-- Three sharing tiers made explicit: `app/css/tokens.css` (the canon, referenced with
-  fallbacks), `app/css/components/*.css` + their paired `.js` (self-contained, watermarked
-  individually), and the framework contract (`app/js/utils/furniture.js`,
-  `app/js/utils/visible-area.js`, `app/js/ui/popup-placement.js`).
-- The furniture contract: any element carrying `data-sgs-furniture` participates in camera
-  padding and popup obstacle avoidance. No id is hardcoded anywhere in the framework tier.
-- `npm run sgs:init <dir>` scaffolds a new, fully self-contained app. `npm run sgs:status
-  [dir]` reports which watermarked components have genuinely changed upstream since the app's
-  tag (not merely how many releases have passed).
-- Every skill in `.claude/skills/` audited against the code it describes. Two had drifted
-  materially: `map-control-icons` still taught an invert-filter fix for MapLibre's baked
-  glyphs, superseded by the adopted-glyph approach; `stow` still used FOLD/STOW/MARK/BERTH
-  vocabulary the code had already moved on from (FOLD/CLOSE). `popup-placement` described a
-  furniture-avoidance algorithm for CLEAN mode's top edge that was never actually implemented
-  — corrected to say so plainly rather than describe fictional code.
+An earlier draft of this repo tagged four releases in two days, each one a genuine improvement
+and none of them a release anybody could have consumed — nothing had been cloned, so every
+`Breaking:` line was a warning addressed to no one. A version number that moves faster than its
+consumers is not information, it is noise wearing a contract's clothing. Those tags are gone
+and this is the first entry.
+
+It is 0.1.0 rather than 1.0.0 because 1.0.0 is a promise about stability, and the conventions
+here are still moving: the skills were renamed into categories the same week this shipped, and
+`app-adopt` is a named gap rather than a file. 0.x says what is true, which is that the ideas
+are worth using and the names may still shift under you.
+
+**From here on, every change arrives as a pull request**, every merged PR bumps the version
+(enforced), and every merge tags a release. That is the point at which a version number starts
+meaning something to somebody, and it is why the pace slows down rather than up.

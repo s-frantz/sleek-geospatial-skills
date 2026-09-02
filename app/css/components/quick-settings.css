@@ -76,3 +76,13 @@
     background: var(--sgs-bg-sunk, #f4f5f7);
     color: var(--sgs-fg, #1b1e24);
 }
+
+/* A segment showing a glyph instead of a word still has to match the height and rhythm of one
+   that shows a word, or the two rows of the popover stop lining up. Fixed width rather than
+   padding, so three icons make a segmented control of the same size whatever the glyphs are. */
+.sgs-seg-btn--icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    padding: 3px 0;
+}

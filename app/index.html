@@ -10,7 +10,7 @@
 
   This script is deliberately blocking and deliberately inline. Anything async, and the
   browser paints the default ground first, so a dark-mode reader gets a white flash on every
-  load. See the `theme-tokens` skill.
+  load. See the `ui-theme` skill.
 -->
 <script>
     try {
@@ -45,7 +45,7 @@
 <div id="map"></div>
 
 <!-- The left panel. Its postures live in panel.js; its geometry reaches CSS through
-     --sgs-panel-w / --sgs-panel-h. See the `panel-anatomy` skill. -->
+     --sgs-panel-w / --sgs-panel-h. See the `ui-furniture` skill. -->
 <!-- data-sgs-furniture: the framework contract. Any element carrying this attribute is
      scanned by app/js/utils/furniture.js for camera padding and popup obstacle avoidance —
      no id to register anywhere else. See CONTRIBUTING.md. -->
@@ -72,7 +72,7 @@
   Vendored globals load with `defer`, in document order, ahead of the module entry point.
   A `type="module"` script is ALWAYS deferred, so it runs after every deferred classic
   script: `maplibregl` is guaranteed to exist by the time main.js executes, with no
-  polling, no load event, and no bundler. See the `boot-order` skill.
+  polling, no load event, and no bundler. See the `ui-boot` skill.
 -->
 <script defer src="vendor/maplibre-gl.js"></script>
 <script type="module" src="js/main.js"></script>

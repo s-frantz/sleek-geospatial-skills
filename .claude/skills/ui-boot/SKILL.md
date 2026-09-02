@@ -1,5 +1,5 @@
 ---
-name: boot-order
+name: ui-boot
 description: Get a no-build-step MapLibre app to start in the right order - vendored globals with defer, a module entry point that cannot race them, and why the vendor files are self-hosted. Use when setting up index.html, adding a third-party library, or debugging "X is not defined" at startup.
 ---
 
@@ -35,7 +35,7 @@ a fast connection or only on a slow one.
 
 Theme restoration. It is an inline blocking script in `<head>`, and it has to be blocking,
 because anything deferred runs after first paint and the reader sees a flash. See
-`theme-tokens`.
+`ui-theme`.
 
 ## Self-hosting
 

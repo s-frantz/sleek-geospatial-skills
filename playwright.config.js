@@ -6,7 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * `webServer` starts the app itself, so `npm test` works from a cold clone with no second
  * terminal. Screenshot comparison is deliberately not configured; see the
- * `verify-in-the-browser` skill for why golden images are the rung this repo does not ship.
+ * `app-verify` skill for why golden images are the rung this repo does not ship.
  */
 export default defineConfig({
     testDir: './tests/e2e',

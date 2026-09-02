@@ -24,7 +24,7 @@
 
    2. GEOMETRY ARRIVES AS A VARIABLE, NOT AS AN INLINE STYLE. JavaScript sets --sgs-panel-w;
       furniture.css decides what that means, including the minimum, the maximum, and what else
-      responds. See the `panel-anatomy` skill.
+      responds. See the `ui-furniture` skill.
    ========================================================================================= */
 
 :root {

@@ -6,7 +6,7 @@
    a two-part selector that beats a single class. `.sgs-ctrl-btn { width: 30px }` silently
    loses. The choices are to match its specificity (done below) or to reach for !important.
    Matching is better: it stays readable, and it keeps working if MapLibre adds a state class.
-   See the `map-control-icons` skill. */
+   See the `map-controls` skill. */
 
 .maplibregl-ctrl-group.sgs-ctrl { background: var(--sgs-bg, #fff); }
 
@@ -42,12 +42,28 @@
 .maplibregl-ctrl-icon.sgs-adopted { color: inherit; }
 
 /* Geolocate's active and error states also carry baked artwork; the same rule covers them,
-   and the state is carried by colour instead. */
-.maplibregl-ctrl-geolocate-active .maplibregl-ctrl-icon.sgs-adopted,
-.maplibregl-ctrl-geolocate-background .maplibregl-ctrl-icon.sgs-adopted { color: var(--sgs-accent, #2f6fd0); }
+   and the state is carried by colour instead.
 
+   THREE states, not two. MapLibre already tracks the distinction and we were flattening it:
+   `-background` means the control is watching your position while the camera is free, and
+   `-active` means it is watching AND the camera is locked to you. Painting both the same
+   accent made "I know where you are" and "I am following you" look identical, so the button
+   could not answer the question a reader presses it to ask.
+
+   The glyph is a ring around a dot, so it can say both things at once with no second control:
+   the DOT alone lights up while your position is known, and the WHOLE glyph lights up once
+   the camera is locked on. Reading outward from the centre, which is the direction the
+   behaviour grows in. */
+.maplibregl-ctrl-geolocate-background .maplibregl-ctrl-icon.sgs-adopted { --sgs-locate-dot: var(--sgs-accent, #2f6fd0); }
+
+.maplibregl-ctrl-geolocate-active .maplibregl-ctrl-icon.sgs-adopted { color: var(--sgs-accent, #2f6fd0); }
+
+/* Error is the exception: a half-lit error state would be read as a degree of success. */
 .maplibregl-ctrl-geolocate-active-error .maplibregl-ctrl-icon.sgs-adopted,
-.maplibregl-ctrl-geolocate-background-error .maplibregl-ctrl-icon.sgs-adopted { color: #d9534f; }
+.maplibregl-ctrl-geolocate-background-error .maplibregl-ctrl-icon.sgs-adopted {
+    color: #d9534f;
+    --sgs-locate-dot: #d9534f;
+}
 
 /* The whole group now speaks one language, so ONE rule colours every button in it. */
 .maplibregl-ctrl-group button { color: var(--sgs-fg-dim, #5c636e); }

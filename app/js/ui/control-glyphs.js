@@ -30,7 +30,7 @@
  * So the reset is set INLINE, by the same code that injects the glyph. An inline style beats
  * every stylesheet rule without being `!important`, it is impossible to lose track of (it is
  * two lines below the thing it is undoing), and it applies exactly to the elements we
- * changed and no others. See the `map-control-icons` skill.
+ * changed and no others. See the `map-controls` skill.
  */
 
 import { icon, GLYPH } from '../icons.js';

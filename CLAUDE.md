@@ -6,35 +6,46 @@ trade.
 
 ## Read the skill first
 
-`.claude/skills/` holds fourteen skills. Before changing anything, read the one that covers it:
+`.claude/skills/` holds fourteen skills. Before changing anything, read the one that covers it.
+
+Names carry their category: `app-` procedures act on an app, `repo-` procedures act on this
+repo, `ui-` and `map-` conventions are consulted while building. Procedures run in a rough
+order (`app-start`, then `app-verify` forever, then `app-upgrade` paired with
+`app-contribute`); conventions have no order, only a subject. See README.md for the map.
 
 | touching | read |
 |---|---|
-| `index.html`, `app/vendor/` | `boot-order` |
-| colours, `css/tokens.css`, theme | `theme-tokens` |
-| map controls, `control-stack.js` | `map-control-icons` |
-| `icons.js`, any glyph art | `icon-centering` |
-| `panel.js`, `css/furniture.css` | `panel-anatomy` |
-| any collapse, hide or minimise | `stow` |
-| modals, dialogs, the Escape key | `overlay-window` |
-| popups, tooltips, anything anchored | `popup-placement` |
-| `fitBounds`, `easeTo`, zoom-to | `chrome-aware-camera` |
-| tests, or claiming something works | `verify-in-the-browser` |
-| `furniture.js`, `data-sgs-furniture`, the camera/popup contract | `chrome-aware-camera` |
-| `sgs.json`, `sgs:status`, syncing an app against this repo | `upgrading-an-app` |
-| creating a new app, `sgs:init`, the capability interview | `starting-an-app` |
-| `sgs:drift`, sending a fix back, ejecting a component | `contributing-upstream` |
-| adding a component id, a capability, a skill, or anything at all | `maintenance` |
+| `index.html`, `app/vendor/` | `ui-boot` |
+| colours, `css/tokens.css`, theme | `ui-theme` |
+| map controls, `control-stack.js` | `map-controls` |
+| `icons.js`, any glyph art | `ui-icons` |
+| `panel.js`, `css/furniture.css` | `ui-furniture` |
+| any collapse, hide or minimise | `ui-stow` |
+| modals, dialogs, the Escape key | `ui-window` |
+| popups, tooltips, anything anchored | `map-popups` |
+| `fitBounds`, `easeTo`, zoom-to | `map-camera` |
+| tests, or claiming something works | `app-verify` |
+| `furniture.js`, `data-sgs-furniture`, the camera/popup contract | `map-camera` |
+| `sgs.json`, `sgs:status`, syncing an app against this repo | `app-upgrade` |
+| creating a new app, `sgs:init`, the capability interview | `app-start` |
+| `sgs:drift`, sending a fix back, ejecting a component | `app-contribute` |
+| adding a component id, a capability, a skill, or anything at all | `repo-maintain` |
 
 Framework terms (clone, app, manifest, watermark, drift, ejected, tier, capability) are
 defined once, in `VOCABULARY.md` — link there, never redefine.
 
+Twelve of these fourteen also travel into apps: a component owns the SKILL.md that describes
+it, listed among its files in `sgs-components.json`, so `sgs:init` copies it exactly when it
+copies the code. Writing or moving a skill means editing that file too. `app-start` and
+`repo-maintain` belong to no component and stay here.
+
 ## Editing sgs-components.json or sgs-capabilities.json
 
-Adding a file to an existing component's list is a normal change. Minting, renaming or
+Adding a file to an existing component's list is a normal change, and that includes a
+`.claude/skills/<name>/SKILL.md`: a skill is one of the component's files. Minting, renaming or
 splitting a component id is bigger than it looks: every existing app's `sgs.json` still names
 the old id, and `sgs:status`/`sgs:drift` report it as unknown until the manifest is updated —
-so the CHANGELOG entry must say what manifests should do. The `maintenance` skill carries the
+so the CHANGELOG entry must say what manifests should do. The `repo-maintain` skill carries the
 tests an addition must pass; read it before growing either file.
 
 ## House rules
@@ -52,6 +63,18 @@ repo's main content, so do not compress it away.
 
 **No em-dashes** in code, comments, docs or UI copy. Commas, colons and full stops.
 
+**No decorative accent stripes.** A coloured bar down the left of a callout, along the top of
+a card, or beside a heading is the most reliable visual tell of generated UI. It is decoration
+standing in for hierarchy, and it is almost always a second copy of something the reader can
+already see: the popup's accent stripe repeated what its swatch said, and the aside's left
+border repeated what its tinted background said. Earn the distinction with the border, the
+background, the type and the spacing you already have. Colour is for things that carry
+information, which here means the layer swatches and the focus ring.
+
+The broader rule this is one instance of: **an element that repeats information already
+present next to it is decoration, not design.** Before adding an accent, name the fact it
+carries and check nothing adjacent carries it already.
+
 **Keep decisions pure.** A function that reads the document can only be tested by building a
 document. If a decision can take its inputs as arguments, it should, and the DOM-reading
 wrapper goes next to it. `popup-placement.js` is the pattern.
@@ -60,7 +83,7 @@ wrapper goes next to it. `popup-placement.js` is the pattern.
 sizing has one table. When two features want the same resource, the answer is a stack or a
 registry owned once, not a cleverer guard in each of them.
 
-**No golden screenshots.** See `verify-in-the-browser`.
+**No golden screenshots.** See `app-verify`.
 
 ## Before you say it works
 

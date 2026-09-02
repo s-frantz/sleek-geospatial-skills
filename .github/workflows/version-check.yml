@@ -40,7 +40,7 @@ jobs:
               console.error('package.json \"version\" must increase to merge.');
               console.error('  base:    ' + process.argv[1]);
               console.error('  this PR: ' + process.argv[2]);
-              console.error('Bump it (usually the patch number, e.g. 1.0.0 -> 1.0.1) and push again.');
+              console.error('Bump it (usually the patch number, e.g. 0.1.0 -> 0.1.1) and push again.');
               process.exit(1);
             }
             console.log('OK: ' + process.argv[1] + ' -> ' + process.argv[2]);

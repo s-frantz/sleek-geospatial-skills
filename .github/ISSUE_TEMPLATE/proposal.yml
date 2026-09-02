@@ -1,0 +1,127 @@
+name: Proposal
+description: Propose a component, a capability, or a convention this repo does not yet teach.
+title: "proposal: "
+labels: ["proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing something. Two things worth knowing before you fill this in.
+
+        This is a **conventions** repo, not a component library. What travels is a lesson: a
+        convention, plus the bug that proves the convention was needed. A proposal names a
+        convention, not a file to copy.
+
+        Proposals are **refused by default**, and most should be. The five sections below are
+        the admission test from the `repo-maintain` skill, in order. If a section stops you,
+        that is the form working. Say so and open it anyway: a proposal closed at a named gate
+        is still useful, and it is a much cheaper conversation than a rewrite.
+
+        Nothing here should say where you actually hit this. No app names, no client names.
+
+  - type: textarea
+    id: convention
+    attributes:
+      label: 1. The convention
+      description: >
+        State the rule, with no mention of where you found it. One or two sentences. "Escape
+        should close only the topmost thing on screen" is a convention; "our modal breaks" is
+        not one yet.
+      placeholder: When two features want the same keyboard key, ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: failure
+    attributes:
+      label: 2. What goes wrong without it
+      description: >
+        The bug that proves the convention is needed. Concrete beats general: what did a user
+        do, and what did they get instead of what they expected? This is the part that will
+        become a failing test, so the more specific it is the better.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: gap
+    attributes:
+      label: 3. Which existing skill should have covered this?
+      description: >
+        The strongest proposals point at a skill that already half-promises the behaviour with
+        no code behind it. If one of these fully covers it, this is a fix to that skill rather
+        than an addition, which is a good outcome and a much smaller PR.
+      options:
+        - I am not sure
+        - None of them come close
+        - ui-boot
+        - ui-theme
+        - map-controls
+        - ui-icons
+        - ui-furniture
+        - ui-stow
+        - ui-window
+        - map-popups
+        - map-camera
+        - app-verify
+        - app-start
+        - app-upgrade
+        - app-contribute
+        - repo-maintain
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: 4. Example (optional)
+      description: >
+        A sketch of the shape you have in mind. Rough pseudocode is fine and is often clearer
+        than polished code. Do not paste a file out of a private codebase: rewrite the idea.
+      render: javascript
+    validations:
+      required: false
+
+  - type: dropdown
+    id: test_kind
+    attributes:
+      label: 5. How could this be tested?
+      description: >
+        Everything here is proved against this repo's own demo app and its two GeoJSON layers.
+        "I don't know" is a completely acceptable answer and will not sink a proposal.
+      options:
+        - I can describe a test in words
+        - I have test code, or can write it
+        - I don't know
+    validations:
+      required: true
+
+  - type: textarea
+    id: test
+    attributes:
+      label: The test
+      description: >
+        Whichever you picked: the description, or the code. Leave blank if you chose "I don't
+        know". If the behaviour needs data or furniture the demo does not have, say that here,
+        since it usually means the proposal needs to shrink.
+    validations:
+      required: false
+
+  - type: input
+    id: displacement
+    attributes:
+      label: 6. What does it replace or ride on? (optional)
+      description: >
+        The existing piece this changes, extends or makes unnecessary. "Nothing, it is new" is
+        a valid answer, it just has to be said out loud.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: cleanroom
+    attributes:
+      label: Before you open this
+      options:
+        - label: >
+            Nothing above names where I actually ran into this, and any code I pasted is
+            written for this repo's demo rather than lifted from somewhere else.
+          required: true

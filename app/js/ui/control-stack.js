@@ -14,7 +14,7 @@
  *   3. ONE SHELL, MANY BUTTONS. Every custom button goes through `makeControl`, so there is
  *      one place where padding, sizing and the focus ring are decided.
  *
- * The styling trap is in the `map-control-icons` skill: MapLibre's own selectors are specific
+ * The styling trap is in the `map-controls` skill: MapLibre's own selectors are specific
  * enough that a plain class rule silently loses to them. Matching the specificity (see
  * `.sgs-ctrl-btn`'s rule in map-controls.css) beats reaching for `!important`.
  */

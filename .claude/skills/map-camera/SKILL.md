@@ -1,5 +1,5 @@
 ---
-name: chrome-aware-camera
+name: map-camera
 description: Fit and ease a map camera in an app that has furniture, so features never land underneath the panel or the dock - visiblePadding, the declarative furniture contract, and clamping so fitBounds cannot throw. Use when implementing zoom-to, fitBounds, easeTo, adding a new piece of furniture, or when "zoom to layer" appears to do nothing.
 ---
 

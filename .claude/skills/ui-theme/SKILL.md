@@ -1,5 +1,5 @@
 ---
-name: theme-tokens
+name: ui-theme
 description: Light, dark and system themes with no flash of the wrong colours - three states not two, the blocking pre-paint restore, and a token palette defined on bare :root. Use when adding colours, adding a theme toggle, or fixing a white flash on load.
 ---
 

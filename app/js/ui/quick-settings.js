@@ -15,6 +15,7 @@
 import { getTheme, setTheme } from './theme.js';
 import { PLACEMENT, getPlacementMode, setPlacementMode } from './popup-placement.js';
 import { pushDismissible } from './dismiss-stack.js';
+import { icon } from '../icons.js';
 
 /** @type {HTMLElement|null} */
 let _panel = null;
@@ -35,7 +36,8 @@ export function closeQuickSettings() {
 /**
  * A labelled row of mutually exclusive choices, rendered as a segmented control.
  * @param {string} label
- * @param {Array<[string, string]>} choices value and text
+ * @param {Array<[string, string, string?]>} choices value, text, and an optional glyph name;
+ *        with a glyph the text becomes the accessible name and the tooltip
  * @param {string} current
  * @param {(value: string) => void} onPick
  * @returns {HTMLElement}
@@ -53,11 +55,27 @@ function segmentRow(label, choices, current, onPick) {
     seg.setAttribute('role', 'radiogroup');
     seg.setAttribute('aria-label', label);
 
-    for (const [value, text] of choices) {
+    for (const [value, text, glyph] of choices) {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'sgs-seg-btn';
-        b.textContent = text;
+        // A glyph where the three choices have one, the word where they do not. The theme
+        // row is a set of three states with settled pictures, so it reads faster as icons and
+        // stops the popover being a wall of words. Placement (Clean / Adjacent) has no such
+        // picture, and inventing one would be worse than the word.
+        //
+        // The word does not disappear when a glyph replaces it: it becomes the accessible
+        // name AND the tooltip, so the button still answers "what is this" on hover and to a
+        // screen reader. An icon-only control with no name is not a shorter label, it is a
+        // missing one.
+        if (glyph) {
+            b.classList.add('sgs-seg-btn--icon');
+            b.innerHTML = icon(glyph, 14);
+            b.title = text;
+        } else {
+            b.textContent = text;
+        }
+        b.setAttribute('aria-label', text);
         b.setAttribute('role', 'radio');
         b.setAttribute('aria-checked', String(value === current));
         b.addEventListener('click', () => {
@@ -86,8 +104,11 @@ const SHORTCUTS = [
     ['Shift + ←→', 'Rotate the map'],
     ['Shift + Drag', 'Box zoom'],
     ['Ctrl + Click', 'Keep popups open (compare)'],
-    ['Ctrl + Arrows', 'Nudge the top popup (Shift: faster)'],
-    ['Esc', 'Close the topmost popup or window'],
+    // The glyphs, not the word "Arrows". Two rows away, "Pan the map" already shows the four
+    // keys as ←↓→↑; naming them in one row and drawing them in another makes a reader check
+    // whether two different things are meant.
+    ['Ctrl + ←↓→↑', 'Nudge the top popup (Shift: faster)'],
+    ['Esc', 'Close the topmost element'],
 ];
 
 /**
@@ -104,7 +125,7 @@ export function toggleQuickSettings(anchor) {
 
     panel.appendChild(segmentRow(
         'Theme',
-        [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']],
+        [['light', 'Light', 'sun'], ['dark', 'Dark', 'moon'], ['system', 'System', 'half-moon']],
         getTheme(),
         (v) => setTheme(/** @type {'light'|'dark'|'system'} */ (v)),
     ));
