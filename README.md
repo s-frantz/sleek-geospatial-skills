@@ -111,7 +111,7 @@ where a lesson was learned twice independently.
 | skill | the short version |
 |---|---|
 | [`ui-boot`](.claude/skills/ui-boot/SKILL.md) | vendored globals with `defer`, a module entry that cannot race them |
-| [`ui-theme`](.claude/skills/ui-theme/SKILL.md) | three theme states, not two, and no flash on load |
+| [`ui-theme`](.claude/skills/ui-theme/SKILL.md) | three theme states, every colour defined once, a dark palette of adjacent tones, no flash on load |
 | [`ui-furniture`](.claude/skills/ui-furniture/SKILL.md) | the panel and the dock: three facts not four postures, one applier, TIGHT/PINNED/FULL |
 | [`ui-stow`](.claude/skills/ui-stow/SKILL.md) | FOLD, CLOSE, MARK, BERTH, PIN, SNAP, and the test that picks one |
 | [`ui-window`](.claude/skills/ui-window/SKILL.md) | one modal shell, a rail of pages, and one owner for the Escape key |

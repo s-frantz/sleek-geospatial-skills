@@ -9,6 +9,39 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
+## [0.2.0] - 2026-09-11
+
+### The theme is defined in one place
+
+Components: `tokens`, `theme`, `swatch`, `source-pill`, `field-badge`, `map-controls`.
+
+- **Every colour token is a `light-dark(<light>, <dark>)` pair**, and three `color-scheme`
+  lines at the top of `tokens.css` are the only place a theme state is named. The dark values
+  used to be written twice (a system block and an explicit block), and four component files
+  carried their own pairs of dark blocks. All of that is gone. `tests/unit/theme.spec.js`
+  keeps it gone.
+- **A new dark palette: mid-grey, built from adjacent tones.** The ground moves from `#171a20`
+  to `#2a2d34`, with every other dark token re-picked so neighbouring surfaces sit one step
+  apart. The `ui-theme` skill carries the full ladder with its roles, and explains why
+  near-black was the wrong floor.
+- **Components derive their colours from tokens** with `color-mix()` instead of naming a dark
+  hex. Source pills are one hue per kind now; every kind measures at least 4.5:1 in both
+  themes (the light pills were near 3:1, which the new e2e spec caught on the old code).
+- **MapLibre's own chrome follows the theme** with one rule each: the control group, its hover
+  patch, and the divider between stacked buttons, which was a fixed `#ddd` hairline across the
+  dark group. The attribution now shares the scale bar's translucent card.
+
+Light-mode changes you will see: pills are darker text on softer plates, the attribution card
+is 88% opaque instead of 50%, its links are the quiet text colour instead of near-black, and
+the control-group divider is `--sgs-line-soft` instead of `#ddd`.
+
+Breaking: `tokens` now needs `light-dark()` (Chrome and Edge 123, Firefox 120, Safari 17.5).
+Below that floor surfaces render transparent, not light, because an invalid-at-computed-time
+value resolves to `unset` rather than to the `var()` fallback. An app that switches theme some
+way other than `data-theme` must now end its switch by setting `color-scheme` on the root; see
+the `ui-theme` skill. The four component files work against the old `tokens.css` as well as
+the new one, so they can be taken without it.
+
 ## [0.1.0] - 2026-09-02
 
 The first release. Everything below is what the repo IS, not what changed in it.

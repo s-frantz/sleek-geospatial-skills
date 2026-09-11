@@ -13,15 +13,11 @@
     text-align: center;
     padding: 1px 3px;
     border-radius: var(--sgs-radius-sm, 5px);
-    background: rgba(0, 0, 0, 0.04);
+    /* The plate is the text colour at 5%, so it is a faint darkening in light and a faint
+       lifting in dark from one rule. No dark override: see the `ui-theme` skill. */
+    background: color-mix(in srgb, var(--sgs-fg, #1b1e24) 5%, transparent);
     color: var(--sgs-fg-dim, #5c636e);
     user-select: none;
-}
-
-:root[data-theme="dark"] .sgs-field-badge { background: rgba(255, 255, 255, 0.05); }
-
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .sgs-field-badge { background: rgba(255, 255, 255, 0.05); }
 }
 
 .sgs-field-badge[data-type="string"]   { color: #c9a227; }

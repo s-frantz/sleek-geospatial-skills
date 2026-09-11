@@ -10,7 +10,8 @@
     height: 12px;
     border-radius: 2px;
     background: var(--sgs-swatch-color, #ccc);
-    border: 2px solid var(--sgs-swatch-border, rgba(0, 0, 0, 0.15));
+    /* The text colour at 15%: an edge that darkens in light and lightens in dark, one rule. */
+    border: 2px solid var(--sgs-swatch-border, color-mix(in srgb, var(--sgs-fg, #1b1e24) 15%, transparent));
 }
 
 .sgs-swatch--circle {
@@ -18,10 +19,4 @@
     height: 10px;
     border-radius: 50%;
     background: var(--sgs-swatch-color, #888);
-}
-
-:root[data-theme="dark"] .sgs-swatch--fill { border-color: rgba(255, 255, 255, 0.14); }
-
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .sgs-swatch--fill { border-color: rgba(255, 255, 255, 0.14); }
 }
