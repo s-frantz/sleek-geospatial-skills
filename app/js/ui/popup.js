@@ -198,6 +198,12 @@ export function openPopup({ lngLat, title, rows, accent, ctrlKey = false, layer,
     h.textContent = title;
     head.appendChild(h);
 
+    // The head's buttons go in the one group every furniture head uses, so their spacing is a
+    // single rule (furniture.css, .sgs-head-actions) rather than whatever this head's gap is.
+    const actions = document.createElement('span');
+    actions.className = 'sgs-head-actions';
+    head.appendChild(actions);
+
     // The same action the layer row offers, in the same idiom, TOGGLING the same dock. A
     // popup is about one feature of one layer, so "show me all of them" belongs here.
     if (layer && onOpenTable) {
@@ -208,7 +214,7 @@ export function openPopup({ lngLat, title, rows, accent, ctrlKey = false, layer,
         tableBtn.setAttribute('aria-label', tableBtn.title);
         tableBtn.innerHTML = icon('table', 12);
         tableBtn.addEventListener('click', (ev) => { ev.stopPropagation(); onOpenTable(layer.id); });
-        head.appendChild(tableBtn);
+        actions.appendChild(tableBtn);
     }
 
     const close = document.createElement('button');
@@ -217,7 +223,7 @@ export function openPopup({ lngLat, title, rows, accent, ctrlKey = false, layer,
     close.title = 'Close';
     close.setAttribute('aria-label', 'Close');
     close.innerHTML = icon('close', 12);
-    head.appendChild(close);
+    actions.appendChild(close);
 
     const body = document.createElement('div');
     body.className = 'sgs-popup-body';

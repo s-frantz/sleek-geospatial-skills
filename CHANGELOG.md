@@ -9,6 +9,19 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
+## [0.1.1] - 2026-09-11
+
+### Head buttons are spaced by one rule
+
+Components: `app-shell`, `panel`, `dock`, `popups` (the head markup and `furniture.css`).
+
+The buttons at the right of the panel, table and popup heads now sit in one
+`.sgs-head-actions` group with one gap (4px). They used to take whatever gap their head had,
+so the same buttons sat 8px apart in the table, 6px in the popup, and 2px and 6px within the
+panel's own head. The berth is `display: contents` now, so it no longer adds a spacing of its
+own. An app that rewrote `furniture.css` and kept the old head markup is unaffected; one that
+takes the new markup needs the new `.sgs-head-actions` rule with it.
+
 ## [0.1.0] - 2026-09-02
 
 The first release. Everything below is what the repo IS, not what changed in it.
