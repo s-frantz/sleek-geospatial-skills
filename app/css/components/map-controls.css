@@ -8,7 +8,10 @@
    Matching is better: it stays readable, and it keeps working if MapLibre adds a state class.
    See the `map-controls` skill. */
 
-.maplibregl-ctrl-group.sgs-ctrl { background: var(--sgs-bg, #fff); }
+/* Every group, MapLibre's own included: its stylesheet paints them a fixed #fff, and a token
+   here is what makes them follow the theme. Same specificity as MapLibre's rule, so it wins on
+   load order, and one rule serves both themes. */
+.maplibregl-ctrl-group { background: var(--sgs-bg, #fff); }
 
 .maplibregl-ctrl-group.sgs-ctrl button.sgs-ctrl-btn {
     display: grid;
@@ -69,24 +72,22 @@
 .maplibregl-ctrl-group button { color: var(--sgs-fg-dim, #5c636e); }
 .maplibregl-ctrl-group button:hover { color: var(--sgs-fg, #1b1e24); }
 
-:root[data-theme="dark"] .maplibregl-ctrl-group,
-:root[data-theme="dark"] .maplibregl-ctrl-attrib {
-    background: var(--sgs-bg, #171a20);
-    color: var(--sgs-fg, #e7e9ee);
-}
+/* MapLibre's hover patch is a fixed black tint, invisible on a dark ground. The token lifts in
+   dark and darkens in light. Specificity matches MapLibre's own hover rule. */
+.maplibregl-ctrl-group button:not(:disabled):hover { background: var(--sgs-hover, rgba(0,0,0,.06)); }
 
-:root[data-theme="dark"] .maplibregl-ctrl-group button:hover { background: var(--sgs-hover, rgba(255,255,255,.08)); }
-:root[data-theme="dark"] .maplibregl-ctrl-attrib a { color: var(--sgs-accent, #5b96ea); }
+/* And its divider between stacked buttons is a fixed #ddd: a bright hairline across a dark
+   group. A divider is one step off the ground, which is what --sgs-line-soft is. */
+.maplibregl-ctrl-group button + button { border-top-color: var(--sgs-line-soft, #e9ebef); }
 
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .maplibregl-ctrl-group,
-    :root:not([data-theme="light"]) .maplibregl-ctrl-attrib {
-        background: var(--sgs-bg, #171a20);
-        color: var(--sgs-fg, #e7e9ee);
-    }
-    :root:not([data-theme="light"]) .maplibregl-ctrl-group button:hover { background: var(--sgs-hover, rgba(255,255,255,.08)); }
-    :root:not([data-theme="light"]) .maplibregl-ctrl-attrib a { color: var(--sgs-accent, #5b96ea); }
+/* The attribution sits directly under the scale bar below, so it gets the same translucent
+   card rather than MapLibre's fixed half-white, and quiet text rather than its fixed black
+   links. Two classes, to match MapLibre's own selector. */
+.maplibregl-ctrl.maplibregl-ctrl-attrib {
+    background: color-mix(in srgb, var(--sgs-bg, #fff) 88%, transparent);
+    color: var(--sgs-fg, #1b1e24);
 }
+.maplibregl-ctrl-attrib a { color: var(--sgs-fg-dim, #5c636e); }
 
 /* ── Scale bar ──────────────────────────────────────────────────────────────────────────── */
 
