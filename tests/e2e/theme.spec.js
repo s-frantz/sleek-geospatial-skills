@@ -54,8 +54,8 @@ const contrast = (a, b) => {
 const read = (page, sel, prop) =>
     page.locator(sel).first().evaluate((el, p) => getComputedStyle(el).getPropertyValue(p), prop);
 
-const LIGHT_GROUND = 'rgb(255, 255, 255)';
-const DARK_GROUND = 'rgb(42, 45, 52)';
+const LIGHT_GROUND = 'rgb(255, 253, 252)';
+const DARK_GROUND = 'rgb(45, 45, 51)';
 
 for (const [os, stored, expected] of /** @type {const} */ ([
     ['light', null, LIGHT_GROUND],

@@ -20,10 +20,11 @@
     /* ONE HUE PER KIND, and the theme does the rest. Text and plate are both mixed from the
        hue against the current theme's own tokens, so the same seven hexes are right in light
        and in dark with no override block. This replaced 28 hand-picked hexes (7 kinds x text
-       and plate x two themes). Every kind measures at least 4.5:1 in both themes at these two
+       and plate x two themes). Every kind measures at least 4.9:1 in both themes at these two
        percentages (before the opacity above), where the hand-picked light pills were near
-       3:1; recheck before moving either number. */
-    color: color-mix(in srgb, var(--sgs-pill-hue, #475569) 50%, var(--sgs-fg, #1b1e24));
+       3:1. At 50% the dark red sat at exactly 4.5, which is why it is 45; recheck before
+       moving either number. */
+    color: color-mix(in srgb, var(--sgs-pill-hue, #475569) 45%, var(--sgs-fg, #1b1e24));
     background: color-mix(in srgb, var(--sgs-pill-hue, #475569) 16%, var(--sgs-bg, #ffffff));
 }
 
