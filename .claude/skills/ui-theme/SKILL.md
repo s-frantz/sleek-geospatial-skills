@@ -29,8 +29,8 @@ Every colour is defined once, as a pair, and one property picks the half. This i
 :root[data-theme="dark"]  { color-scheme: dark; }
 
 :root {
-    --sgs-bg:      light-dark(#ffffff, #2a2d34);
-    --sgs-bg-sunk: light-dark(#f4f5f7, #31343c);
+    --sgs-bg:      light-dark(#fffdfc, #2d2d33);
+    --sgs-bg-sunk: light-dark(#f4f3f4, #34343b);
     /* ...every colour token, one line each */
 }
 ```
@@ -71,14 +71,14 @@ rather than naming a second hex:
 background: color-mix(in srgb, var(--sgs-fg) 5%, transparent);
 
 /* A category colour: one hue, and the theme supplies the rest. */
-color:      color-mix(in srgb, var(--sgs-pill-hue) 50%, var(--sgs-fg));
+color:      color-mix(in srgb, var(--sgs-pill-hue) 45%, var(--sgs-fg));
 background: color-mix(in srgb, var(--sgs-pill-hue) 16%, var(--sgs-bg));
 ```
 
 Mixing toward `--sgs-fg` moves toward the text, which is darker in light and lighter in dark,
 so one rule is right in both. `app/css/components/source-pill.css` replaced 28 hand-picked
 hexes (seven kinds, text and plate, two themes) with seven hues this way, and every pill now
-measures at least 4.5:1 in both themes, where the hand-picked light ones were near 3:1. See
+measures at least 4.9:1 in both themes, where the hand-picked light ones were near 3:1. See
 also `field-badge.css` and `swatch.css`.
 
 If a surface needs a shade that cannot be mixed from what exists, it needs a new TOKEN in
@@ -90,7 +90,7 @@ Dark mode is not the light theme inverted. It is a short ladder of greys, and co
 surfaces comes from each one sitting ONE STEP from its neighbour, not from borders and not
 from black.
 
-**Mid-grey, not near-black.** The ground is `#2a2d34` (L\* ~18). A near-black ground (L\* ~9)
+**Mid-grey, not near-black.** The ground is `#2d2d33` (L\* ~19). A near-black ground (L\* ~9)
 reads as too dark everywhere, and it leaves no room underneath it: a shadow cannot darken
 what is already nearly black, so every raised surface has to separate itself with a border
 instead, and the chrome goes heavy. Starting mid-grey leaves room in both directions.
@@ -119,20 +119,34 @@ and each becomes a token when it is first used, not before.
 
 | role | token | light | dark | dark L\* |
 |---|---|---|---|---|
-| chrome frame, the ground | `--sgs-bg` | `#ffffff` | `#2a2d34` | 18.4 |
-| adjacent step: heads, sidebars, table heads | `--sgs-bg-sunk` | `#f4f5f7` | `#31343c` | 21.7 |
-| resting card | none here | `#e8e8e8` | `#33363d` | 22.6 |
-| divider | `--sgs-line-soft` | `#e9ebef` | `#3a3b45` | 25.1 |
-| solid hover, where translucent will not do | none here | `#e8e8e8` | `#3d4150` | 27.7 |
-| canvas that cards sit on | none here | `#f3f3f3` | `#41454c` | 29.2 |
-| edge | `--sgs-line` | `#d9dce2` | `#63656f` | 42.9 |
-| selected card | none here | `#ffffff` | `#7a7c88` | 52.2 |
-| text | `--sgs-fg` | `#1b1e24` | `#e8eaf0` | |
-| quiet text | `--sgs-fg-dim` | `#5c636e` | `#949ab0` | |
-| accent | `--sgs-accent` | `#2f6fd0` | `#3b82f6` | |
+| chrome frame, the ground | `--sgs-bg` | `#fffdfc` | `#2d2d33` | 18.7 |
+| adjacent step: heads, sidebars, table heads | `--sgs-bg-sunk` | `#f4f3f4` | `#34343b` | 22.0 |
+| resting card | none here | `#e8e6e5` | `#36363c` | 22.8 |
+| divider | `--sgs-line-soft` | `#e9e9ec` | `#3c3b44` | 25.3 |
+| solid hover, where translucent will not do | none here | `#e8e6e5` | `#3f414f` | 27.9 |
+| canvas that cards sit on | none here | `#f3f1f0` | `#43454b` | 29.3 |
+| edge | `--sgs-line` | `#d9dadf` | `#65656e` | 43.1 |
+| selected card | none here | `#fffdfc` | `#7c7b86` | 52.0 |
+| text | `--sgs-fg` | `#1e1f24` | `#e8e8ed` | |
+| quiet text | `--sgs-fg-dim` | `#5e636d` | `#9599ae` | |
+| accent | `--sgs-accent` | `#326fcd` | `#3d81f3` | |
 
 The selected card is lifted far enough that `--sgs-fg` on it measures about 3.4:1. Keep its
 label heavy, or take the step down, before putting body text on it.
+
+**A faint warm cast, baked in.** Every hex in the table is a cooler original blended 1.25%
+toward `rgb(255, 80, 0)`: what a blue-light filter does at a low setting, laid over the page
+as a translucent sheet. Here it is folded into the tokens instead. That costs nothing at
+runtime, cannot sit on top of the map, and leaves data colours (layer swatches, category hues,
+the basemap) untouched, which a real overlay would not. The effect is mostly to take the blue
+edge off the greys. A new token gets the same treatment:
+
+```text
+warm(c) = c × (1 − 0.0125) + (255, 80, 0) × 0.0125     per channel, then round
+```
+
+Keep it faint. At a few percent it stops reading as neutral chrome and starts reading as a
+tinted theme, and every surface step inherits the tint.
 
 **What else changes with the ground.**
 
@@ -143,8 +157,8 @@ label heavy, or take the step down, before putting body text on it.
 - **Highlights need about a fifth.** An inset white top bevel at 0.8 makes a light card look
   raised; the same bevel on a dark card is a hot white line. Around 0.16 reads as the same
   lift.
-- **Identity colours brighten.** The accent goes from `#2f6fd0` to `#3b82f6` so it still reads
-  on a dark panel. Text ON the accent flips to dark ink in dark (5.1:1, where white is 3.7:1).
+- **Identity colours brighten.** The accent goes from `#326fcd` to `#3d81f3` so it still reads
+  on a dark panel. Text ON the accent flips to dark ink in dark (4.9:1, where white is 3.7:1).
 - **Library chrome needs a token too.** A map library's own controls ship fixed colours (a
   white group, a `#ddd` divider, a black hover tint) that are invisible or glaring on a dark
   ground. `app/css/components/map-controls.css` points each at a token, one rule for both

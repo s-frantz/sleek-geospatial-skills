@@ -21,11 +21,14 @@ Components: `tokens`, `theme`, `swatch`, `source-pill`, `field-badge`, `map-cont
   carried their own pairs of dark blocks. All of that is gone. `tests/unit/theme.spec.js`
   keeps it gone.
 - **A new dark palette: mid-grey, built from adjacent tones.** The ground moves from `#171a20`
-  to `#2a2d34`, with every other dark token re-picked so neighbouring surfaces sit one step
+  to `#2d2d33`, with every other dark token re-picked so neighbouring surfaces sit one step
   apart. The `ui-theme` skill carries the full ladder with its roles, and explains why
   near-black was the wrong floor.
+- **A faint warm cast in both themes.** Every opaque token is blended 1.25% toward
+  `rgb(255, 80, 0)`, a low blue-light-filter setting baked into the hexes rather than laid
+  over the page, so the map and data colours are untouched. Light's ground is now `#fffdfc`.
 - **Components derive their colours from tokens** with `color-mix()` instead of naming a dark
-  hex. Source pills are one hue per kind now; every kind measures at least 4.5:1 in both
+  hex. Source pills are one hue per kind now; every kind measures at least 4.9:1 in both
   themes (the light pills were near 3:1, which the new e2e spec caught on the old code).
 - **MapLibre's own chrome follows the theme** with one rule each: the control group, its hover
   patch, and the divider between stacked buttons, which was a fixed `#ddd` hairline across the
