@@ -254,6 +254,27 @@ test('the table button toggles: open, then close', async ({ page }) => {
     await expect(page.locator('#sgs-dock-sliver')).toBeVisible();
 });
 
+test('the head buttons of the panel and the table are spaced by one rule', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await expect(page.locator('#sgs-dock')).toHaveCount(1);
+
+    /** The gaps between neighbouring icon buttons in one head, left to right. @param {string} head */
+    const gaps = (head) => page.locator(`${head} .sgs-icon-btn`).evaluateAll((els) => {
+        const rects = els.map((el) => el.getBoundingClientRect())
+            .filter((r) => r.width > 0)
+            .sort((a, b) => a.left - b.left);
+        return rects.slice(1).map((r, i) => Math.round((r.left - rects[i].right) * 10) / 10);
+    });
+
+    const panel = await gaps('.sgs-panel-head');
+    const table = await gaps('.sgs-dock-head');
+    expect(panel.length).toBeGreaterThan(2);
+    expect(table.length).toBeGreaterThan(2);
+    // Every gap the same, in both heads, and the same number in both.
+    expect(new Set([...panel, ...table]).size).toBe(1);
+});
+
 test('a second layer switches the table rather than closing it', async ({ page }) => {
     await page.locator('.sgs-row[data-layer="stations"]').hover();
     await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();

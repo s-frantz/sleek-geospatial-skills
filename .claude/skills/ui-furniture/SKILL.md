@@ -139,6 +139,17 @@ same state through the same function, the catch radius is `SNAP` in `furniture.j
 re-berthing has to clear every inline property the drag wrote rather than the two that visibly
 moved. All of that is the `ui-stow` skill — read it before adding a berth to anything.
 
+## One group for a head's buttons
+
+Every furniture head (panel, table, popup) puts its buttons in one `.sgs-head-actions` group,
+and that group's `gap` in `app/css/furniture.css` is the only thing spacing them. Each head
+has its own `gap` too, for its title, swatch and count, and when the buttons were plain
+children of the head they inherited it: the same four buttons sat 8px apart in the table,
+6px in the popup, and 2px and 6px within one panel head, because the berth was a box with a
+gap of its own. The berth is now `display: contents`, so what lands in it is spaced like its
+neighbours. A new head, or a new button in an old one, goes into the group; the test that
+holds it is in `tests/e2e/layout.spec.js`.
+
 ## Floating changes what the panel IS
 
 A docked panel hugs the left edge, so the camera pads for it and popups avoid it. A floating

@@ -122,8 +122,17 @@
     white-space: nowrap;
 }
 
-/* A BERTH is a corner of chrome that already exists, never a dedicated lane. */
-.sgs-berth { display: flex; align-items: center; gap: 2px; }
+/* HEAD ACTIONS: the buttons at the right of every furniture head (panel, table, popup) sit in
+   this one group, so their spacing is ONE rule. Each head used to space its own buttons with
+   its own gap, which made three different answers: the panel's berth pair sat 2px apart and
+   its fold and close 6px, the table's buttons 8px, the popup's 6px. The head's own gap still
+   separates the group from the title; it no longer reaches between buttons. */
+.sgs-head-actions { display: flex; align-items: center; gap: 4px; flex: none; }
+
+/* A BERTH is a corner of chrome that already exists, never a dedicated lane. It dissolves
+   into the actions group rather than drawing a box of its own, so whatever lands in it is
+   spaced exactly like the buttons beside it, and an empty berth leaves no gap behind. */
+.sgs-berth { display: contents; }
 
 .sgs-panel-body { overflow: auto; padding: 6px; }
 

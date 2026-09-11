@@ -463,7 +463,12 @@ function buildDock() {
     close.innerHTML = icon('close', 12);
     close.addEventListener('click', (e) => { e.stopPropagation(); closeTable(); });
 
-    head.append(swatch, pill, title, count, spacer, full, pin, fold, close);
+    // The buttons sit in the group every furniture head shares, so the table's four and the
+    // panel's four are spaced by one rule, not by each head's own gap (furniture.css).
+    const actions = document.createElement('span');
+    actions.className = 'sgs-head-actions';
+    actions.append(full, pin, fold, close);
+    head.append(swatch, pill, title, count, spacer, actions);
     // A folded dock is one bar; the whole bar is the unfold control, not just the chevron.
     head.addEventListener('click', () => { if (_folded) setFolded(false); });
 
