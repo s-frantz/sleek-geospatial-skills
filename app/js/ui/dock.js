@@ -38,7 +38,7 @@ import { buildSymbolSwatch } from './symbology.js';
 import { getSourcePill, makeTypePill } from './type-pill.js';
 import { foldPanel, isPanelFolded } from './panel.js';
 import { makeDraggable, releaseDrag } from '../utils/draggable.js';
-import { nearBerth, makeBorrow } from '../utils/furniture.js';
+import { nearBottomBerth, makeBorrow } from '../utils/furniture.js';
 import { getPrefs, setPrefs } from '../utils/prefs.js';
 
 /** Default open height, px. */
@@ -476,18 +476,19 @@ function buildDock() {
     body.className = 'sgs-dock-body';
 
     // Same gesture as the panel: the head drags it loose, and letting go near the berth puts
-    // it back. See furniture.js's SNAP for why the catch radius is the number it is.
+    // it back. The berth is the whole bottom edge, so "near" means held against the bottom
+    // anywhere along it, not near one corner of it: see nearBottomBerth() in furniture.js.
     makeDraggable(dock, head, ({ x, y }) => {
         if (_folded) return;
         _float = true;
         _full = false;
         _width = _width || Math.round(dock.getBoundingClientRect().width);
         _x = x; _y = y;
-        dock.classList.toggle('sgs-snapping', nearBerth({ left: x, top: y }, berthPoint()));
+        dock.classList.toggle('sgs-snapping', nearBottomBerth({ top: y }, berthPoint().y));
         apply();
-    }, ({ x, y }) => {
+    }, ({ y }) => {
         dock.classList.remove('sgs-snapping');
-        if (_float && nearBerth({ left: x, top: y }, berthPoint())) berthDock();
+        if (_float && nearBottomBerth({ top: y }, berthPoint().y)) berthDock();
     });
 
     dock.append(grip, wgrip, head, body);

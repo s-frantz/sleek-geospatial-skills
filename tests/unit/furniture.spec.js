@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { edgeOf, coverFromEdgeFurniture, nearBerth, makeBorrow, HOME, SNAP } from '../../app/js/utils/furniture.js';
+import { edgeOf, coverFromEdgeFurniture, nearBerth, nearBottomBerth, makeBorrow, HOME, SNAP } from '../../app/js/utils/furniture.js';
 
 const VIEWPORT = { width: 1280, height: 800 };
 
@@ -111,6 +111,30 @@ describe('nearBerth', () => {
 
     it('has a catch radius wider than the occlusion threshold, so anything that snaps was already occluding', () => {
         expect(SNAP).toBeGreaterThan(HOME);
+    });
+});
+
+describe('nearBottomBerth', () => {
+    // A 250px dock on an 800px viewport with a 10px inset berths with its top at 540.
+    const berthTop = 540;
+
+    it('catches the rect anywhere along the edge, because the berth is the edge and not a corner', () => {
+        // The case nearBerth() got wrong for the dock: held at the foot of the map, but in the
+        // middle, far from the bottom-left corner it was being compared against.
+        for (const left of [10, 400, 1100]) {
+            expect(nearBottomBerth(/** @type {any} */ ({ left, top: berthTop }), berthTop)).toBe(true);
+        }
+    });
+
+    it('catches within SNAP above the berth and not beyond it', () => {
+        expect(nearBottomBerth({ top: berthTop - SNAP }, berthTop)).toBe(true);
+        expect(nearBottomBerth({ top: berthTop - SNAP - 1 }, berthTop)).toBe(false);
+        expect(nearBottomBerth({ top: 200 }, berthTop)).toBe(false);
+    });
+
+    it('is one-sided: pushed down past the berth is held against the edge, not far from it', () => {
+        expect(nearBottomBerth({ top: berthTop + SNAP + 1 }, berthTop)).toBe(true);
+        expect(nearBottomBerth({ top: berthTop + 300 }, berthTop)).toBe(true);
     });
 });
 

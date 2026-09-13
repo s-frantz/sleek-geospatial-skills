@@ -154,11 +154,12 @@ export const SNAP = HOME * 2;
  * Per-axis rather than Euclidean: a diagonal miss of 40px in both directions is not "nearly
  * home" in any sense a reader would recognise, and the radial version catches it.
  *
+ * For a berth that is a CORNER, like the panel's. A berth that is a whole edge is a different
+ * test: see nearBottomBerth() below.
+ *
  * Pure, and takes the berth point rather than deriving one, because only the furniture knows
- * where its own berth is — the panel's is an inset corner, the dock's is an inset corner
- * whose y depends on the dock's current height. Deriving it here would mean this file knowing
- * about specific pieces of furniture, which is exactly what the marker attribute exists to
- * avoid.
+ * where its own berth is. Deriving it here would mean this file knowing about specific pieces
+ * of furniture, which is exactly what the marker attribute exists to avoid.
  *
  * @param {{left: number, top: number}} rect where the furniture is now
  * @param {{x: number, y: number}} berth where it would sit if it were pinned
@@ -167,6 +168,30 @@ export const SNAP = HOME * 2;
  */
 export function nearBerth(rect, berth, snap = SNAP) {
     return Math.abs(rect.left - berth.x) <= snap && Math.abs(rect.top - berth.y) <= snap;
+}
+
+/**
+ * Is this rect held against a BOTTOM-EDGE berth closely enough that letting go should
+ * re-berth it?
+ *
+ * The dock's berth is the whole bottom edge, not a corner, so this ignores x entirely. It used
+ * to go through nearBerth() with the bottom-LEFT corner as its point, which meant a loose table
+ * dropped at the foot of the map stayed loose unless it happened to land within SNAP of the
+ * left inset: the reader held it against the edge it lives on, in the middle where it is most
+ * natural to aim, and nothing happened.
+ *
+ * One-sided on y, where nearBerth() is symmetric. The panel cannot overshoot its corner (the
+ * drag clamps it to the viewport), but the dock can be pushed down past its berth until only
+ * its head shows, and pushing a thing INTO the edge it belongs on is the clearest possible way
+ * of saying "put it back". So anything at, below, or within SNAP above the berth counts.
+ *
+ * @param {{top: number}} rect where the furniture is now
+ * @param {number} berthTop the top it would have if it were pinned
+ * @param {number} [snap]
+ * @returns {boolean}
+ */
+export function nearBottomBerth(rect, berthTop, snap = SNAP) {
+    return rect.top >= berthTop - snap;
 }
 
 /**

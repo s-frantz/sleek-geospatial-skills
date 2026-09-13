@@ -585,6 +585,56 @@ test('the table unpins, drags loose, and snaps back to the bottom berth', async 
     expect(reberthed.y + reberthed.height).toBeGreaterThan(vp.height - 24);
 });
 
+test('the loose table snaps back when held against the bottom anywhere, the middle included', async ({ page }) => {
+    const vp = page.viewportSize();
+    if (!vp) throw new Error('no viewport');
+    await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
+    await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
+    const dock = page.locator('#sgs-dock');
+    await expect(dock).toHaveCount(1);
+
+    /** Pin it loose and park it mid-map, well clear of every edge. */
+    const loosen = async () => {
+        await page.locator('.sgs-dock-pin').click();
+        await expect(dock).toHaveClass(/sgs-dock--float/);
+        await dragHead(page, '.sgs-dock-head', vp.width / 2, 200);
+        await expect(dock).toHaveClass(/sgs-dock--float/);
+        const box = await dock.boundingBox();
+        if (!box) throw new Error('no dock');
+        return box;
+    };
+
+    // Dropped at the foot of the map in the MIDDLE, far from the bottom-left corner. This is
+    // the case the corner test missed: it stayed loose.
+    let loose = await loosen();
+    const h = await page.locator('.sgs-dock-head').boundingBox();
+    if (!h) throw new Error('no head');
+    await page.mouse.move(h.x + 40, h.y + h.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(vp.width / 2, vp.height - loose.height + 10, { steps: 10 });
+    // The cue shows before letting go, as it does for the panel.
+    await expect(dock).toHaveClass(/sgs-snapping/);
+    await page.mouse.up();
+    await expect(dock).not.toHaveClass(/sgs-snapping/);
+    await expect(dock).not.toHaveClass(/sgs-dock--float/);
+    let berthed = await dock.boundingBox();
+    if (!berthed) throw new Error('no dock');
+    expect(berthed.x).toBeLessThan(24);
+    expect(berthed.width).toBeGreaterThan(vp.width - 48);
+    expect(berthed.y + berthed.height).toBeGreaterThan(vp.height - 24);
+
+    // Pushed down PAST its berth, near the right, until little more than the head shows:
+    // shoving it into the edge it belongs on puts it back too.
+    loose = await loosen();
+    await dragHead(page, '.sgs-dock-head', vp.width - 120, vp.height - 20);
+    await expect(dock).not.toHaveClass(/sgs-dock--float/);
+    berthed = await dock.boundingBox();
+    if (!berthed) throw new Error('no dock');
+    expect(berthed.width).toBeGreaterThan(vp.width - 48);
+    expect(berthed.y + berthed.height).toBeGreaterThan(vp.height - 24);
+    expect(berthed.y + berthed.height).toBeLessThanOrEqual(vp.height);
+});
+
 test('FULL fills the map and gives back the exact width the reader pinned', async ({ page }) => {
     const vp = page.viewportSize();
     if (!vp) throw new Error('no viewport');
