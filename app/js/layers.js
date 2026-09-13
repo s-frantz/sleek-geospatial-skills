@@ -68,8 +68,13 @@ const _data = {};
  */
 const NOTHING = ['literal', false];
 
-/** The GL id of a layer's flash layer. @param {string} id */
-const flashId = (id) => `${id}-flash`;
+/**
+ * The GL ids of a layer's flash layers: a polygon gets two, a fill and a heavy edge, and a
+ * point gets one filled ring.
+ * @param {LayerDef} def
+ * @returns {string[]}
+ */
+const flashIds = (def) => (def.kind === 'fill' ? [`${def.id}-flash-fill`, `${def.id}-flash`] : [`${def.id}-flash`]);
 
 /**
  * @param {string} id
@@ -121,24 +126,34 @@ export async function addAllLayers() {
                 },
             });
         }
-        // The flash layer: this layer's own shape drawn heavier, matching NOTHING until
-        // flashFeature() points it at one feature for a moment. Deliberately not in
-        // glLayerIds(), so hiding a layer does not hide the answer to "where is the thing I
-        // just asked for?", and never bound to a click, so it can never open a second popup.
-        map.addLayer(def.kind === 'fill'
-            ? {
-                id: flashId(def.id), type: 'line', source: def.id, filter: NOTHING,
+        // The flash layers: this layer's own shape HIGHLIGHTED, matching NOTHING until
+        // flashFeature() points them at one feature for a moment. A polygon's body is filled as
+        // well as its edge drawn heavy, because an edge alone disappeared in practice: a zoom
+        // fits the polygon to the screen, so its edge becomes the screen's edge, drawn in the
+        // same colour as every neighbour's. Deliberately not in glLayerIds(), so hiding a layer
+        // does not hide the answer to "where is the thing I just asked for?", and never bound
+        // to a click, so they can never open a second popup.
+        if (def.kind === 'fill') {
+            map.addLayer({
+                id: `${def.id}-flash-fill`, type: 'fill', source: def.id, filter: NOTHING,
+                paint: { 'fill-color': def.color, 'fill-opacity': 0.5 },
+            });
+            map.addLayer({
+                id: `${def.id}-flash`, type: 'line', source: def.id, filter: NOTHING,
                 paint: { 'line-color': def.color, 'line-width': 4 },
-            }
-            : {
-                id: flashId(def.id), type: 'circle', source: def.id, filter: NOTHING,
+            });
+        } else {
+            map.addLayer({
+                id: `${def.id}-flash`, type: 'circle', source: def.id, filter: NOTHING,
                 paint: {
                     'circle-radius': 11,
-                    'circle-color': 'rgba(0, 0, 0, 0)',
+                    'circle-color': def.color,
+                    'circle-opacity': 0.35,
                     'circle-stroke-width': 3,
                     'circle-stroke-color': def.color,
                 },
             });
+        }
         setLayerVisible(def.id, def.visible);
     }
 }
@@ -224,7 +239,7 @@ let _flashRun = 0;
 let _flashTimers = [];
 
 /**
- * Flash one feature on the map: its shape drawn heavy, twice, then gone.
+ * Flash one feature on the map: its shape highlighted, twice, then gone.
  *
  * It answers "which one is it?" after a row or a popup has pointed at a feature. Zooming alone
  * does not: a fit to one polygon among its neighbours lands on a screen full of polygons. It
@@ -239,7 +254,8 @@ let _flashTimers = [];
 export function flashFeature(layerId, feature) {
     const def = layerById(layerId);
     const value = def ? feature?.properties?.[def.key] : undefined;
-    if (!def || value === undefined || value === null || !map.getLayer(flashId(layerId))) return;
+    if (!def || value === undefined || value === null) return;
+    if (!flashIds(def).every((id) => map.getLayer(id))) return;
 
     const run = ++_flashRun;
     for (const t of _flashTimers) clearTimeout(t);
@@ -247,8 +263,10 @@ export function flashFeature(layerId, feature) {
 
     const show = (/** @type {boolean} */ on) => {
         for (const d of LAYERS) {
-            if (!map.getLayer(flashId(d.id))) continue;
-            map.setFilter(flashId(d.id), on && d.id === layerId ? ['==', ['get', def.key], value] : NOTHING);
+            for (const id of flashIds(d)) {
+                if (!map.getLayer(id)) continue;
+                map.setFilter(id, on && d.id === layerId ? ['==', ['get', def.key], value] : NOTHING);
+            }
         }
     };
     const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
