@@ -437,19 +437,39 @@ test('zooming to a row flashes its feature on the map and makes it the current r
     const key = await row.getAttribute('data-key');
     if (!key) throw new Error('row has no key');
 
+    // Record every filter the flash layers are given, from inside the page. Sampling the map by
+    // animation frame is not evidence: headless Chromium renders here at about 23fps, which
+    // leaves a handful of frames to land in each showing, and a sampled test can miss one.
+    await page.evaluate(() => {
+        const w = /** @type {any} */ (window);
+        const m = w.sgsMap;
+        /** @type {Array<[string, string]>} */
+        const calls = [];
+        w.flashCalls = calls;
+        const set = m.setFilter.bind(m);
+        m.setFilter = (/** @type {string} */ id, /** @type {unknown} */ f, /** @type {any[]} */ ...rest) => {
+            if (id.startsWith('neighborhoods-flash')) calls.push([id, JSON.stringify(f)]);
+            return set(id, f, ...rest);
+        };
+    });
+
     await row.locator('.sgs-go-col button').click();
     await expect(row).toHaveClass(/sgs-row-hit/);
     await expect(page.locator('#sgs-dock tbody tr.sgs-row-hit')).toHaveCount(1);
 
-    // Polled every frame: each showing lasts a few hundred milliseconds, and a coarser poll
-    // can step straight over one.
-    await page.waitForFunction(
-        (k) => JSON.stringify(window.sgsMap.getFilter('neighborhoods-flash')).includes(`"${k}"`),
-        key, { polling: 'raf', timeout: 4000 });
-    // And it ends matching nothing again, rather than leaving the feature drawn heavy.
-    await page.waitForFunction(
-        () => JSON.stringify(window.sgsMap.getFilter('neighborhoods-flash')) === '["literal",false]',
-        null, { polling: 'raf', timeout: 4000 });
+    // Two showings, each on both polygon flash layers: the body filled as well as the edge
+    // drawn heavy, because an edge alone vanishes once the camera has fitted the polygon to
+    // the screen and its edge is the screen's edge. Then matching nothing again.
+    await expect.poll(
+        () => page.evaluate(() => /** @type {any} */ (window).flashCalls.length), { timeout: 5000 },
+    ).toBe(8);
+    const calls = await page.evaluate(() => /** @type {any} */ (window).flashCalls);
+    const on = `["==",["get","id"],"${key}"]`;
+    const off = '["literal",false]';
+    for (const id of ['neighborhoods-flash', 'neighborhoods-flash-fill']) {
+        expect(calls.filter((/** @type {string[]} */ c) => c[0] === id).map((/** @type {string[]} */ c) => c[1]), id)
+            .toEqual([on, off, on, off]);
+    }
 });
 
 /* ── Regressions ─────────────────────────────────────────────────────────────────────────
