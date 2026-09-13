@@ -24,6 +24,8 @@ import { bboxOf, isDegenerate } from './utils/geo.js';
  * @property {boolean} visible whether it starts on
  * @property {string} color
  * @property {string[]} fields the columns the dock shows, in order
+ * @property {string} key the property that tells one feature from another: how a table row,
+ *           a popup and the map agree that they mean the same feature
  */
 
 /** @type {LayerDef[]} */
@@ -37,6 +39,7 @@ export const LAYERS = [
         visible: true,
         color: '#3f7fd4',
         fields: ['id', 'name', 'coalition', 'area_km2', 'perimeter_km'],
+        key: 'id',
     },
     {
         id: 'stations',
@@ -47,11 +50,26 @@ export const LAYERS = [
         visible: true,
         color: '#d4703f',
         fields: ['id', 'name', 'kind', 'capacity', 'online'],
+        key: 'id',
     },
 ];
 
 /** Loaded feature collections, by layer id. @type {Record<string, any>} */
 const _data = {};
+
+/**
+ * A filter that matches nothing: the flash layer's resting state.
+ *
+ * `['literal', false]`, and NOT the obvious `['==', 1, 0]`. MapLibre still accepts the old
+ * `["==", key, value]` filter syntax and decides which syntax it is looking at from the second
+ * element: a number there reads as a legacy filter with a non-string key, fails validation,
+ * and the layer is silently never added. `addLayer` reports that as an `error` event, not a
+ * throw, so the flash layers went missing while the app booted as if nothing were wrong.
+ */
+const NOTHING = ['literal', false];
+
+/** The GL id of a layer's flash layer. @param {string} id */
+const flashId = (id) => `${id}-flash`;
 
 /**
  * @param {string} id
@@ -103,6 +121,24 @@ export async function addAllLayers() {
                 },
             });
         }
+        // The flash layer: this layer's own shape drawn heavier, matching NOTHING until
+        // flashFeature() points it at one feature for a moment. Deliberately not in
+        // glLayerIds(), so hiding a layer does not hide the answer to "where is the thing I
+        // just asked for?", and never bound to a click, so it can never open a second popup.
+        map.addLayer(def.kind === 'fill'
+            ? {
+                id: flashId(def.id), type: 'line', source: def.id, filter: NOTHING,
+                paint: { 'line-color': def.color, 'line-width': 4 },
+            }
+            : {
+                id: flashId(def.id), type: 'circle', source: def.id, filter: NOTHING,
+                paint: {
+                    'circle-radius': 11,
+                    'circle-color': 'rgba(0, 0, 0, 0)',
+                    'circle-stroke-width': 3,
+                    'circle-stroke-color': def.color,
+                },
+            });
         setLayerVisible(def.id, def.visible);
     }
 }
@@ -180,4 +216,47 @@ export function zoomToFeature(feature) {
         return;
     }
     map.fitBounds(/** @type {any} */ (bbox), { padding: pad, maxZoom: 15, duration: 600 });
+}
+
+/** Bumped by every flash, so a flash still waiting for the camera is cancelled by a newer one. */
+let _flashRun = 0;
+/** @type {number[]} */
+let _flashTimers = [];
+
+/**
+ * Flash one feature on the map: its shape drawn heavy, twice, then gone.
+ *
+ * It answers "which one is it?" after a row or a popup has pointed at a feature. Zooming alone
+ * does not: a fit to one polygon among its neighbours lands on a screen full of polygons. It
+ * waits for the camera to arrive, because a flash on a feature still sliding into view is
+ * spent before the eye has anything to settle on. Reduced motion gets one steady showing
+ * rather than a blink.
+ *
+ * @param {string} layerId
+ * @param {any} feature
+ * @returns {void}
+ */
+export function flashFeature(layerId, feature) {
+    const def = layerById(layerId);
+    const value = def ? feature?.properties?.[def.key] : undefined;
+    if (!def || value === undefined || value === null || !map.getLayer(flashId(layerId))) return;
+
+    const run = ++_flashRun;
+    for (const t of _flashTimers) clearTimeout(t);
+    _flashTimers = [];
+
+    const show = (/** @type {boolean} */ on) => {
+        for (const d of LAYERS) {
+            if (!map.getLayer(flashId(d.id))) continue;
+            map.setFilter(flashId(d.id), on && d.id === layerId ? ['==', ['get', def.key], value] : NOTHING);
+        }
+    };
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    /** @type {Array<[number, boolean]>} */
+    const steps = still ? [[0, true], [900, false]] : [[0, true], [260, false], [400, true], [700, false]];
+    const start = () => {
+        if (run !== _flashRun) return;
+        for (const [at, on] of steps) _flashTimers.push(window.setTimeout(() => show(on), at));
+    };
+    if (map.isMoving()) map.once('moveend', start); else start();
 }

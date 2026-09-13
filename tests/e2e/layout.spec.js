@@ -412,6 +412,46 @@ test('every other table row carries a stripe, far fainter than hover', async ({ 
     expect(alpha.stripe).toBeLessThan(alpha.hover / 2);
 });
 
+test('the app boots without a console error', async ({ page }) => {
+    // MapLibre reports an invalid layer as an `error` EVENT, logged to the console, and carries
+    // on: a flash layer with a bad filter was silently never added while every other test here
+    // passed. The console is the one place that failure is visible, so it is asserted on.
+    // Errors only (the basemap's own style emits warnings), and not the GPU driver's
+    // performance notices, which headless Chrome logs at error level.
+    /** @type {string[]} */
+    const errors = [];
+    page.on('console', (m) => {
+        if (m.type() === 'error' && !m.text().includes('GL Driver Message')) errors.push(m.text());
+    });
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.reload();
+    await page.waitForSelector('body[data-ready="true"]');
+    await page.waitForTimeout(500);
+    expect(errors).toEqual([]);
+});
+
+test('zooming to a row flashes its feature on the map and makes it the current row', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
+    await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
+    const row = page.locator('#sgs-dock tbody tr').nth(2);
+    const key = await row.getAttribute('data-key');
+    if (!key) throw new Error('row has no key');
+
+    await row.locator('.sgs-go-col button').click();
+    await expect(row).toHaveClass(/sgs-row-hit/);
+    await expect(page.locator('#sgs-dock tbody tr.sgs-row-hit')).toHaveCount(1);
+
+    // Polled every frame: each showing lasts a few hundred milliseconds, and a coarser poll
+    // can step straight over one.
+    await page.waitForFunction(
+        (k) => JSON.stringify(window.sgsMap.getFilter('neighborhoods-flash')).includes(`"${k}"`),
+        key, { polling: 'raf', timeout: 4000 });
+    // And it ends matching nothing again, rather than leaving the feature drawn heavy.
+    await page.waitForFunction(
+        () => JSON.stringify(window.sgsMap.getFilter('neighborhoods-flash')) === '["literal",false]',
+        null, { polling: 'raf', timeout: 4000 });
+});
+
 /* ── Regressions ─────────────────────────────────────────────────────────────────────────
    Three geometry bugs that all shipped looking plausible. Each assertion below is the
    number that was wrong. */

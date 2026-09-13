@@ -204,13 +204,14 @@ export function openPopup({ lngLat, title, rows, accent, ctrlKey = false, layer,
     actions.className = 'sgs-head-actions';
     head.appendChild(actions);
 
-    // The same action the layer row offers, in the same idiom, TOGGLING the same dock. A
-    // popup is about one feature of one layer, so "show me all of them" belongs here.
+    // The table action, for THIS feature: the caller finds its row in the table, lit and
+    // scrolled into view, and a second press toggles the table away, the same idiom as the
+    // layer row's button. What "find" means is the caller's; this file only offers the button.
     if (layer && onOpenTable) {
         const tableBtn = document.createElement('button');
         tableBtn.type = 'button';
         tableBtn.className = 'sgs-icon-btn';
-        tableBtn.title = 'Show this layer in the table';
+        tableBtn.title = 'Find this feature in the table';
         tableBtn.setAttribute('aria-label', tableBtn.title);
         tableBtn.innerHTML = icon('table', 12);
         tableBtn.addEventListener('click', (ev) => { ev.stopPropagation(); onOpenTable(layer.id); });
