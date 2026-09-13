@@ -9,6 +9,23 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
+## [0.1.2] - 2026-09-12
+
+### The loose table snaps back anywhere along the bottom
+
+Components: `framework` (`furniture.js`), `dock`, `edge-mark` (the `ui-stow` skill).
+
+The table's berth is the whole bottom edge, but its snap test compared a drop against the
+bottom-LEFT corner, so a loose table dropped at the foot of the map only re-berthed within
+40px of the left inset. Held against the bottom in the middle, where a hand naturally aims,
+it stayed loose. New `nearBottomBerth()` in `furniture.js` tests y alone, and one-sidedly: a
+table pushed down past its berth re-berths too. The panel, whose berth really is a corner,
+keeps `nearBerth()` unchanged. The snapping outline follows the same test, so it now shows
+along the whole bottom.
+
+An app that kept its own `dock.js` is unaffected. One taking the new `dock.js` needs the
+`framework` component at this version for the new export.
+
 ## [0.1.0] - 2026-09-02
 
 The first release. Everything below is what the repo IS, not what changed in it.

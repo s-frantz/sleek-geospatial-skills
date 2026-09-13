@@ -20,8 +20,9 @@ coordinates rather than by the stylesheet.
 **SNAP** — an unpinned section dropped near its berth re-pins itself.
 
 `app/js/ui/stow.js` — `makeClosable()` for the FOLD/close pair's CLOSE half and its MARK,
-`makeFoldable()` for FOLD. `nearBerth()` and `SNAP` in `app/js/utils/furniture.js` for the
-snap test; `makeDraggable()` in `app/js/utils/draggable.js` for the drag it answers.
+`makeFoldable()` for FOLD. `nearBerth()`, `nearBottomBerth()` and `SNAP` in
+`app/js/utils/furniture.js` for the snap test; `makeDraggable()` in
+`app/js/utils/draggable.js` for the drag it answers.
 
 The six words split cleanly in two, and the split is worth saying out loud because it decides
 where a control goes. FOLD and CLOSE answer **is the content showing**. BERTH, PIN and SNAP
@@ -62,6 +63,15 @@ snapping range is already close enough that the framework is padding the camera 
 section were docked. Snapping does not introduce a behaviour; it ends a disagreement that had
 already started. Larger than `HOME` rather than equal to it, because `HOME` judges a rect at
 rest and `SNAP` is a target a moving hand has to hit.
+
+**The snap test has the shape of the berth.** A corner berth (the panel's) is a point, and a
+drop snaps when it lands within `SNAP` of it on both axes, `nearBerth()`. An edge berth (the
+dock's, the whole bottom) is a line, and a drop snaps when it is held against that line
+ANYWHERE along it, `nearBottomBerth()`, which reads y alone. Testing an edge berth against one
+of its corners is the bug this avoids: a loose table dropped at the foot of the map, in the
+middle where a hand naturally aims, stayed loose because it was 500px from the bottom-left
+corner it was being compared to. The edge test is also one-sided, because a section pushed
+down PAST its berth is being held against the edge harder, not missing it.
 
 Two rules keep it honest:
 
