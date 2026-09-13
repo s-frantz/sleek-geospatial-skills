@@ -338,6 +338,36 @@ test('field type badges appear in popups and in the table header', async ({ page
     await expect(heads.nth(4)).toHaveText('T/F');
 });
 
+test('every other table row carries a stripe, far fainter than hover', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
+    await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
+
+    /** The painted stripe on one row's first data cell. @param {number} n 1-based */
+    const stripe = (n) => page.locator(`#sgs-dock tbody tr:nth-child(${n}) td`).nth(1)
+        .evaluate((el) => getComputedStyle(el).backgroundImage);
+    expect(await stripe(1)).toBe('none');
+    expect(await stripe(2)).toContain('gradient');
+    expect(await stripe(3)).toBe('none');
+
+    // Strength, as a number: the stripe's alpha against hover's, both resolved in place.
+    const alpha = await page.locator('#sgs-dock table').evaluate((table) => {
+        const probe = document.createElement('span');
+        table.appendChild(probe);
+        /** @param {string} v */
+        const read = (v) => {
+            probe.style.color = v;
+            const c = getComputedStyle(probe).color;
+            const m = c.match(/\/\s*([\d.]+)\)/) ?? c.match(/rgba\([^)]*,\s*([\d.]+)\)/);
+            return m ? Number(m[1]) : 1;
+        };
+        const out = { stripe: read('var(--sgs-row-stripe)'), hover: read('var(--sgs-hover)') };
+        probe.remove();
+        return out;
+    });
+    expect(alpha.stripe).toBeGreaterThan(0);
+    expect(alpha.stripe).toBeLessThan(alpha.hover / 2);
+});
+
 /* ── Regressions ─────────────────────────────────────────────────────────────────────────
    Three geometry bugs that all shipped looking plausible. Each assertion below is the
    number that was wrong. */

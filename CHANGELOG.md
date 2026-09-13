@@ -9,6 +9,18 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
+## [0.1.3] - 2026-09-13
+
+### Faint row stripes on both tables
+
+Components: `field-table`.
+
+Every other row of the dock's table and of a popup's field table carries a stripe: the text
+colour at 2.5%, so one rule is a faint darkening in light and a faint lifting in dark. It is
+a third of hover's strength or less, so it carries the eye along a row without ever reading
+as a state. It is a background IMAGE on the cells, so it lays over what a cell already paints
+(the popup's sunk field-name column, a hovered row) rather than replacing it.
+
 ## [0.1.0] - 2026-09-02
 
 The first release. Everything below is what the repo IS, not what changed in it.

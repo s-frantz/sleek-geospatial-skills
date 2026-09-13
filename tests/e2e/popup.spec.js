@@ -14,6 +14,24 @@ test.beforeEach(async ({ page }) => {
     await page.waitForSelector('body[data-ready="true"]');
 });
 
+test('the popup field table stripes every other row without losing its sunk name column', async ({ page }) => {
+    await clickAFeature(page, 0);
+    const rows = page.locator('.sgs-popup').last().locator('.sgs-fields tr');
+    /** @param {number} n 0-based @param {string} cell */
+    const paint = (n, cell) => rows.nth(n).locator(cell).evaluate((el) => {
+        const s = getComputedStyle(el);
+        return { image: s.backgroundImage, color: s.backgroundColor };
+    });
+    expect((await paint(0, 'td.sgs-field-type-col')).image).toBe('none');
+    expect((await paint(1, 'td.sgs-field-type-col')).image).toContain('gradient');
+    // The field-name column keeps its own sunk background under the stripe, which is the
+    // reason the stripe is an image over the cell rather than a background on the row.
+    const unstriped = await paint(0, 'th');
+    const striped = await paint(1, 'th');
+    expect(striped.image).toContain('gradient');
+    expect(striped.color).toBe(unstriped.color);
+});
+
 /**
  * Click a district polygon, choosing the point by ASKING THE MAP what it has rendered
  * rather than guessing a coordinate.
