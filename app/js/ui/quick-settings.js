@@ -107,7 +107,7 @@ const SHORTCUTS = [
     // The glyphs, not the word "Arrows". Two rows away, "Pan the map" already shows the four
     // keys as ←↓→↑; naming them in one row and drawing them in another makes a reader check
     // whether two different things are meant.
-    ['Ctrl + ←↓→↑', 'Nudge the top popup (Shift: faster)'],
+    ['Ctrl + ←↓→↑', 'Nudge the top popup'],
     ['Esc', 'Close the topmost element'],
 ];
 

@@ -9,6 +9,16 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
+## [0.1.4] - 2026-09-13
+
+### A shorter shortcut line
+
+Components: `quick-settings`.
+
+The nudge row in the shortcut inventory reads "Nudge the top popup", without "(Shift:
+faster)". Shift still takes the bigger step; the aside cost the line a wrap in a 264px
+popover for a modifier that is discovered by trying it.
+
 ## [0.1.0] - 2026-09-02
 
 The first release. Everything below is what the repo IS, not what changed in it.
