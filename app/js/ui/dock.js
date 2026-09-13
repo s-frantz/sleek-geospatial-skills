@@ -37,6 +37,7 @@ import { buildFieldBadge, inferColumnType } from './field-badge.js';
 import { buildSymbolSwatch } from './symbology.js';
 import { getSourcePill, makeTypePill } from './type-pill.js';
 import { foldPanel, isPanelFolded } from './panel.js';
+import { flashMark } from './stow.js';
 import { makeDraggable, releaseDrag } from '../utils/draggable.js';
 import { nearBerth, makeBorrow } from '../utils/furniture.js';
 import { getPrefs, setPrefs } from '../utils/prefs.js';
@@ -261,6 +262,10 @@ export function closeTable() {
     _dock?.remove();
     _dock = null;
     document.body.classList.remove('sgs-dock-open');
+    // The sliver is where the table went: say so, once. The dock does not go through
+    // makeClosable (it removes itself outright), so it asks for the same pulse directly.
+    const sliver = document.getElementById('sgs-dock-sliver');
+    if (sliver) flashMark(sliver);
     // A dock that has left cannot be squeezing anything. Releasing here and not only on the
     // way down matters because closing is the other way the dock stops being tall.
     releasePanel();

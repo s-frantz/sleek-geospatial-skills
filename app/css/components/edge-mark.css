@@ -49,3 +49,21 @@
 
 body.sgs-mark--left-shown .sgs-mark--left { display: flex; }
 body:not(.sgs-dock-open) .sgs-mark--bottom { display: flex; }
+
+/* ARRIVING: one short pulse as the mark appears after a close, so the reader sees where the
+   section went and where it comes back from. Colour and a ring only, never transform: the
+   mark's transform is what centres it on its edge, and animating it would knock the tab off
+   its berth for the length of the pulse. The class is added and cleared by flashMark() in
+   stow.js, whose timer matches this duration. Reduced motion (tokens.css) suppresses it. */
+.sgs-mark--flash { animation: sgs-mark-arrive 700ms ease-out 1; }
+
+@keyframes sgs-mark-arrive {
+    0%, 40% {
+        opacity: 1;
+        color: var(--sgs-accent-fg, #fff);
+        background: var(--sgs-accent, #2f6fd0);
+        border-color: var(--sgs-accent, #2f6fd0);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--sgs-accent, #2f6fd0) 30%, transparent);
+    }
+    100% { box-shadow: 0 0 0 4px transparent; }
+}

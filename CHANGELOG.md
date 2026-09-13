@@ -9,6 +9,19 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
+## [0.1.6] - 2026-09-13
+
+### A closed section's mark pulses once
+
+Components: `edge-mark` (`stow.js`, `edge-mark.css`), `dock`.
+
+When the panel or the table closes, the small tab it leaves on the viewport edge pulses once
+in the accent (700ms, colour and a ring, never a transform), so the reader sees where the
+section went and where to bring it back from. Only a close pulses: not the initial state, not
+an open. New `flashMark()` in `stow.js`; `makeClosable()` calls it on close, and the dock,
+which removes itself rather than going through `makeClosable()`, calls it directly. Reduced
+motion suppresses the pulse.
+
 ## [0.1.0] - 2026-09-02
 
 The first release. Everything below is what the repo IS, not what changed in it.
