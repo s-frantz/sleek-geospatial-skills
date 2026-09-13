@@ -20,8 +20,6 @@ const KEY = 'sgs-prefs';
  *           never written again. See the "not four postures" note in panel.js.
  * @property {number} [panelW]
  * @property {number} [panelH]
- * @property {boolean} [panelFull]  the FULL takeover: overrides both size axes without
- *           overwriting either, so releasing it restores the reader's own numbers
  * @property {number} [panelX]
  * @property {number} [panelY]
  * @property {boolean} [dockFloat]  the table loose on the map rather than berthed at the foot

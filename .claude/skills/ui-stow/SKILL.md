@@ -19,6 +19,12 @@ when pinned, and where its mark parks when closed. Never a lane of its own.
 coordinates rather than by the stylesheet.
 **SNAP** — an unpinned section dropped near its berth re-pins itself.
 
+FOLD is one chevron with three steps: the section's natural height, then TIGHT (its rows and no
+blank band), then the head alone, and round again, skipping TIGHT when the rows would fill the
+section anyway. The cycle has one owner, `nextFoldMode()` in `app/js/ui/stow.js`, so the panel
+and the table cannot grow two orders; the `ui-furniture` skill has what each view does to the
+geometry and which wins when they combine.
+
 `app/js/ui/stow.js` — `makeClosable()` for the FOLD/close pair's CLOSE half and its MARK,
 `makeFoldable()` for FOLD. `nearBerth()` and `SNAP` in `app/js/utils/furniture.js` for the
 snap test; `makeDraggable()` in `app/js/utils/draggable.js` for the drag it answers.

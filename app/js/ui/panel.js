@@ -64,15 +64,14 @@ const MIN_W = 200;
 const MIN_H = 140;
 
 /**
- * The three independent facts, plus FULL.
+ * The three independent facts.
  *
- * FULL is not a fourth fact and not a size: it is a temporary takeover that overrides both
- * size axes in CSS and remembers nothing, because there is nothing to remember. `w` and `h`
- * keep whatever the reader pinned; the class simply outranks them while it is on, and letting
- * go restores the reader's numbers exactly because they were never overwritten. A maximize
- * that SAVES and RESTORES is the version that eventually loses somebody's width.
+ * There is no FULL here, deliberately. The panel had one, and all it could add was width: a
+ * docked panel's automatic height already reaches the bottom inset, and a list of layers gains
+ * nothing from 60% of the screen. FULL belongs to the table, whose content is the kind that
+ * wants the room; see dock.js and the `ui-furniture` skill.
  *
- * @type {{float: boolean, full?: boolean, w?: number, h?: number, x?: number, y?: number}}
+ * @type {{float: boolean, w?: number, h?: number, x?: number, y?: number}}
  */
 let _frame = { float: false };
 
@@ -89,8 +88,6 @@ let _foldW;
 let _panel;
 /** @type {HTMLButtonElement} */
 let _pin;
-/** @type {HTMLButtonElement} */
-let _fullBtn;
 /** @type {ReturnType<typeof makeFoldable>|null} */
 let _foldable = null;
 /** @type {(() => void)[]} */
@@ -137,7 +134,6 @@ function apply() {
     p.classList.toggle('sgs-panel--manual-w', _frame.w != null);
     p.classList.toggle('sgs-panel--manual-h', _frame.h != null);
     p.classList.toggle('sgs-panel--float', _frame.float);
-    p.classList.toggle('sgs-panel--full', !!_frame.full);
 
     if (_frame.w != null) p.style.setProperty('--sgs-panel-w', `${_frame.w}px`);
     else p.style.removeProperty('--sgs-panel-w');
@@ -158,11 +154,6 @@ function apply() {
         releaseDrag(p);
     }
 
-    _fullBtn.innerHTML = icon(_frame.full ? 'tight' : 'full', 12);
-    _fullBtn.title = _frame.full ? 'Give the room back' : 'Fill the map';
-    _fullBtn.setAttribute('aria-label', _fullBtn.title);
-    _fullBtn.setAttribute('aria-pressed', String(!!_frame.full));
-
     _pin.innerHTML = icon(_frame.float ? 'pin-off' : 'pin', 13);
     _pin.title = _frame.float ? 'Dock the panel' : 'Undock the panel';
     _pin.setAttribute('aria-label', _pin.title);
@@ -170,12 +161,13 @@ function apply() {
 
     setPrefs({
         panelFloat: _frame.float,
-        panelFull: _frame.full,
         panelW: _frame.w,
         panelH: _frame.h,
         panelX: _frame.x,
         panelY: _frame.y,
     });
+    // Whether the chevron's TIGHT step is on offer depends on the geometry just applied.
+    _foldable?.relabel();
     for (const fn of _listeners) fn();
 }
 
@@ -222,7 +214,6 @@ export function setPosture(mode) {
         _frame.float = true;
     } else if (mode === 'auto') {
         _frame.float = false;
-        _frame.full = false;
         _frame.w = undefined;
         _frame.h = undefined;
         _foldW.release();
@@ -248,7 +239,6 @@ export function initPanel(panel) {
         // a floating panel keeps it, then let it fall out of storage: apply() writes the three
         // facts and never writes the enum back.
         float: prefs.panelFloat ?? prefs.panelPosture === 'float',
-        full: prefs.panelFull,
         w: prefs.panelW,
         h: prefs.panelH,
         x: prefs.panelX,
@@ -257,17 +247,8 @@ export function initPanel(panel) {
     const head = /** @type {HTMLElement} */ (panel.querySelector('.sgs-panel-head'));
     const berth = /** @type {HTMLElement} */ (panel.querySelector('.sgs-berth'));
 
-    // FULL sits with the pin, in the berth: both answer "how much room does this get", and
-    // neither is about the panel's CONTENTS the way fold and close are.
-    _fullBtn = document.createElement('button');
-    _fullBtn.type = 'button';
-    _fullBtn.className = 'sgs-icon-btn sgs-panel-full';
-    _fullBtn.addEventListener('click', () => {
-        _frame.full = !_frame.full;
-        apply();
-    });
-    berth.appendChild(_fullBtn);
-
+    // The pin sits in the berth: it answers "where is this", not "is the content showing",
+    // which is the fold's and the close's question.
     _pin = document.createElement('button');
     _pin.type = 'button';
     _pin.className = 'sgs-icon-btn sgs-panel-pin';
@@ -300,15 +281,26 @@ export function initPanel(panel) {
     // one section reasonably carries both.
     const foldBtn = /** @type {HTMLButtonElement} */ (panel.querySelector('.sgs-panel-fold'));
     foldBtn.innerHTML = icon('chevron', 12);
+    const body = /** @type {HTMLElement} */ (panel.querySelector('.sgs-panel-body'));
     const foldable = _foldable = makeFoldable({
         section: panel,
         control: foldBtn,
-        body: /** @type {HTMLElement} */ (panel.querySelector('.sgs-panel-body')),
+        body,
         foldedClass: 'sgs-panel--folded',
+        // The chevron's middle step: the panel hugs its rows. Offered only while the rows are
+        // shorter than the panel, since a step that changes nothing reads as broken.
+        tightClass: 'sgs-panel--tight',
+        tightDiffers: () => body.scrollHeight + head.getBoundingClientRect().height + 2
+            < panel.getBoundingClientRect().height,
+        labels: {
+            natural: 'Unfold the layer panel',
+            tight: 'Fit the layer panel to its rows',
+            header: 'Fold the layer panel to its head',
+        },
         folded: false,
         onChange: (folded) => {
-            // Unfolding gives the automatic width back, but only if the FOLD is what pinned
-            // it. A width the reader chose with the grip is theirs and survives both.
+            // Leaving the head gives the automatic width back, but only if the FOLD is what
+            // pinned it. A width the reader chose with the grip is theirs and survives both.
             if (!folded) _foldW.release();
             apply();
             for (const fn of _listeners) fn();
@@ -321,10 +313,16 @@ export function initPanel(panel) {
     // order the two were attached in. Measuring in onChange reads the collapsed panel and
     // pins the header's width, which is the bug wearing a fix.
     foldBtn.addEventListener('click', () => {
-        if (panel.classList.contains('sgs-panel--folded')) return;  // this click is an unfold
+        // Only the step INTO the head hides the body. Natural to tight changes the height
+        // alone, and a press out of the head is an unfold.
+        if (foldable.next() !== 'header') return;
         _pendingW = clampW(panel.getBoundingClientRect().width);
         _foldW.want(true);
     }, true);
+    // Whether TIGHT is on offer depends on how many rows there are NOW, and rows arrive after
+    // the panel is built, so the label is refreshed as the pointer or the focus reaches it.
+    foldBtn.addEventListener('pointerenter', () => foldable.relabel());
+    foldBtn.addEventListener('focus', () => foldable.relabel());
 
     // The mark points RIGHT, back at the panel it restores: a chevron is a direction, and
     // the direction it should give is "your panel is over here".

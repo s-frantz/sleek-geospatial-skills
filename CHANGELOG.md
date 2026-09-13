@@ -9,6 +9,37 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
+## [0.1.8] - 2026-09-13
+
+### One model for the head buttons
+
+Components: `panel` (`panel.js`, the `ui-furniture` skill), `dock`, `edge-mark` (`stow.js`,
+the `ui-stow` skill), `app-shell` (`furniture.css`), `primitives` (`prefs.js`).
+
+- **One chevron, three views, on the panel and the table alike:** NATURAL (the section's own
+  height), TIGHT (its rows and no blank band), HEADER (its head alone), and round again. TIGHT
+  is skipped when the rows would fill the section anyway. The cycle has one owner,
+  `nextFoldMode()` in `stow.js`; `makeFoldable()` gains `tightClass`, `tightDiffers` and
+  `labels`, and its label names what the NEXT press does. Like FULL, the views write over no
+  stored height.
+- **Which wins when they combine**, strongest first: HEADER, TIGHT, FULL, the reader's own
+  height. Pressing FULL returns the chevron to NATURAL; dragging a grip cancels FULL and TIGHT.
+- **FULL belongs to the table.** The panel's FULL is gone: docked, it already reaches the
+  bottom, so all it could add was width.
+- **FULL on a loose table** now takes the map from wherever the table is, with its float,
+  position and width kept underneath and restored when FULL is released. A FULL table folds
+  the panel, loose or not.
+- **The chevron only ever flips.** It points where the next press moves the section's free
+  edge, so the panel's and the table's are one rule on sections anchored at opposite edges.
+- **Fixed: a folded panel stretched to full height under a loose table.** The loose-table rule
+  in `furniture.css` came after the list of postures exempt from the bottom anchor and beat it;
+  the list is now stated once, after both.
+
+Breaking: `panel` no longer has `.sgs-panel-full`, `.sgs-panel--full` or the `panelFull`
+preference; an app that styled or scripted the panel's FULL should drop it (a stored
+`panelFull` is simply ignored). `makeFoldable()` stays backward compatible: without
+`tightClass` it folds in two steps as before, and `onChange` gains a second argument.
+
 ## [0.1.0] - 2026-09-02
 
 The first release. Everything below is what the repo IS, not what changed in it.
