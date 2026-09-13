@@ -19,6 +19,10 @@ when pinned, and where its mark parks when closed. Never a lane of its own.
 coordinates rather than by the stylesheet.
 **SNAP** — an unpinned section dropped near its berth re-pins itself.
 
+A mark pulses once, briefly, at the moment of the close (`flashMark()` in `stow.js`), because
+a tab designed to be quiet is also easy to miss: one pulse teaches where it lives, and after
+that it stays quiet. Only a close pulses, never the initial state and never an open.
+
 `app/js/ui/stow.js` — `makeClosable()` for the FOLD/close pair's CLOSE half and its MARK,
 `makeFoldable()` for FOLD. `nearBerth()`, `nearBottomBerth()` and `SNAP` in
 `app/js/utils/furniture.js` for the snap test; `makeDraggable()` in

@@ -320,6 +320,29 @@ test('the panel folds to its head and closes to a left-edge mark', async ({ page
     await expect(page.locator('#sgs-panel')).toBeVisible();
 });
 
+test('closing the panel or the table pulses its mark once, briefly', async ({ page }) => {
+    const panelMark = page.locator('#sgs-panel-sliver');
+    const tableMark = page.locator('#sgs-dock-sliver');
+    // Nothing has closed yet, so nothing pulses: the table's mark is on screen from first
+    // paint, and a pulse there would announce a close that never happened.
+    await expect(tableMark).not.toHaveClass(/sgs-mark--flash/);
+
+    await page.locator('.sgs-panel-close').click();
+    await expect(panelMark).toHaveClass(/sgs-mark--flash/);
+    // Brief: gone again within a second, with no further input.
+    await expect(panelMark).not.toHaveClass(/sgs-mark--flash/, { timeout: 1500 });
+    // Opening does not pulse.
+    await panelMark.click();
+    await expect(panelMark).not.toHaveClass(/sgs-mark--flash/);
+
+    // The table leaves by a different path (it removes itself), and gets the same pulse.
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await page.locator('#sgs-dock button[aria-label="Close the table"]').click();
+    await expect(tableMark).toHaveClass(/sgs-mark--flash/);
+    await expect(tableMark).not.toHaveClass(/sgs-mark--flash/, { timeout: 1500 });
+});
+
 test('MapLibre control glyphs are adopted: our svg, no baked background', async ({ page }) => {
     for (const [cls, glyph] of [
         ['maplibregl-ctrl-zoom-in', 'plus'],

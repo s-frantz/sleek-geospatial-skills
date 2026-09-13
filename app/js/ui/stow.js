@@ -91,13 +91,44 @@ export function makeClosable({ section, markId, markClass, glyph, label, onChang
     mark.addEventListener('click', () => apply(false));
     apply(false);
 
+    // Only a CLOSE flashes the mark, never the initial state and never an open: the pulse
+    // says "it went here", which is only true at the moment it goes.
     return {
-        close: () => apply(true),
+        close: () => { apply(true); flashMark(mark); },
         open: () => apply(false),
-        toggle: () => apply(!_closed),
+        toggle: () => { apply(!_closed); if (_closed) flashMark(mark); },
         isClosed: () => _closed,
         mark,
     };
+}
+
+/** How long the arrival pulse lasts. Matches the animation in edge-mark.css. */
+const FLASH_MS = 700;
+/** @type {WeakMap<HTMLElement, number>} */
+const _flashTimers = new WeakMap();
+
+/**
+ * Pulse a mark once, briefly, as it appears: "this is where it went, and where it comes back
+ * from". A closed section leaves a 13px tab on a viewport edge, which is easy to miss exactly
+ * because it is designed to be quiet. One short pulse at the moment of closing teaches where
+ * it lives, and after that it can stay quiet.
+ *
+ * Exported because a section can close by a path other than makeClosable: the dock removes
+ * itself outright and its mark is shown by CSS, so it calls this directly.
+ *
+ * Cleared by a timer rather than `animationend`: with reduced motion the animation never runs,
+ * so it never ends, and the class would stay on for good.
+ *
+ * @param {HTMLElement} mark
+ * @returns {void}
+ */
+export function flashMark(mark) {
+    clearTimeout(_flashTimers.get(mark));
+    mark.classList.remove('sgs-mark--flash');
+    // Flush styles so re-adding the class restarts the animation on a quick second close.
+    void mark.offsetWidth;
+    mark.classList.add('sgs-mark--flash');
+    _flashTimers.set(mark, window.setTimeout(() => mark.classList.remove('sgs-mark--flash'), FLASH_MS));
 }
 
 /**
