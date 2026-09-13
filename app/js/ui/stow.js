@@ -4,7 +4,7 @@
  * An app grows several gestures for "make this go away" and no word for any of them, so each
  * new panel invents another one. Two verbs and two nouns, and one test.
  *
- *   FOLD    the content collapses, the header stays in its slot, a chevron rotates.
+ *   FOLD    one chevron, three views: natural, tight (fit to the rows), the head alone.
  *   CLOSE   the whole section leaves the layout and gives its pixels back.
  *   MARK    what a close leaves behind: a small tab that brings the section back.
  *   BERTH   where a mark parks. An edge or a corner of chrome that already exists, never a
@@ -132,37 +132,86 @@ export function flashMark(mark) {
 }
 
 /**
- * Make a section foldable: content collapses, the head stays and keeps reporting.
+ * The three views one chevron gives of a section's vertical axis.
+ *   natural  its own height: the reader's pinned one, or FULL's
+ *   tight    fitted to its rows, with no blank band under the last one
+ *   header   its head alone, still reporting
+ * @typedef {'natural'|'tight'|'header'} FoldMode
+ */
+
+/**
+ * The step a chevron press takes. ONE owner for the cycle, so the panel and the table cannot
+ * grow two orders: natural, then tight, then header, then natural again. TIGHT is skipped when
+ * the rows would fill the section anyway, because a press that changes nothing reads as a
+ * broken button.
+ *
+ * @param {FoldMode} mode
+ * @param {boolean} tightDiffers would fitting to the rows actually make it shorter?
+ * @returns {FoldMode}
+ */
+export function nextFoldMode(mode, tightDiffers) {
+    if (mode === 'natural') return tightDiffers ? 'tight' : 'header';
+    if (mode === 'tight') return 'header';
+    return 'natural';
+}
+
+/**
+ * Make a section foldable: one chevron stepping through NATURAL, TIGHT and HEADER.
+ *
+ * TIGHT and HEADER are VIEWS, not sizes: each is a class on the section, so neither writes over
+ * a height the reader pinned, and stepping back to NATURAL restores it exactly. The same rule
+ * FULL follows, for the same reason.
  *
  * @param {object} opts
  * @param {HTMLElement} opts.section
  * @param {HTMLButtonElement} opts.control the head button carrying the chevron
  * @param {HTMLElement} opts.body
- * @param {string} [opts.foldedClass] the class marking the folded state
+ * @param {string} [opts.foldedClass] the class marking HEADER
+ * @param {string} [opts.tightClass] the class marking TIGHT; without one the section only folds
+ * @param {() => boolean} [opts.tightDiffers] would TIGHT make the section shorter right now?
+ * @param {Record<FoldMode, string>} [opts.labels] what a press does, by the view it goes to
  * @param {boolean} [opts.folded]
- * @param {(folded: boolean) => void} [opts.onChange]
- * @returns {{fold: () => void, unfold: () => void, toggle: () => void, isFolded: () => boolean}}
+ * @param {(folded: boolean, mode: FoldMode) => void} [opts.onChange]
  */
-export function makeFoldable({ section, control, body, foldedClass = 'sgs-folded', folded = true, onChange }) {
-    let _folded = folded;
+export function makeFoldable({
+    section, control, body, foldedClass = 'sgs-folded', tightClass, tightDiffers = () => false,
+    labels, folded = true, onChange,
+}) {
+    /** @type {FoldMode} */
+    let _mode = folded ? 'header' : 'natural';
+    const next = () => nextFoldMode(_mode, !!tightClass && tightDiffers());
 
-    const apply = (/** @type {boolean} */ next) => {
-        _folded = next;
-        section.classList.toggle(foldedClass, next);
-        control.setAttribute('aria-expanded', String(!next));
-        // `hidden` and not display:none in a rule: the body must leave the accessibility
-        // tree too, or a screen reader still walks a table the sighted reader cannot see.
-        body.hidden = next;
-        onChange?.(next);
+    // The label names what the NEXT press does, which is what a reader hovering it wants.
+    const relabel = () => {
+        if (!labels) return;
+        const text = labels[next()];
+        control.title = text;
+        control.setAttribute('aria-label', text);
     };
 
-    control.addEventListener('click', () => apply(!_folded));
-    apply(_folded);
+    const apply = (/** @type {FoldMode} */ mode) => {
+        _mode = mode;
+        section.classList.toggle(foldedClass, mode === 'header');
+        if (tightClass) section.classList.toggle(tightClass, mode === 'tight');
+        control.setAttribute('aria-expanded', String(mode !== 'header'));
+        // `hidden` and not display:none in a rule: the body must leave the accessibility
+        // tree too, or a screen reader still walks a table the sighted reader cannot see.
+        body.hidden = mode === 'header';
+        onChange?.(mode === 'header', mode);
+        relabel();
+    };
+
+    control.addEventListener('click', () => apply(next()));
+    apply(_mode);
 
     return {
-        fold: () => apply(true),
-        unfold: () => apply(false),
-        toggle: () => apply(!_folded),
-        isFolded: () => _folded,
+        fold: () => apply('header'),
+        unfold: () => apply('natural'),
+        toggle: () => apply(_mode === 'header' ? 'natural' : 'header'),
+        step: () => apply(next()),
+        next,
+        mode: () => _mode,
+        isFolded: () => _mode === 'header',
+        relabel,
     };
 }

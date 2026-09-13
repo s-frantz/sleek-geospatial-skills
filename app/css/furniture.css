@@ -56,15 +56,14 @@
     cursor: default;
 }
 
-/* FULL: the takeover. It has to outrank both --manual-w and --manual-h, which is the entire
-   reason it is a class and not a pair of numbers written over the reader's own — the cascade
-   does the overriding, so nothing is saved and nothing has to be restored. Declared after
-   both, so equal specificity resolves this way on source order. */
-.sgs-panel--full {
-    width: 60vw;
-    top: var(--sgs-panel-inset, 10px);
-    bottom: var(--sgs-panel-inset, 10px);
+/* TIGHT, the chevron's middle step: the panel hugs its rows, however tall it was. A class and
+   not a height, so it writes over no pinned height and stepping on restores that exactly.
+   Declared after --manual-h so it wins on source order, and capped so a long list scrolls
+   rather than running off the screen. There is no FULL for the panel; see panel.js. */
+.sgs-panel--tight {
+    bottom: auto;
     height: auto;
+    max-height: calc(100% - 2 * var(--sgs-panel-inset, 10px));
 }
 
 /* SNAPPING: shown while a dragged piece of furniture is inside the catch radius of its berth,
@@ -94,7 +93,12 @@
 
 .sgs-panel--folded .sgs-grip { display: none; }
 .sgs-panel--folded .sgs-panel-head { border-bottom: none; }
-.sgs-panel--folded .sgs-panel-fold svg { transform: rotate(-90deg); }
+/* The chevron points where the next press moves the section's free edge. The panel hangs from
+   the top, so with rows showing it points UP (its bottom edge rises), and folded it points
+   down. It only ever flips: turning sideways here and upright on the table was two rules for
+   one control. The table's is the same rule on a section standing on the bottom edge. */
+.sgs-panel-fold svg { transform: rotate(180deg); }
+.sgs-panel--folded .sgs-panel-fold svg { transform: none; }
 
 /* CLOSED: the section leaves the layout entirely. What remains is its MARK (edge-mark.css),
    berthed on the left edge — the panel's own edge, so the tab is where the panel went. */
@@ -192,14 +196,16 @@
    feature. The exempt postures already gave up their bottom anchor, and each pairing must be
    restated here because this three-class selector would otherwise outweigh theirs. */
 body.sgs-dock-open .sgs-panel { bottom: calc(var(--sgs-dock-h, 250px) + 16px); }
-body.sgs-dock-open .sgs-panel--manual-h,
-body.sgs-dock-open .sgs-panel--float,
-body.sgs-dock-open .sgs-panel--folded { bottom: auto; }
 /* A dock that has left its berth is not the bottom of the map any more, so it stops
    displacing the panel. dock.js publishes --sgs-dock-h as 0 while loose, which handles the
    arithmetic; this restores the panel's own bottom anchor so it is not merely raised by
-   nothing, and gives back the FULL panel its full height. */
+   nothing. */
 body.sgs-dock-float .sgs-panel { bottom: var(--sgs-panel-inset, 10px); }
+/* The postures that gave up their bottom anchor keep it given up, whatever the dock is doing.
+   Stated ONCE, after both rules above, because each of them outweighs a single class. This
+   list used to sit between the two, so the loose-dock rule after it handed a folded panel its
+   bottom back, and the panel stretched to full height around its hidden body. */
+body.sgs-dock-open :is(.sgs-panel--manual-h, .sgs-panel--float, .sgs-panel--folded, .sgs-panel--tight) { bottom: auto; }
 
 /* Resize grips: a thin strip with a centred pill, overlaid absolutely so each adds zero size
    to the head. The height grip is on the top edge and always present; the width grip is on the
@@ -294,6 +300,9 @@ body.sgs-dock-float .sgs-panel { bottom: var(--sgs-panel-inset, 10px); }
 .sgs-dock--folded .sgs-dock-grip { display: none; }
 .sgs-dock--full .sgs-dock-grip--w { display: none; }
 .sgs-dock--folded .sgs-dock-head { border-bottom: none; cursor: pointer; }
+/* The same chevron rule as the panel's, on a section standing on the bottom edge: with rows
+   showing it points DOWN (the top edge sinks), folded it points up. Only ever a flip. */
+.sgs-dock-fold svg { transition: transform 120ms ease; }
 .sgs-dock--folded .sgs-dock-fold svg { transform: rotate(180deg); }
 
 /* The dock's mark is .sgs-mark--bottom; see components/edge-mark.css. */

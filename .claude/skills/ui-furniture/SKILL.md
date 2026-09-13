@@ -9,7 +9,7 @@ description: The geometry every piece of this app's large furniture shares - thr
 `app/css/furniture.css`.
 
 **This is not only the panel.** The bottom dock (`app/js/ui/dock.js`) is the same model rotated:
-same three facts, same single applier, same three things an axis can be, same pin-and-snap pair
+same three facts, same single applier, the same chevron, same pin-and-snap pair
 from the `ui-stow` skill. Read it as the geometry contract for any large piece of furniture in an
 app built from this repo, and when you add a third one, add it here rather than inventing a
 fourth arrangement.
@@ -39,7 +39,7 @@ inset — it takes everything going. Those are opposites, and they had the same 
 |---|---|---|
 | **TIGHT** | the axis fits its content | double-click that grip |
 | **PINNED** | the axis is a number the reader dragged | drag that grip |
-| **FULL** | the whole section takes the room the app can spare | the section's own FULL button |
+| **FULL** | the table takes the room the app can spare | the table's own FULL button; the panel has none |
 
 Two consequences worth stating, because both were bugs first:
 
@@ -57,6 +57,51 @@ eventually loses somebody's width, and it loses it silently.
 And FULL yields to the reader without argument: dragging a grip while FULL is on cancels FULL
 rather than being outranked by it, and the button's own state changes to say so. A control that
 appears to do nothing because an invisible mode outranks it is worse than one that is missing.
+
+**FULL belongs to the table, not the panel.** The panel had one, and all it could add was width:
+a docked panel's automatic height already reaches the bottom inset, and a list of layers gains
+nothing from 60% of the screen. A maximise on a section whose content does not want the room is a
+button whose meaning shifts from one piece of furniture to the next, so it went.
+
+**FULL is a takeover wherever the table is.** On a loose table it fills the map exactly as on a
+berthed one, while the float, its position and its width wait underneath untouched, so releasing
+FULL puts the table back where it was floating. A table that has taken the map is standing on the
+panel's room, loose or not, so it folds the panel either way.
+
+## One chevron, three views
+
+The chevron steps through three views of the vertical axis, the same cycle on the panel and the
+table, owned once by `nextFoldMode()` in `app/js/ui/stow.js`:
+
+| view | the section shows |
+|---|---|
+| **NATURAL** | its own height: the reader's pinned one, or FULL's |
+| **TIGHT** | its rows, and no blank band under them |
+| **HEADER** | its head alone, still reporting |
+
+NATURAL, TIGHT, HEADER, and round again. TIGHT is skipped whenever the rows would fill the section
+anyway, because a press that changes nothing reads as a broken button: the eight-row neighbourhood
+table goes straight from NATURAL to HEADER, and the six-row station table takes all three steps.
+Like FULL, TIGHT and HEADER are views that write over no height, so stepping back to NATURAL
+restores the reader's number exactly. The button's label names what the NEXT press does.
+
+When the controls combine, the stronger wins, strongest first:
+
+| view or size | wins over |
+|---|---|
+| HEADER | everything: a folded section is as tall as its head |
+| TIGHT | FULL and the reader's height: the rows, inside whatever room there is |
+| FULL | the reader's pinned height, left untouched underneath |
+| PINNED | the automatic height |
+
+Two resets keep that honest. Pressing FULL puts the chevron back to NATURAL, because asking for
+the room is asking to see the rows. Dragging a grip cancels FULL and TIGHT both, because the
+reader has just said what the height is.
+
+The chevron points where the next press moves the section's free edge. The panel hangs from the
+top, so with rows showing it points up and folded it points down; the table stands on the
+bottom, so the reverse. Both only ever flip. A chevron that turned sideways on one section and
+upright on the other was two rules for one control.
 
 ### Why this is not an enum
 
@@ -168,8 +213,10 @@ wherever it currently is would make the camera jump every time it moved. See
 - [ ] The panel element keeps its `data-sgs-furniture` attribute through every posture — the
       camera and popup placement read it generically, so there is nothing else to wire.
 - [ ] New persisted geometry goes in `prefs.js` and stays out of anything shared.
-- [ ] Every size axis can answer all three of TIGHT, PINNED and FULL, and TIGHT is measured
-      from the content rather than being a constant with a comfortable-looking value.
+- [ ] Every size axis can answer TIGHT and PINNED, TIGHT measured from the content rather than
+      a constant with a comfortable-looking value; FULL only where the content wants the screen.
+- [ ] The chevron steps NATURAL, TIGHT, HEADER through `nextFoldMode()`, skips TIGHT when it
+      would change nothing, and none of its views writes over a stored height.
 - [ ] FULL overrides through the cascade and writes over no stored number, so releasing it
       restores the reader's own geometry exactly.
 - [ ] A grip drag cancels FULL rather than being silently outranked by it.

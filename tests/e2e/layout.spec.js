@@ -50,6 +50,26 @@ test('the layer rows drive the map layers', async ({ page }) => {
     expect(await visible()).toBe('none');
 });
 
+/**
+ * Step a section's chevron until it shows its head alone. The chevron has three steps
+ * (natural, tight, head) and skips tight when it would change nothing, so how many presses
+ * that takes depends on the data, which is exactly what a test should not hardcode.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} chevron
+ */
+async function foldToHead(page, chevron) {
+    for (let i = 0; i < 3; i++) {
+        if ((await page.locator(chevron).getAttribute('aria-expanded')) === 'false') return;
+        await page.locator(chevron).click();
+    }
+    await expect(page.locator(chevron)).toHaveAttribute('aria-expanded', 'false');
+}
+
+/** The rendered height of one element. @param {import('@playwright/test').Page} page @param {string} sel */
+async function heightOf(page, sel) {
+    return (await page.locator(sel).boundingBox())?.height ?? 0;
+}
+
 test('the open dock spans the bottom and displaces the panel; folded it keeps reporting; closed it leaves the sliver', async ({ page }) => {
     const vp = page.viewportSize();
     if (!vp) throw new Error('no viewport');
@@ -77,7 +97,7 @@ test('the open dock spans the bottom and displaces the panel; folded it keeps re
     expect(panel.y + panel.height).toBeLessThan(dock.y);
 
     // Folded: the head alone, still full width, still reporting.
-    await page.locator('.sgs-dock-fold').click();
+    await foldToHead(page, '.sgs-dock-fold');
     const folded = await page.locator('#sgs-dock').boundingBox();
     expect(folded?.height).toBeLessThan(60);
     expect(folded?.width).toBeGreaterThan(vp.width * 0.9);
@@ -291,7 +311,7 @@ test('the panel folds to its head and closes to a left-edge mark', async ({ page
     if (!open) throw new Error('no panel');
 
     // FOLD: the head stays in its slot, the body collapses.
-    await page.locator('.sgs-panel-fold').click();
+    await foldToHead(page, '.sgs-panel-fold');
     const folded = await page.locator('#sgs-panel').boundingBox();
     expect(folded?.height).toBeLessThan(60);
     expect(await page.locator('.sgs-panel-title').isVisible()).toBe(true);
@@ -480,7 +500,7 @@ test('folding the panel collapses its height without changing its width', async 
     const open = await page.locator('#sgs-panel').boundingBox();
     if (!open) throw new Error('no panel');
 
-    await page.locator('.sgs-panel-fold').click();
+    await foldToHead(page, '.sgs-panel-fold');
     const folded = await page.locator('#sgs-panel').boundingBox();
     if (!folded) throw new Error('no panel');
 
@@ -748,32 +768,118 @@ test('the loose table snaps back when held against the bottom anywhere, the midd
     expect(berthed.y + berthed.height).toBeLessThanOrEqual(vp.height);
 });
 
-test('FULL fills the map and gives back the exact width the reader pinned', async ({ page }) => {
+test('the table is the one thing that fills the map: the panel has no FULL', async ({ page }) => {
+    await expect(page.locator('.sgs-panel-full')).toHaveCount(0);
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await expect(page.locator('.sgs-dock-full')).toHaveCount(1);
+});
+
+test('one chevron, three steps, on the table: natural, fitted to its rows, its head', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    const chev = page.locator('.sgs-dock-fold');
+    const natural = await heightOf(page, '#sgs-dock');
+
+    // TIGHT: the table plus its head, no blank band, and shorter than natural.
+    await chev.click();
+    await expect(chev).toHaveAttribute('aria-expanded', 'true');
+    const tight = await heightOf(page, '#sgs-dock');
+    const rows = (await heightOf(page, '.sgs-dock-body table')) + (await heightOf(page, '.sgs-dock-head'));
+    expect(tight).toBeLessThan(natural - 10);
+    expect(Math.abs(tight - rows)).toBeLessThan(4);
+
+    // HEADER, then NATURAL again, to the pixel, because neither view wrote over the height.
+    await chev.click();
+    await expect(chev).toHaveAttribute('aria-expanded', 'false');
+    expect(await heightOf(page, '#sgs-dock')).toBeLessThan(60);
+    await chev.click();
+    expect(await heightOf(page, '#sgs-dock')).toBeCloseTo(natural, 0);
+});
+
+test('the chevron skips the fitted step when the rows would fill the table anyway', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
+    await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
+    const natural = await heightOf(page, '#sgs-dock');
+    const rows = (await heightOf(page, '.sgs-dock-body table')) + (await heightOf(page, '.sgs-dock-head'));
+    // The precondition, checked rather than assumed: this layer's rows fill the table.
+    expect(rows).toBeGreaterThanOrEqual(natural - 2);
+    await page.locator('.sgs-dock-fold').click();
+    await expect(page.locator('.sgs-dock-fold')).toHaveAttribute('aria-expanded', 'false');
+});
+
+test('the panel takes the same three steps, and its chevron only ever flips', async ({ page }) => {
+    const chev = page.locator('.sgs-panel-fold');
+    const natural = await heightOf(page, '#sgs-panel');
+    /** The glyph's rotation once its transition settles: a flip or nothing, never a quarter turn. */
+    const flipOnly = () => expect.poll(async () => {
+        const t = (await chev.locator('svg').evaluate((el) => getComputedStyle(el).transform)).replace(/\s/g, '');
+        return t === 'none' || t.startsWith('matrix(-1,');
+    }).toBe(true);
+
+    await flipOnly();
+    await chev.click();
+    expect(await heightOf(page, '#sgs-panel')).toBeLessThan(natural - 100);
+    await expect(chev).toHaveAttribute('aria-expanded', 'true');
+    await flipOnly();
+
+    await chev.click();
+    expect(await heightOf(page, '#sgs-panel')).toBeLessThan(60);
+    await flipOnly();
+    await chev.click();
+    expect(await heightOf(page, '#sgs-panel')).toBeCloseTo(natural, 0);
+});
+
+test('FULL on a loose table takes the map, and letting go puts it back where it floated', async ({ page }) => {
     const vp = page.viewportSize();
     if (!vp) throw new Error('no viewport');
-    const panel = page.locator('#sgs-panel');
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    const dock = page.locator('#sgs-dock');
+    await page.locator('.sgs-dock-pin').click();
+    await dragHead(page, '.sgs-dock-head', vp.width / 2, 200);
+    await expect(dock).toHaveClass(/sgs-dock--float/);
+    const loose = await dock.boundingBox();
+    if (!loose) throw new Error('no dock');
 
-    // Pin a width the reader would notice losing.
-    const grip = await page.locator('.sgs-grip--w').boundingBox();
-    if (!grip) throw new Error('no grip');
-    await page.mouse.move(grip.x + grip.width / 2, grip.y + 200);
-    await page.mouse.down();
-    await page.mouse.move(grip.x + grip.width / 2 + 90, grip.y + 200, { steps: 5 });
-    await page.mouse.up();
-    const pinned = await panel.boundingBox();
-    if (!pinned) throw new Error('no panel');
+    await page.locator('.sgs-dock-full').click();
+    const full = await dock.boundingBox();
+    if (!full) throw new Error('no dock');
+    expect(full.x).toBeLessThan(24);
+    expect(full.width).toBeGreaterThan(vp.width - 48);
+    expect(full.y).toBeCloseTo(vp.height - full.y - full.height, 0);
+    // A table that has taken the map is standing on the panel's room, loose or not.
+    await expect(page.locator('#sgs-panel-body')).toBeHidden();
 
-    await page.locator('.sgs-panel-full').click();
-    const full = await panel.boundingBox();
-    if (!full) throw new Error('no panel');
-    expect(full.width).toBeGreaterThan(pinned.width + 60);
-    expect(full.width).toBeCloseTo(vp.width * 0.6, 0);
+    await page.locator('.sgs-dock-full').click();
+    await expect(dock).toHaveClass(/sgs-dock--float/);
+    const back = await dock.boundingBox();
+    if (!back) throw new Error('no dock');
+    expect(back.x).toBeCloseTo(loose.x, 0);
+    expect(back.y).toBeCloseTo(loose.y, 0);
+    expect(back.width).toBeCloseTo(loose.width, 0);
+    expect(back.height).toBeCloseTo(loose.height, 0);
+    await expect(page.locator('#sgs-panel-body')).toBeVisible();
+});
 
-    // Releasing restores the pinned width to the pixel, because FULL never overwrote it.
-    await page.locator('.sgs-panel-full').click();
-    const back = await panel.boundingBox();
-    if (!back) throw new Error('no panel');
-    expect(back.width).toBeCloseTo(pinned.width, 0);
+test('FULL on a folded table unfolds it: asking for the room is asking to see the rows', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await foldToHead(page, '.sgs-dock-fold');
+    await page.locator('.sgs-dock-full').click();
+    await expect(page.locator('.sgs-dock-fold')).toHaveAttribute('aria-expanded', 'true');
+    expect(await heightOf(page, '#sgs-dock')).toBeGreaterThan(400);
+});
+
+test('a folded panel stays folded while the table floats', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await foldToHead(page, '.sgs-panel-fold');
+    await page.locator('.sgs-dock-pin').click();
+    await expect(page.locator('#sgs-dock')).toHaveClass(/sgs-dock--float/);
+    // The bug: the loose-table rule gave the panel back its bottom anchor, and a folded panel
+    // anchored at both ends stretched to full height around its hidden body.
+    expect(await heightOf(page, '#sgs-panel')).toBeLessThan(60);
 });
 
 test('FULL on the table takes the map and folds the panel; the grip takes the room back', async ({ page }) => {

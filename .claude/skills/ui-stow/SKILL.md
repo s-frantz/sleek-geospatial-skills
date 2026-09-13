@@ -23,6 +23,12 @@ A mark pulses once, briefly, at the moment of the close (`flashMark()` in `stow.
 a tab designed to be quiet is also easy to miss: one pulse teaches where it lives, and after
 that it stays quiet. Only a close pulses, never the initial state and never an open.
 
+FOLD is one chevron with three steps: the section's natural height, then TIGHT (its rows and no
+blank band), then the head alone, and round again, skipping TIGHT when the rows would fill the
+section anyway. The cycle has one owner, `nextFoldMode()` in `app/js/ui/stow.js`, so the panel
+and the table cannot grow two orders; the `ui-furniture` skill has what each view does to the
+geometry and which wins when they combine.
+
 `app/js/ui/stow.js` — `makeClosable()` for the FOLD/close pair's CLOSE half and its MARK,
 `makeFoldable()` for FOLD. `nearBerth()`, `nearBottomBerth()` and `SNAP` in
 `app/js/utils/furniture.js` for the snap test; `makeDraggable()` in

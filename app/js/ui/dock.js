@@ -37,7 +37,7 @@ import { buildFieldBadge, inferColumnType } from './field-badge.js';
 import { buildSymbolSwatch } from './symbology.js';
 import { getSourcePill, makeTypePill } from './type-pill.js';
 import { foldPanel, isPanelFolded } from './panel.js';
-import { flashMark } from './stow.js';
+import { flashMark, nextFoldMode } from './stow.js';
 import { makeDraggable, releaseDrag } from '../utils/draggable.js';
 import { nearBottomBerth, makeBorrow } from '../utils/furniture.js';
 import { getPrefs, setPrefs } from '../utils/prefs.js';
@@ -95,6 +95,8 @@ let _lastLayerId = null;
 let _hitKey = null;
 let _height = DEFAULT_H;
 let _folded = false;
+/** TIGHT, the chevron's middle step: a view that fits the rows and overwrites no height. */
+let _tight = false;
 /** Loose on the map rather than berthed along the bottom. */
 let _float = false;
 /** FULL: a takeover, not a size. `_height` keeps the reader's number underneath it. */
@@ -114,16 +116,23 @@ function apply() {
     const dock = _dock;
     if (!dock) return;
 
+    // FULL is a takeover wherever the table is. Loose and FULL, it fills the map exactly as a
+    // berthed one does, while its float, position and width wait underneath untouched, so
+    // releasing FULL puts it back where it was floating.
+    const loose = _float && !_full;
     dock.classList.toggle('sgs-dock--float', _float);
     dock.classList.toggle('sgs-dock--full', _full);
-    document.body.classList.toggle('sgs-dock-float', _float);
+    document.body.classList.toggle('sgs-dock-float', loose);
 
-    // FULL overrides the height without touching it. Folded beats both: a folded dock is as
-    // tall as its head, whatever anyone else thinks.
+    // The chevron's views outrank the sizes and write over none of them. Strongest first:
+    // HEADER (a folded dock is as tall as its head, whatever anyone else thinks), TIGHT (fit
+    // the rows inside whatever room there is), FULL (which leaves the reader's height
+    // untouched underneath), and the reader's own height.
     if (_folded) dock.style.height = 'auto';
+    else if (_tight) dock.style.height = `${tightHeight()}px`;
     else dock.style.height = `${_full ? maxHeight() : _height}px`;
 
-    if (_float) {
+    if (loose) {
         const { x, y } = clampXY(_x, _y);
         _x = x; _y = y;
         dock.style.left = `${x}px`;
@@ -151,11 +160,20 @@ function apply() {
         full.setAttribute('aria-label', /** @type {string} */ (full.getAttribute('title')));
         full.setAttribute('aria-pressed', String(_full));
     }
+    // The chevron's label names what the NEXT press does, and aria-expanded says whether
+    // the rows are showing at all.
+    const chev = dock.querySelector('.sgs-dock-fold');
+    if (chev) {
+        const label = FOLD_LABELS[nextFoldMode(foldMode(), tightDiffers())];
+        chev.setAttribute('title', label);
+        chev.setAttribute('aria-label', label);
+        chev.setAttribute('aria-expanded', String(!_folded));
+    }
 
-    // Only a BERTHED dock covers the bottom of the map. Loose, it is furniture the camera
-    // still avoids by geometry, but it is not an edge any more, so the panel must not be
-    // pushed up by a band that is no longer down there.
-    const h = _float ? 0 : dock.getBoundingClientRect().height;
+    // Only a BERTHED dock covers the bottom of the map (or a FULL one, from anywhere). Loose,
+    // it is furniture the camera still avoids by geometry, but it is not an edge any more, so
+    // the panel must not be pushed up by a band that is no longer down there.
+    const h = loose ? 0 : dock.getBoundingClientRect().height;
     document.documentElement.style.setProperty('--sgs-dock-h', `${Math.round(h)}px`);
 
     squeezePanel();
@@ -217,11 +235,12 @@ function tightHeight() {
  * @returns {void}
  */
 function squeezePanel() {
-    // A loose dock is not standing on the panel's room, whatever its height: the squeeze is
-    // about the bottom BAND, and a dock that has left the bottom is not one.
-    const squeezed = !_float && !_folded
-        && (_full || _height > window.innerHeight - INSET - PANEL_SQUEEZE);
-    _panelRoom.want(squeezed);
+    // What matters is how tall the table ACTUALLY is on screen, whichever control made it so,
+    // and whether it is standing on the panel's room at all. A loose table is not, since the
+    // squeeze is about the bottom band; a FULL one is, from wherever it was floating.
+    const onPanelRoom = !_float || _full;
+    const h = _folded ? 0 : _tight ? tightHeight() : _full ? maxHeight() : _height;
+    _panelRoom.want(onPanelRoom && h > window.innerHeight - INSET - PANEL_SQUEEZE);
 }
 
 /** Give the panel back, if the dock is what took it. @returns {void} */
@@ -308,6 +327,8 @@ export function closeTable() {
     _dock?.remove();
     _dock = null;
     _hitKey = null;
+    // A view belongs to the table that was showing; the next one opens at its natural height.
+    _tight = false;
     document.body.classList.remove('sgs-dock-open');
     // The sliver is where the table went: say so, once. The dock does not go through
     // makeClosable (it removes itself outright), so it asks for the same pulse directly.
@@ -340,15 +361,42 @@ export function initDock() {
     document.body.appendChild(sliver);
 }
 
+/** What the chevron says a press will do, by the view the press goes to. */
+const FOLD_LABELS = /** @type {Record<import('./stow.js').FoldMode, string>} */ ({
+    natural: 'Unfold the table',
+    tight: 'Fit the table to its rows',
+    header: 'Fold the table to its head',
+});
+
+/** @returns {import('./stow.js').FoldMode} */
+function foldMode() { return _folded ? 'header' : _tight ? 'tight' : 'natural'; }
+
+/**
+ * Would TIGHT make the table shorter than its natural height? When the rows would fill it
+ * anyway the chevron skips the step: a press that changes nothing reads as a broken button.
+ * @returns {boolean}
+ */
+function tightDiffers() { return tightHeight() < (_full ? maxHeight() : _height) - 2; }
+
+/**
+ * Put the chevron in one of its three views. The cycle itself is nextFoldMode()'s, shared
+ * with the panel, so the two cannot grow different orders.
+ * @param {import('./stow.js').FoldMode} mode
+ * @returns {void}
+ */
+function setFoldMode(mode) {
+    _tight = mode === 'tight';
+    setFolded(mode === 'header');
+}
+
 /** @param {boolean} next @returns {void} */
 function setFolded(next) {
     if (!_dock) return;
     _folded = next;
     _dock.classList.toggle('sgs-dock--folded', next);
-    const chev = _dock.querySelector('.sgs-dock-fold');
-    chev?.setAttribute('aria-expanded', String(!next));
     // The open height is an inline style, so folding must release it: a folded dock is as
-    // tall as its head and nothing else. apply() owns that, and the squeeze with it.
+    // tall as its head and nothing else. apply() owns that, the chevron's label, and the
+    // squeeze with them.
     apply();
 }
 
@@ -392,6 +440,7 @@ function buildDock() {
         // be the second-worst outcome; a grip that silently un-fulls without saying so would
         // be the worst, which is why the button's own state changes with it.
         _full = false;
+        _tight = false;
         // Loose, the dock's top edge is where the pointer is. Berthed, its BOTTOM is pinned
         // to the inset, so the same drag means a height rather than a position.
         _height = Math.round(Math.max(MIN_H, Math.min(
@@ -412,6 +461,7 @@ function buildDock() {
     // same gesture with the same meaning, which is the point of giving it a word.
     grip.addEventListener('dblclick', () => {
         _full = false;
+        _tight = false;
         _height = tightHeight();
         apply();
     });
@@ -476,7 +526,9 @@ function buildDock() {
     full.addEventListener('click', (e) => {
         e.stopPropagation();
         _full = !_full;
-        apply();
+        // Asking for the room is asking to see the rows: the chevron goes back to NATURAL.
+        _tight = false;
+        if (_folded) setFolded(false); else apply();
     });
 
     const pin = document.createElement('button');
@@ -502,10 +554,12 @@ function buildDock() {
     const fold = document.createElement('button');
     fold.type = 'button';
     fold.className = 'sgs-icon-btn sgs-dock-fold';
-    fold.title = 'Fold the table';
-    fold.setAttribute('aria-label', 'Fold the table');
     fold.innerHTML = icon('chevron', 12);
-    fold.addEventListener('click', (e) => { e.stopPropagation(); setFolded(!_folded); });
+    // One chevron, three steps, the same cycle the panel's takes. Its label is apply()'s.
+    fold.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setFoldMode(nextFoldMode(foldMode(), tightDiffers()));
+    });
 
     const close = document.createElement('button');
     close.type = 'button';
