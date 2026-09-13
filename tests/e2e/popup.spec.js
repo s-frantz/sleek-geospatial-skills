@@ -14,25 +14,27 @@ test.beforeEach(async ({ page }) => {
     await page.waitForSelector('body[data-ready="true"]');
 });
 
-test('the popup field table stripes every other row without losing its sunk name column', async ({ page }) => {
+test('the popup field table is left unstriped: the stripe belongs to the dock table alone', async ({ page }) => {
     await clickAFeature(page, 0);
-    const rows = page.locator('.sgs-popup').last().locator('.sgs-fields tr');
-    /** @param {number} n 0-based @param {string} cell */
-    const paint = (n, cell) => rows.nth(n).locator(cell).evaluate((el) => {
-        const s = getComputedStyle(el);
-        return { image: s.backgroundImage, color: s.backgroundColor };
-    });
-    expect((await paint(0, 'td.sgs-field-type-col')).image).toBe('none');
-    expect((await paint(1, 'td.sgs-field-type-col')).image).toContain('gradient');
-    // The field-name column keeps its own sunk background under the stripe, which is the
-    // reason the stripe is an image over the cell rather than a background on the row.
-    const unstriped = await paint(0, 'th');
-    const striped = await paint(1, 'th');
-    expect(striped.image).toContain('gradient');
-    expect(striped.color).toBe(unstriped.color);
+    const images = await page.locator('.sgs-popup').last().locator('.sgs-fields tr > *')
+        .evaluateAll((els) => els.map((el) => getComputedStyle(el).backgroundImage));
+    // Enough rows that an even one is in the list, or "no stripe" would prove nothing.
+    expect(images.length).toBeGreaterThan(4);
+    expect(new Set(images)).toEqual(new Set(['none']));
 });
 
-test('the popup table button finds its feature: the row lit and in view; again, the table goes', async ({ page }) => {
+test('the popup table button closes a table that is open, whichever layer it shows', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await expect(page.locator('#sgs-dock')).toHaveCount(1);
+
+    // A district's popup, over a table of stations: the press closes rather than switches.
+    await clickAFeature(page, 3);
+    await page.locator('.sgs-popup').last().locator('button[aria-label="Find this feature in the table"]').click();
+    await expect(page.locator('#sgs-dock')).toHaveCount(0);
+});
+
+test('the popup table button opens the table on its feature, the row lit and in view; again, it closes', async ({ page }) => {
     await clickAFeature(page, 3);
     const popup = page.locator('.sgs-popup').last();
     const title = (await popup.locator('.sgs-popup-title').textContent()) ?? '';
@@ -51,7 +53,7 @@ test('the popup table button finds its feature: the row lit and in view; again, 
     expect(r.y).toBeGreaterThanOrEqual(b.y - 1);
     expect(r.y + r.height).toBeLessThanOrEqual(b.y + b.height + 1);
 
-    // Pressed again on the row it already lit: the table goes, as the layer row's button does.
+    // Pressed again: the table goes, as the layer row's button does.
     await find.click();
     await expect(page.locator('#sgs-dock')).toHaveCount(0);
 });

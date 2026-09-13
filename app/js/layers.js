@@ -233,19 +233,20 @@ export function zoomToFeature(feature) {
     map.fitBounds(/** @type {any} */ (bbox), { padding: pad, maxZoom: 15, duration: 600 });
 }
 
-/** Bumped by every flash, so a flash still waiting for the camera is cancelled by a newer one. */
-let _flashRun = 0;
-/** @type {number[]} */
-let _flashTimers = [];
+/** How long the one showing lasts, ms: about the camera's 600ms move, so it rides along. */
+export const FLASH_MS = 550;
+/** @type {number|undefined} */
+let _flashOff;
 
 /**
- * Flash one feature on the map: its shape highlighted, twice, then gone.
+ * Flash one feature on the map: its shape highlighted once, at once, then gone.
  *
  * It answers "which one is it?" after a row or a popup has pointed at a feature. Zooming alone
  * does not: a fit to one polygon among its neighbours lands on a screen full of polygons. It
- * waits for the camera to arrive, because a flash on a feature still sliding into view is
- * spent before the eye has anything to settle on. Reduced motion gets one steady showing
- * rather than a blink.
+ * starts on the press, while the camera is still moving, not once it arrives: a flash that
+ * waited for the move read as a second, unrelated event, and the feature sliding into place
+ * already lit is what ties the press to the answer. One showing, not a blink, so there is
+ * nothing here for reduced motion to calm.
  *
  * @param {string} layerId
  * @param {any} feature
@@ -257,10 +258,6 @@ export function flashFeature(layerId, feature) {
     if (!def || value === undefined || value === null) return;
     if (!flashIds(def).every((id) => map.getLayer(id))) return;
 
-    const run = ++_flashRun;
-    for (const t of _flashTimers) clearTimeout(t);
-    _flashTimers = [];
-
     const show = (/** @type {boolean} */ on) => {
         for (const d of LAYERS) {
             for (const id of flashIds(d)) {
@@ -269,12 +266,8 @@ export function flashFeature(layerId, feature) {
             }
         }
     };
-    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    /** @type {Array<[number, boolean]>} */
-    const steps = still ? [[0, true], [900, false]] : [[0, true], [260, false], [400, true], [700, false]];
-    const start = () => {
-        if (run !== _flashRun) return;
-        for (const [at, on] of steps) _flashTimers.push(window.setTimeout(() => show(on), at));
-    };
-    if (map.isMoving()) map.once('moveend', start); else start();
+    // A newer flash replaces an older one outright, rather than letting its "off" land early.
+    clearTimeout(_flashOff);
+    show(true);
+    _flashOff = window.setTimeout(() => show(false), FLASH_MS);
 }

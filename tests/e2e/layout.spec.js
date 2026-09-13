@@ -289,9 +289,10 @@ test('the head buttons of the panel and the table are spaced by one rule', async
 
     const panel = await gaps('.sgs-panel-head');
     const table = await gaps('.sgs-dock-head');
-    expect(panel.length).toBeGreaterThan(2);
-    expect(table.length).toBeGreaterThan(2);
-    // Every gap the same, in both heads, and the same number in both.
+    // Pin, fold, close on the panel (FULL is the table's alone), and FULL besides on the table.
+    expect(panel.length).toBeGreaterThanOrEqual(2);
+    expect(table.length).toBeGreaterThanOrEqual(3);
+    // Every gap the same, in both heads.
     expect(new Set([...panel, ...table]).size).toBe(1);
 });
 
@@ -463,12 +464,12 @@ test('zooming to a row flashes its feature on the map and makes it the current r
     await page.evaluate(() => {
         const w = /** @type {any} */ (window);
         const m = w.sgsMap;
-        /** @type {Array<[string, string]>} */
+        /** @type {Array<[string, string, boolean]>} */
         const calls = [];
         w.flashCalls = calls;
         const set = m.setFilter.bind(m);
         m.setFilter = (/** @type {string} */ id, /** @type {unknown} */ f, /** @type {any[]} */ ...rest) => {
-            if (id.startsWith('neighborhoods-flash')) calls.push([id, JSON.stringify(f)]);
+            if (id.startsWith('neighborhoods-flash')) calls.push([id, JSON.stringify(f), m.isMoving()]);
             return set(id, f, ...rest);
         };
     });
@@ -477,18 +478,20 @@ test('zooming to a row flashes its feature on the map and makes it the current r
     await expect(row).toHaveClass(/sgs-row-hit/);
     await expect(page.locator('#sgs-dock tbody tr.sgs-row-hit')).toHaveCount(1);
 
-    // Two showings, each on both polygon flash layers: the body filled as well as the edge
-    // drawn heavy, because an edge alone vanishes once the camera has fitted the polygon to
-    // the screen and its edge is the screen's edge. Then matching nothing again.
+    // ONE showing, on both polygon flash layers: the body filled as well as the edge drawn
+    // heavy, because an edge alone vanishes once the camera has fitted the polygon to the
+    // screen and its edge is the screen's edge. Then matching nothing again.
     await expect.poll(
         () => page.evaluate(() => /** @type {any} */ (window).flashCalls.length), { timeout: 5000 },
-    ).toBe(8);
+    ).toBe(4);
     const calls = await page.evaluate(() => /** @type {any} */ (window).flashCalls);
     const on = `["==",["get","id"],"${key}"]`;
     const off = '["literal",false]';
     for (const id of ['neighborhoods-flash', 'neighborhoods-flash-fill']) {
-        expect(calls.filter((/** @type {string[]} */ c) => c[0] === id).map((/** @type {string[]} */ c) => c[1]), id)
-            .toEqual([on, off, on, off]);
+        const mine = calls.filter((/** @type {any[]} */ c) => c[0] === id);
+        expect(mine.map((/** @type {any[]} */ c) => c[1]), id).toEqual([on, off]);
+        // Lit on the press, while the camera is still on its way: not held back for its arrival.
+        expect(mine[0][2], `${id} lit while moving`).toBe(true);
     }
 });
 
@@ -679,6 +682,44 @@ test('the panel shows it will snap before the reader lets go', async ({ page }) 
     await page.mouse.up();
     // The cue belongs to the drag; it must not survive it.
     await expect(panel).not.toHaveClass(/sgs-snapping/);
+});
+
+test('the berthed table drags loose by its head, as the panel does, and its head says so', async ({ page }) => {
+    const vp = page.viewportSize();
+    if (!vp) throw new Error('no viewport');
+    await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
+    await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
+    const dock = page.locator('#sgs-dock');
+    await expect(dock).not.toHaveClass(/sgs-dock--float/);
+
+    // Grabbable while berthed, not only once already loose: the cursor is the affordance.
+    expect(await page.locator('.sgs-dock-head').evaluate((el) => getComputedStyle(el).cursor)).toBe('grab');
+
+    // No pin pressed: the drag alone unpins it.
+    await dragHead(page, '.sgs-dock-head', vp.width / 2, 200);
+    await expect(dock).toHaveClass(/sgs-dock--float/);
+    await expect(page.locator('.sgs-dock-pin')).toHaveAttribute('aria-pressed', 'false');
+    const box = await dock.boundingBox();
+    if (!box) throw new Error('no dock');
+    expect(box.y + box.height).toBeLessThan(vp.height - 60);
+});
+
+test('a folded table drags loose too, and stays folded when it is put down', async ({ page }) => {
+    const vp = page.viewportSize();
+    if (!vp) throw new Error('no viewport');
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await foldToHead(page, '.sgs-dock-fold');
+
+    await dragHead(page, '.sgs-dock-head', vp.width / 2, 200);
+    const dock = page.locator('#sgs-dock');
+    await expect(dock).toHaveClass(/sgs-dock--float/);
+    // The browser fires a click at the end of the drag; it must not unfold the bar.
+    await expect(page.locator('.sgs-dock-fold')).toHaveAttribute('aria-expanded', 'false');
+    const box = await dock.boundingBox();
+    if (!box) throw new Error('no dock');
+    expect(box.height).toBeLessThan(60);
+    expect(box.y).toBeLessThan(260);
 });
 
 test('the table unpins, drags loose, and snaps back to the bottom berth', async ({ page }) => {

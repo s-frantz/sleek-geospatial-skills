@@ -9,41 +9,70 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
-## [0.2.0] - 2026-09-11
+## [0.2.0] - 2026-09-13
 
-### The theme is defined in one place
+One release for everything below; each line has its own test.
 
-Components: `tokens`, `theme`, `swatch`, `source-pill`, `field-badge`, `map-controls`.
+### Theme
 
-- **Every colour token is a `light-dark(<light>, <dark>)` pair**, and three `color-scheme`
-  lines at the top of `tokens.css` are the only place a theme state is named. The dark values
-  used to be written twice (a system block and an explicit block), and four component files
-  carried their own pairs of dark blocks. All of that is gone. `tests/unit/theme.spec.js`
-  keeps it gone.
-- **A new dark palette: mid-grey, built from adjacent tones.** The ground moves from `#171a20`
-  to `#2d2d33`, with every other dark token re-picked so neighbouring surfaces sit one step
-  apart. The `ui-theme` skill carries the full ladder with its roles, and explains why
-  near-black was the wrong floor.
-- **A faint warm cast in both themes.** Every opaque token is blended 1.25% toward
-  `rgb(255, 80, 0)`, a low blue-light-filter setting baked into the hexes rather than laid
-  over the page, so the map and data colours are untouched. Light's ground is now `#fffdfc`.
-- **Components derive their colours from tokens** with `color-mix()` instead of naming a dark
-  hex. Source pills are one hue per kind now; every kind measures at least 4.9:1 in both
-  themes (the light pills were near 3:1, which the new e2e spec caught on the old code).
-- **MapLibre's own chrome follows the theme** with one rule each: the control group, its hover
-  patch, and the divider between stacked buttons, which was a fixed `#ddd` hairline across the
-  dark group. The attribution now shares the scale bar's translucent card.
+- **The theme is defined in one place.** Every colour token is a `light-dark()` pair, and
+  three `color-scheme` lines in `tokens.css` are the only place a theme state is named. No
+  component carries a dark block any more; components derive colours with `color-mix()`.
+  Components: `tokens`, `theme`, `swatch`, `source-pill`, `field-badge`, `map-controls`.
+- **A mid-grey dark palette of adjacent tones** (ground `#2d2d33`), and **a faint warm cast**
+  in both themes: every opaque token blended 1.25% toward `rgb(255, 80, 0)`. The `ui-theme`
+  skill has the ladder.
+- **MapLibre's own chrome follows the theme**: the control group, its hover, its divider.
+- **The chosen segment in quick settings is monochrome**: the text colour as a plate, not the
+  accent blue. Component: `quick-settings`.
 
-Light-mode changes you will see: pills are darker text on softer plates, the attribution card
-is 88% opaque instead of 50%, its links are the quiet text colour instead of near-black, and
-the control-group divider is `--sgs-line-soft` instead of `#ddd`.
+### Furniture (panel and table)
+
+- **One model for the head buttons.** One chevron with three views on the panel and the table
+  alike (natural, fitted to its rows, head alone), skipping the fitted view when it would change
+  nothing; one owner for the cycle, `nextFoldMode()` in `stow.js`. The chevron only ever flips.
+- **FULL belongs to the table.** The panel's FULL is gone. FULL on a loose table takes the map
+  and gives it back where it floated. Its glyphs sit on opposite diagonals now (FULL bottom-left
+  to top-right, its release top-left to bottom-right).
+- **The table drags like the panel.** Its head is grabbable berthed or loose, folded or not, and
+  dragging it unpins it. Loose, it snaps back when held against the bottom edge anywhere, not
+  only near the left corner (new `nearBottomBerth()` in `furniture.js`).
+- **Head buttons are spaced by one rule** (`.sgs-head-actions`, 4px) in every furniture head.
+- **A closed section's mark pulses once** (`flashMark()` in `stow.js`), so the reader sees
+  where it went.
+- Fixed: a folded panel stretched to full height under a loose table.
+- Components: `panel`, `dock`, `edge-mark`, `app-shell` (`furniture.css`), `framework`
+  (`furniture.js`), `primitives` (`prefs.js`).
+
+### Features and tables
+
+- **Zoom-to flashes the feature once**, on the press, while the camera is still moving (new
+  `flashFeature()` in `layers.js`). `LayerDef` gains `key`, the property that tells features
+  apart; without one a row still zooms and simply does not flash.
+- **A popup's table button is a toggle.** Table closed: it opens on the feature's layer with its
+  row lit and scrolled into view. Table open: it closes. The row a popup or a zoom pointed at is
+  the one lit row, announced with `aria-current`.
+- **Faint row stripes on the dock's table** (the text colour at 2.5%); the popup's field table
+  stays plain. Component: `field-table`.
+- Components: `app-shell` (`layers.js`, `main.js`), `dock`, `popups`.
+
+### Smaller
+
+- **The compass is a hollow notched arrowhead**, its ink centred so it spins in place.
+  Component: `icons`.
+- **A shorter nudge line** in the shortcut inventory: "Nudge the top popup". Component:
+  `quick-settings`.
 
 Breaking: `tokens` now needs `light-dark()` (Chrome and Edge 123, Firefox 120, Safari 17.5).
-Below that floor surfaces render transparent, not light, because an invalid-at-computed-time
-value resolves to `unset` rather than to the `var()` fallback. An app that switches theme some
-way other than `data-theme` must now end its switch by setting `color-scheme` on the root; see
-the `ui-theme` skill. The four component files work against the old `tokens.css` as well as
-the new one, so they can be taken without it.
+Below that floor surfaces render transparent, not light. An app that switches theme some way
+other than `data-theme` must end its switch by setting `color-scheme` on the root; see the
+`ui-theme` skill.
+
+Breaking: `panel` no longer has `.sgs-panel-full`, `.sgs-panel--full` or the `panelFull`
+preference; an app that styled or scripted the panel's FULL should drop it (a stored
+`panelFull` is ignored). `makeFoldable()` stays backward compatible: without `tightClass` it
+folds in two steps as before, and `onChange` gains a second argument. A new `dock.js` needs
+`furniture.js` at this version for `nearBottomBerth()`.
 
 ## [0.1.0] - 2026-09-02
 

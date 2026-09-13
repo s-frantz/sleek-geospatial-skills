@@ -37,7 +37,10 @@
 
 .sgs-seg-btn:first-child { border-left: 0; }
 .sgs-seg-btn:hover { background: var(--sgs-hover, rgba(0,0,0,.06)); }
-.sgs-seg-btn[aria-checked="true"] { background: var(--sgs-accent, #2f6fd0); color: var(--sgs-accent-fg, #fff); }
+/* The chosen segment is the text colour turned into a plate: ink on paper swapped, so it reads
+   as chosen in the same black and white as the rest of the chrome instead of in a hue that
+   appears nowhere else in the popover. */
+.sgs-seg-btn[aria-checked="true"] { background: var(--sgs-fg, #1b1e24); color: var(--sgs-bg, #fff); }
 
 /* The shortcut inventory, ruled off as its own quiet band. */
 .sgs-shortcuts {

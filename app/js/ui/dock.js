@@ -91,8 +91,6 @@ function maxHeight() {
 let _dock = null;
 /** @type {string|null} the layer whose table the sliver would bring back */
 let _lastLayerId = null;
-/** @type {string|null} the key of the CURRENT feature's row: lit in the table, if any */
-let _hitKey = null;
 let _height = DEFAULT_H;
 let _folded = false;
 /** TIGHT, the chevron's middle step: a view that fits the rows and overwrites no height. */
@@ -279,26 +277,25 @@ export function toggleLayerTable(layerId) {
 }
 
 /**
- * What a popup's table button does: show THIS feature's row, lit and scrolled into view.
+ * What a popup's table button does: a plain toggle of the table. Closed, it opens on this
+ * feature's layer with the feature's row lit and scrolled into view. Open, whatever it is
+ * showing, it closes.
  *
- * The layer row's button asks "show me this layer". A popup is about one feature, so its
- * button asks "where is this one in the table?", and opening the whole table to leave the
- * reader hunting through it answers the wrong question. Pressed again while that same row is
- * lit, it puts the table away, so it keeps the toggle the layer row's button has.
+ * The row is the reason to open from a popup rather than from the layer row: a popup is about
+ * one feature, and a table that opened without saying where that feature is would leave the
+ * reader hunting. Closing asks nothing about which layer or row is showing, because a button
+ * whose second press depends on state the reader cannot see from the popup reads as broken.
  *
  * @param {string} layerId
  * @param {unknown} keyValue the feature's value for its layer's `key`
  * @returns {void}
  */
 export function toggleFeatureInTable(layerId, keyValue) {
-    // A layer with no `key` cannot name a row, so the button falls back to the layer's table
-    // rather than lighting whichever row happens to match "undefined".
-    if (keyValue === undefined || keyValue === null) { toggleLayerTable(layerId); return; }
-    const key = String(keyValue);
-    if (isShowing(layerId) && _hitKey === key) { closeTable(); return; }
-    if (!isShowing(layerId)) showLayerTable(layerId);
-    else if (_folded) setFolded(false);
-    lightRow(key, true);
+    if (_dock) { closeTable(); return; }
+    showLayerTable(layerId);
+    // A layer with no `key` cannot name a row, so it opens on the layer alone rather than
+    // lighting whichever row happens to match "undefined".
+    if (keyValue !== undefined && keyValue !== null) lightRow(String(keyValue), true);
 }
 
 /**
@@ -309,7 +306,6 @@ export function toggleFeatureInTable(layerId, keyValue) {
  */
 function lightRow(key, scroll) {
     if (!_dock) return;
-    _hitKey = key;
     for (const lit of _dock.querySelectorAll('tr.sgs-row-hit')) {
         lit.classList.remove('sgs-row-hit');
         lit.removeAttribute('aria-current');
@@ -326,7 +322,6 @@ function lightRow(key, scroll) {
 export function closeTable() {
     _dock?.remove();
     _dock = null;
-    _hitKey = null;
     // A view belongs to the table that was showing; the next one opens at its natural height.
     _tight = false;
     document.body.classList.remove('sgs-dock-open');
@@ -575,17 +570,23 @@ function buildDock() {
     actions.className = 'sgs-head-actions';
     actions.append(full, pin, fold, close);
     head.append(swatch, pill, title, count, spacer, actions);
-    // A folded dock is one bar; the whole bar is the unfold control, not just the chevron.
-    head.addEventListener('click', () => { if (_folded) setFolded(false); });
+    // A folded dock is one bar; the whole bar is the unfold control, not just the chevron. A
+    // press that ended a drag is not a click on the bar, though: the browser still fires one,
+    // and without this a folded table unfolded every time it was put down.
+    let dragged = false;
+    head.addEventListener('pointerdown', () => { dragged = false; });
+    head.addEventListener('click', () => { if (_folded && !dragged) setFolded(false); });
 
     const body = document.createElement('div');
     body.className = 'sgs-dock-body';
 
-    // Same gesture as the panel: the head drags it loose, and letting go near the berth puts
-    // it back. The berth is the whole bottom edge, so "near" means held against the bottom
-    // anywhere along it, not near one corner of it: see nearBottomBerth() in furniture.js.
+    // Same gesture as the panel, berthed or loose, folded or not: dragging the head unpins the
+    // table, and letting go near the berth pins it again. The berth is the whole bottom edge,
+    // so "near" means held against the bottom anywhere along it, not near one corner of it: see
+    // nearBottomBerth() in furniture.js. A nudge that never leaves the berth's catch therefore
+    // changes nothing, which is what makes grabbing the head safe.
     makeDraggable(dock, head, ({ x, y }) => {
-        if (_folded) return;
+        dragged = true;
         _float = true;
         _full = false;
         _width = _width || Math.round(dock.getBoundingClientRect().width);
@@ -614,8 +615,6 @@ export function showLayerTable(layerId) {
     const def = layerById(layerId);
     if (!def) return;
     _lastLayerId = layerId;
-    // A rebuilt table has no current row until something points at one.
-    _hitKey = null;
 
     if (!_dock) buildDock();
     const dock = /** @type {HTMLElement} */ (_dock);

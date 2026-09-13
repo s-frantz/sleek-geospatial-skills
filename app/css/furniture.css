@@ -292,8 +292,10 @@ body.sgs-dock-open :is(.sgs-panel--manual-h, .sgs-panel--float, .sgs-panel--fold
 .sgs-dock--float:not(.sgs-dock--full) .sgs-dock-grip--w { display: flex; }
 .sgs-dock-grip--w::before { width: 3px; height: 36px; }
 
-.sgs-dock--float .sgs-dock-head { cursor: grab; }
-.sgs-dock--float .sgs-dock-head:active { cursor: grabbing; }
+/* Grabbable berthed or loose, the same as the panel's head: dragging a berthed table IS how it
+   comes loose, so a head that only looked grabbable once already loose hid that half. */
+.sgs-dock-head { cursor: grab; user-select: none; }
+.sgs-dock-head:active { cursor: grabbing; }
 
 /* Folded: the head alone, still a full-width bar, still reporting. The whole bar unfolds. */
 .sgs-dock--folded .sgs-dock-body { display: none; }

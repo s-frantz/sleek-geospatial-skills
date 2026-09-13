@@ -55,11 +55,15 @@ const PATHS = {
      */
     popup: '<path d="M5 3h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-8l-4 4v-4H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><line x1="3" y1="8" x2="21" y2="8"/>',
 
-    /** Diagonal arrows drawn inward: give the pixels back. */
-    tight: '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>',
+    /** Diagonal arrows drawn inward, top-left to bottom-right: give the pixels back. */
+    tight: '<polyline points="20 14 14 14 14 20"/><polyline points="4 10 10 10 10 4"/><line x1="10" y1="10" x2="3" y2="3"/><line x1="21" y1="21" x2="14" y2="14"/>',
 
-    /** `tight` with both arrows reversed: take the room the app can spare. */
-    full: '<polyline points="9 3 3 3 3 9"/><polyline points="15 21 21 21 21 15"/><line x1="3" y1="3" x2="10" y2="10"/><line x1="21" y1="21" x2="14" y2="14"/>',
+    /**
+     * Diagonal arrows drawn outward, bottom-left to top-right: take the room the app can spare.
+     * The two sit on OPPOSITE diagonals, so the swap on a press reads as a different glyph at
+     * 12px rather than the same one with its arrowheads moved.
+     */
+    full: '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>',
 
     info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8"/>',
 

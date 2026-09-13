@@ -8,7 +8,7 @@
 /* Ruled both ways. The popup's field table below already rules each column off the next,
    and for the same reason: a dense grid of numbers is scannable across a row only if the eye
    has a vertical edge to stop at. The two surfaces show the same attributes, so they get the
-   same treatment: both ruled, and both faintly striped (see ROW STRIPES below). */
+   same rules. Only this one is striped (see ROW STRIPES below). */
 .sgs-table th,
 .sgs-table td {
     padding: 4px 10px;
@@ -21,18 +21,17 @@
 .sgs-table th:last-child,
 .sgs-table td:last-child { border-right: none; }
 
-/* ROW STRIPES, on both tables. Every other row carries a tint of the text colour, so it is a
-   faint darkening in light and a faint lifting in dark from one rule. Deliberately about a
-   third of hover's strength, and far below a lit row: the stripe is there to carry the eye
-   along one row, not to be looked at, and it must never be mistaken for a state. It is a
-   background-IMAGE on the cells rather than a background on the row, so it lays over whatever
-   a cell already paints (the popup's sunk field-name column, a hovered row) instead of
-   replacing it. */
-.sgs-table,
-.sgs-fields { --sgs-row-stripe: color-mix(in srgb, var(--sgs-fg, #1b1e24) 2.5%, transparent); }
+/* ROW STRIPES, on the dock's table only. Every other row carries a tint of the text colour,
+   so it is a faint darkening in light and a faint lifting in dark from one rule. Deliberately
+   about a third of hover's strength, and far below a lit row: the stripe is there to carry the
+   eye along one row of a wide grid, not to be looked at, and it must never be mistaken for a
+   state. It is a background-IMAGE on the cells rather than a background on the row, so it
+   lays over whatever a cell already paints (a hovered row) instead of replacing it. The
+   popup's field table is left plain: a few short rows, each already split by its sunk name
+   column, have no long run for the eye to lose its place in. */
+.sgs-table { --sgs-row-stripe: color-mix(in srgb, var(--sgs-fg, #1b1e24) 2.5%, transparent); }
 
-.sgs-table tbody tr:nth-child(even) > td,
-.sgs-fields tr:nth-child(even) > * {
+.sgs-table tbody tr:nth-child(even) > td {
     background-image: linear-gradient(var(--sgs-row-stripe), var(--sgs-row-stripe));
 }
 
@@ -70,8 +69,7 @@
 
 /* TYPE | FIELD | VALUE. The type column is first because it is fixed-width and monospace, so
    it forms a clean left rail the eye can skip; last, it would ragged-edge against
-   variable-length values. Each column is ruled off the next, and every other row carries the
-   faint stripe above, so a long field list can be read across without losing the row. */
+   variable-length values. Each column is ruled off the next, and each row off the one below. */
 .sgs-fields { border-collapse: collapse; width: 100%; }
 
 .sgs-fields tr { border-bottom: 1px solid var(--sgs-line-soft, #e9ebef); }
