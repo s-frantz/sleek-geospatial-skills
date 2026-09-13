@@ -31,7 +31,7 @@
  * the camera and the panel both know it is there.
  */
 
-import { featuresOf, layerById, zoomToFeature, LAYERS } from '../layers.js';
+import { featuresOf, layerById, zoomToFeature, flashFeature, LAYERS } from '../layers.js';
 import { icon } from '../icons.js';
 import { buildFieldBadge, inferColumnType } from './field-badge.js';
 import { buildSymbolSwatch } from './symbology.js';
@@ -90,6 +90,8 @@ function maxHeight() {
 let _dock = null;
 /** @type {string|null} the layer whose table the sliver would bring back */
 let _lastLayerId = null;
+/** @type {string|null} the key of the CURRENT feature's row: lit in the table, if any */
+let _hitKey = null;
 let _height = DEFAULT_H;
 let _folded = false;
 /** Loose on the map rather than berthed along the bottom. */
@@ -256,10 +258,55 @@ export function toggleLayerTable(layerId) {
     else showLayerTable(layerId);
 }
 
+/**
+ * What a popup's table button does: show THIS feature's row, lit and scrolled into view.
+ *
+ * The layer row's button asks "show me this layer". A popup is about one feature, so its
+ * button asks "where is this one in the table?", and opening the whole table to leave the
+ * reader hunting through it answers the wrong question. Pressed again while that same row is
+ * lit, it puts the table away, so it keeps the toggle the layer row's button has.
+ *
+ * @param {string} layerId
+ * @param {unknown} keyValue the feature's value for its layer's `key`
+ * @returns {void}
+ */
+export function toggleFeatureInTable(layerId, keyValue) {
+    // A layer with no `key` cannot name a row, so the button falls back to the layer's table
+    // rather than lighting whichever row happens to match "undefined".
+    if (keyValue === undefined || keyValue === null) { toggleLayerTable(layerId); return; }
+    const key = String(keyValue);
+    if (isShowing(layerId) && _hitKey === key) { closeTable(); return; }
+    if (!isShowing(layerId)) showLayerTable(layerId);
+    else if (_folded) setFolded(false);
+    lightRow(key, true);
+}
+
+/**
+ * Light one row as the current feature, and only that row.
+ * @param {string} key
+ * @param {boolean} scroll bring it into view; a row the reader just clicked is already there
+ * @returns {void}
+ */
+function lightRow(key, scroll) {
+    if (!_dock) return;
+    _hitKey = key;
+    for (const lit of _dock.querySelectorAll('tr.sgs-row-hit')) {
+        lit.classList.remove('sgs-row-hit');
+        lit.removeAttribute('aria-current');
+    }
+    const tr = _dock.querySelector(`tr[data-key="${CSS.escape(key)}"]`);
+    if (!tr) return;
+    tr.classList.add('sgs-row-hit');
+    tr.setAttribute('aria-current', 'true');
+    // Centre, not nearest: `nearest` parks a row going upward under the sticky header.
+    if (scroll) tr.scrollIntoView({ block: 'center' });
+}
+
 /** @returns {void} */
 export function closeTable() {
     _dock?.remove();
     _dock = null;
+    _hitKey = null;
     document.body.classList.remove('sgs-dock-open');
     // A dock that has left cannot be squeezing anything. Releasing here and not only on the
     // way down matters because closing is the other way the dock stops being tall.
@@ -502,6 +549,8 @@ export function showLayerTable(layerId) {
     const def = layerById(layerId);
     if (!def) return;
     _lastLayerId = layerId;
+    // A rebuilt table has no current row until something points at one.
+    _hitKey = null;
 
     if (!_dock) buildDock();
     const dock = /** @type {HTMLElement} */ (_dock);
@@ -555,6 +604,10 @@ export function showLayerTable(layerId) {
     for (const feat of features) {
         const tr = document.createElement('tr');
         tr.tabIndex = 0;
+        // No key, no identity: such a row can still zoom, it just cannot be the current one.
+        const raw = feat.properties?.[def.key];
+        const key = raw === undefined || raw === null ? null : String(raw);
+        if (key !== null) tr.dataset.key = key;
 
         // Double-clicking a row has always zoomed to its feature, and nothing said so. A
         // gesture with no visible affordance is a gesture only its author knows about, so
@@ -579,8 +632,14 @@ export function showLayerTable(layerId) {
             tr.appendChild(td);
         }
         // Row to map. The camera pads for the dock itself, so the feature does not land
-        // underneath the row you clicked to find it.
-        const go = () => zoomToFeature(feat);
+        // underneath the row you clicked to find it; then the feature flashes, because a
+        // camera that lands on a screen of neighbours has not said which one it meant. The
+        // row becomes the current one, the same state a popup's table button lights.
+        const go = () => {
+            zoomToFeature(feat);
+            flashFeature(layerId, feat);
+            if (key !== null) lightRow(key, false);
+        };
         goBtn.addEventListener('click', (e) => { e.stopPropagation(); go(); });
         tr.addEventListener('dblclick', go);
         tr.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });

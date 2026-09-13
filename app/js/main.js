@@ -17,7 +17,7 @@ import { map } from './map.js';
 import { addAllLayers, LAYERS, layerById, interactiveLayerId } from './layers.js';
 import { initPanel } from './ui/panel.js';
 import { renderLayerRows } from './ui/layer-rows.js';
-import { initDock, toggleLayerTable } from './ui/dock.js';
+import { initDock, toggleLayerTable, toggleFeatureInTable } from './ui/dock.js';
 import { makeControl } from './ui/control-stack.js';
 import { settingsControl } from './ui/settings-control.js';
 import { toggleQuickSettings } from './ui/quick-settings.js';
@@ -79,7 +79,8 @@ map.on('load', async () => {
                 // A plain click replaces the open popup; Ctrl keeps it, for comparing.
                 ctrlKey: !!e.originalEvent?.ctrlKey,
                 layer,
-                onOpenTable: toggleLayerTable,
+                // A popup is one feature, so its table button finds that feature's row.
+                onOpenTable: () => toggleFeatureInTable(def.id, feature.properties?.[layer.key]),
             });
         });
         map.on('mouseenter', glId, () => { map.getCanvas().style.cursor = 'pointer'; });

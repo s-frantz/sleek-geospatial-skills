@@ -43,6 +43,13 @@
    two surfaces that show attributes. */
 .sgs-th-field { display: flex; align-items: center; gap: 6px; }
 
+/* The CURRENT feature's row: the one a popup asked for or a zoom went to. Plainly lit, in
+   the accent, so it reads at a glance against hover, which is faint on purpose. Stays lit on
+   hover, which is why the :hover is named: otherwise the hover rule below would win and the
+   row would go dark exactly when the pointer arrives to look at it. */
+.sgs-table tbody tr.sgs-row-hit,
+.sgs-table tbody tr.sgs-row-hit:hover { background: color-mix(in srgb, var(--sgs-accent, #2f6fd0) 20%, transparent); }
+
 .sgs-table tbody tr:hover { background: var(--sgs-hover, rgba(0,0,0,.06)); }
 .sgs-table tbody tr:focus { outline: 2px solid var(--sgs-accent, #2f6fd0); outline-offset: -2px; }
 

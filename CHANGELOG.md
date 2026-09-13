@@ -9,6 +9,27 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
+## [0.1.5] - 2026-09-13
+
+### A feature you point at is a feature you are shown
+
+Components: `app-shell` (`layers.js`, `main.js`), `dock`, `popups`, `field-table`.
+
+- **Zoom-to from a table row flashes the feature on the map**, twice and briefly, once the
+  camera has arrived: a fit to one polygon lands on a screen of its neighbours and did not
+  say which one it meant. New `flashFeature()` in `layers.js`, drawing through one flash
+  layer per logical layer that matches nothing at rest. Reduced motion gets one steady
+  showing instead of a blink.
+- **A popup's table button finds its feature**: the table opens (or stays) on that layer,
+  and the feature's row is lit and scrolled into view. Pressed again while that row is lit,
+  the table goes, the same toggle the layer row's button has. Its tooltip now reads "Find
+  this feature in the table".
+- **One notion of the current feature in the table**: the row a popup asked for or a zoom went
+  to is lit in the accent, one row at a time, and announced with `aria-current`.
+- `LayerDef` gains `key`, the property that tells one feature from another. An app with its
+  own `layers.js` keeps the old behaviour until it adds one: without a key a row still zooms,
+  and the popup button falls back to showing the layer's table.
+
 ## [0.1.0] - 2026-09-02
 
 The first release. Everything below is what the repo IS, not what changed in it.

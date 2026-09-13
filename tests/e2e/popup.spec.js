@@ -14,6 +14,30 @@ test.beforeEach(async ({ page }) => {
     await page.waitForSelector('body[data-ready="true"]');
 });
 
+test('the popup table button finds its feature: the row lit and in view; again, the table goes', async ({ page }) => {
+    await clickAFeature(page, 3);
+    const popup = page.locator('.sgs-popup').last();
+    const title = (await popup.locator('.sgs-popup-title').textContent()) ?? '';
+    const find = popup.locator('button[aria-label="Find this feature in the table"]');
+
+    await find.click();
+    const hit = page.locator('#sgs-dock tbody tr.sgs-row-hit');
+    await expect(hit).toHaveCount(1);
+    // Cells run go-to, id, name: the lit row is the popup's own feature, by name.
+    await expect(hit.locator('td').nth(2)).toHaveText(title);
+
+    // In view inside the dock's scrolling body, not merely present somewhere in the DOM.
+    const r = await hit.boundingBox();
+    const b = await page.locator('#sgs-dock .sgs-dock-body').boundingBox();
+    if (!r || !b) throw new Error('no geometry');
+    expect(r.y).toBeGreaterThanOrEqual(b.y - 1);
+    expect(r.y + r.height).toBeLessThanOrEqual(b.y + b.height + 1);
+
+    // Pressed again on the row it already lit: the table goes, as the layer row's button does.
+    await find.click();
+    await expect(page.locator('#sgs-dock')).toHaveCount(0);
+});
+
 /**
  * Click a district polygon, choosing the point by ASKING THE MAP what it has rendered
  * rather than guessing a coordinate.
