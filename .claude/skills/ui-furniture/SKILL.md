@@ -102,8 +102,11 @@ When the controls combine, the stronger wins, strongest first:
 | MANUAL | the automatic size |
 
 Two resets keep that honest. Pressing FULL puts the chevron back to NATURAL, because asking for
-the room is asking to see the rows. Dragging a grip cancels FULL and the fitted views, because
-the reader has just said what the size is.
+the room is asking to see the rows, and giving the room back returns the view the table was in
+before, so a folded table folds again and a fitted one fits again: the view is part of the state
+FULL took over, and it overwrites nothing. Dragging a grip or the head cancels FULL and the
+fitted views, because the reader has just said what the size is. A view chosen on the chevron
+while FULL is on is the reader's newer choice, so releasing FULL keeps it.
 
 Undocking changes where a section is, never its size: a table picked up from its edge keeps its
 full width. Narrowing it is SNUG's job. A folded section unfolds from its chevron alone; its

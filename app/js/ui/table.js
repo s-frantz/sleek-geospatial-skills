@@ -111,6 +111,13 @@ let _contentW = 0;
 let _undocked = false;
 /** FULL: a takeover, not a size. `_height` keeps the reader's number underneath it. */
 let _full = false;
+/**
+ * The chevron's view when FULL took the map, which giving the room back returns to. FULL shows
+ * the rows at the room it took, so it sets the view aside rather than writing over it, the way
+ * it leaves the height alone. Null once the reader has changed the view or the size since.
+ * @type {import('./stow.js').FoldMode|null}
+ */
+let _beforeFull = null;
 /** The width an undocked table carries; ignored while docked, where it is full-bleed. */
 let _width = 0;
 let _x = 0, _y = 0;
@@ -563,6 +570,7 @@ function buildTable() {
         // be the second-worst outcome; a grip that silently un-fulls without saying so would
         // be the worst, which is why the button's own state changes with it.
         _full = false;
+        _beforeFull = null;
         _tight = false;
         _snug = false;
         // Undocked, the table's top edge is where the pointer is. Docked, its BOTTOM is held
@@ -585,6 +593,7 @@ function buildTable() {
     // same gesture with the same meaning, which is the point of giving it a word.
     grip.addEventListener('dblclick', () => {
         _full = false;
+        _beforeFull = null;
         _tight = false;
         _snug = false;
         _height = Math.max(MIN_H, tightHeight());
@@ -608,6 +617,7 @@ function buildTable() {
     wgrip.addEventListener('pointermove', (e) => {
         if (!wresizing) return;
         _full = false;
+        _beforeFull = null;
         // The reader is setting the width by hand, so SNUG's fitted width gives way to it.
         _snug = false;
         _width = Math.round(Math.max(MIN_W, Math.min(e.clientX - table.getBoundingClientRect().left, window.innerWidth)));
@@ -649,11 +659,23 @@ function buildTable() {
     // a reader learn the row once.
     const full = iconButton({ className: 'sgs-icon-btn sgs-table-full', onClick: (e) => {
         e.stopPropagation();
-        _full = !_full;
-        // Asking for the room is asking to see the rows: the chevron goes back to NATURAL.
-        _tight = false;
-        _snug = false;
-        if (_folded) setFolded(false); else apply();
+        if (!_full) {
+            // Asking for the room is asking to see the rows: the chevron goes to NATURAL, and
+            // the view it was in waits underneath, as the reader's height does.
+            _beforeFull = foldMode();
+            _full = true;
+            _tight = false;
+            _snug = false;
+            if (_folded) setFolded(false); else apply();
+        } else {
+            // Giving the room back returns the table to the state it was in before FULL, view
+            // included: a folded table folds again, a fitted one fits again. A view the reader
+            // picked on the chevron in between is newer, and stays.
+            const back = _beforeFull ?? foldMode();
+            _full = false;
+            _beforeFull = null;
+            setFoldMode(back);
+        }
     } });
 
     const dockBtn = iconButton({ className: 'sgs-icon-btn sgs-table-dock', onClick: (e) => {
@@ -676,6 +698,7 @@ function buildTable() {
     // One chevron, four views, the same cycle the panel's takes. Its label is apply()'s.
     const fold = iconButton({ className: 'sgs-icon-btn sgs-table-fold', glyph: 'chevron', onClick: (e) => {
         e.stopPropagation();
+        _beforeFull = null;
         setFoldMode(nextFoldMode(foldMode(), offer()));
     } });
 
@@ -708,6 +731,7 @@ function buildTable() {
         if (!_undocked) _width = dockedWidth();
         _undocked = true;
         _full = false;
+        _beforeFull = null;
         _x = x; _y = y;
         // Ctrl held leaves the snap off, as it does for the panel.
         table.classList.toggle('sgs-snapping', !ctrl && nearBottomEdge({ top: y }, dockPoint().y));

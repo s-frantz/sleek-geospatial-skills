@@ -40,8 +40,9 @@ One release for everything below; each line has its own test.
   `nextFoldMode()` in `stow.js`, which now takes `{tight, snug}`; `makeFoldable()` gains
   `snugClass`, `tightFits` and `snugDiffers`. A folded table unfolds from its chevron, not its
   bar, as the panel does.
-- **FULL belongs to the table.** The panel's FULL is gone. FULL on a loose table takes the map
-  and gives it back where it floated. Its glyphs sit on opposite diagonals now (FULL bottom-left
+- **FULL belongs to the table.** The panel's FULL is gone. FULL on an undocked table takes the
+  map, and giving the room back returns the table to the state it was in before: where it was,
+  its size, and its chevron view, so a folded or fitted table folds or fits again. Its glyphs sit on opposite diagonals now (FULL bottom-left
   to top-right, its release top-left to bottom-right).
 - **The table drags like the panel.** Its head is grabbable berthed or loose, folded or not, and
   dragging it unpins it. Unpinning, by drag or pin, keeps the table's width; narrowing it is

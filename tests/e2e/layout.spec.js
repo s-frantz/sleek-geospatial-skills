@@ -1132,13 +1132,42 @@ test('FULL on an undocked table takes the map, and letting go puts it back where
     await expect(page.locator('#sgs-panel-body')).toBeVisible();
 });
 
-test('FULL on a folded table unfolds it: asking for the room is asking to see the rows', async ({ page }) => {
+test('FULL on a folded table unfolds it, and giving the room back folds it again', async ({ page }) => {
     await page.locator('.sgs-row[data-layer="stations"]').hover();
     await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
     await foldToHead(page, '.sgs-table-fold');
     await page.locator('.sgs-table-full').click();
+    // Asking for the room is asking to see the rows.
     await expect(page.locator('.sgs-table-fold')).toHaveAttribute('aria-expanded', 'true');
     expect(await heightOf(page, '#sgs-table')).toBeGreaterThan(400);
+    // Giving it back returns the table to the view it was in before: its head alone.
+    await page.locator('.sgs-table-full').click();
+    await expect(page.locator('.sgs-table-fold')).toHaveAttribute('aria-expanded', 'false');
+    expect(await heightOf(page, '#sgs-table')).toBeLessThan(60);
+});
+
+test('giving the room back returns a fitted table to its fitted view', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    const table = page.locator('#sgs-table');
+    // One press: the stations table's rows fit, so the first step is TIGHT.
+    await page.locator('.sgs-table-fold').click();
+    await expect(table).toHaveClass(/sgs-table--tight/);
+    const tight = await heightOf(page, '#sgs-table');
+
+    await page.locator('.sgs-table-full').click();
+    await expect(table).not.toHaveClass(/sgs-table--tight/);
+    await page.locator('.sgs-table-full').click();
+    await expect(table).toHaveClass(/sgs-table--tight/);
+    expect(Math.abs(await heightOf(page, '#sgs-table') - tight)).toBeLessThan(2);
+
+    // A view picked while the map is taken is the reader's newer choice, and it stays: folded to
+    // its head under FULL, it is still folded after, not fitted again.
+    await page.locator('.sgs-table-full').click();
+    await foldToHead(page, '.sgs-table-fold');
+    await page.locator('.sgs-table-full').click();
+    await expect(page.locator('.sgs-table-fold')).toHaveAttribute('aria-expanded', 'false');
+    await expect(table).not.toHaveClass(/sgs-table--tight/);
 });
 
 test('a folded panel stays folded while the table is undocked', async ({ page }) => {
