@@ -7,9 +7,11 @@
  * quiet link at the bottom rather than being merged into this list.
  *
  * It is a popover anchored under its control, not a modal. A modal for two toggles is a
- * ceremony, and it takes the map away from you while you adjust how the map behaves. Escape
- * and an outside click both close it, and both are wired here rather than being left to the
- * caller.
+ * ceremony, and it takes the map away from you while you adjust how the map behaves.
+ *
+ * It closes on the gear again or on Escape, and NOT on a click elsewhere. It lists shortcuts,
+ * and the natural thing to do with a list of shortcuts is to try them on the map; closing on
+ * the first click on the map took the list away exactly when the reader was using it.
  */
 
 import { getTheme, setTheme } from './theme.js';
@@ -102,6 +104,7 @@ const SHORTCUTS = [
     ['←↓→↑', 'Pan the map'],
     ['1  /  2', 'Zoom out / in'],
     ['Shift + ←→', 'Rotate the map'],
+    ['Shift + ↑↓', 'Tilt the map'],
     ['Shift + Drag', 'Box zoom'],
     ['Ctrl + Click', 'Keep popups open (compare)'],
     // The glyphs, not the word "Arrows". Two rows away, "Pan the map" already shows the four
@@ -163,17 +166,7 @@ export function toggleQuickSettings(anchor) {
     panel.style.top = `${Math.max(8, Math.round(a.top))}px`;
     panel.style.right = `${Math.max(8, Math.round(window.innerWidth - a.left + 8))}px`;
 
-    /** @param {MouseEvent} e */
-    const onDocDown = (e) => {
-        const t = /** @type {Node} */ (e.target);
-        if (panel.contains(t) || anchor.contains(t)) return;
-        closeQuickSettings();
-    };
-    document.addEventListener('pointerdown', onDocDown);
-    const unregister = pushDismissible(closeQuickSettings);
-    _cleanup = () => {
-        document.removeEventListener('pointerdown', onDocDown);
-        unregister();
-    };
+    // Escape, through the one stack that owns it. The gear's own toggle is the other way out.
+    _cleanup = pushDismissible(closeQuickSettings);
     _panel = panel;
 }

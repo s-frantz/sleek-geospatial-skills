@@ -91,19 +91,72 @@ export function makeClosable({ section, markId, markClass, glyph, label, onChang
     mark.addEventListener('click', () => apply(false));
     apply(false);
 
-    // Only a CLOSE flashes the mark, never the initial state and never an open: the pulse
-    // says "it went here", which is only true at the moment it goes.
+    // A close shrinks the section into its mark, then the mark pulses once. Only a CLOSE
+    // pulses, never the initial state and never an open: the pulse says "it went here", which
+    // is only true at the moment it goes. A second press while it is on its way is ignored.
+    let _leaving = false;
+    const close = () => {
+        if (_closed || _leaving) return;
+        _leaving = true;
+        stowInto(section, mark, () => { _leaving = false; apply(true); flashMark(mark); });
+    };
     return {
-        close: () => { apply(true); flashMark(mark); },
+        close,
         open: () => apply(false),
-        toggle: () => { apply(!_closed); if (_closed) flashMark(mark); },
+        toggle: () => { if (_closed) apply(false); else close(); },
         isClosed: () => _closed,
         mark,
     };
 }
 
-/** How long the arrival pulse lasts. Matches the animation in edge-mark.css. */
-const FLASH_MS = 700;
+/** How long a section takes to shrink into its mark, ms. Fast enough to read as a gesture. */
+export const STOW_MS = 160;
+
+/**
+ * Shrink a section toward its mark, quickly, then hand over to `done`, which takes it out of
+ * the layout.
+ *
+ * The pulse on the mark says where the section went; this shows it going there, which is the
+ * part a pulse alone cannot: the reader's eye is on the section when they close it, and a tab
+ * lighting up at the far edge of the screen is easy to miss. One transform and an opacity on
+ * the section's own box, no clone and no layout, so it costs nothing to maintain. Reduced
+ * motion, or a section with no size, goes straight to `done`.
+ *
+ * @param {HTMLElement} section
+ * @param {HTMLElement} mark
+ * @param {() => void} done
+ * @returns {void}
+ */
+export function stowInto(section, mark, done) {
+    const from = section.getBoundingClientRect();
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (still || typeof section.animate !== 'function' || from.width === 0) { done(); return; }
+
+    // The mark is display:none until its section is closed, so it is shown for one read to
+    // learn where it will be. Nothing paints in between.
+    const shown = getComputedStyle(mark).display !== 'none';
+    if (!shown) mark.style.display = 'flex';
+    const to = mark.getBoundingClientRect();
+    if (!shown) mark.style.removeProperty('display');
+
+    const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+    const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+    const s = Math.max(to.width / from.width, to.height / from.height, 0.04);
+    const anim = section.animate([
+        { transform: 'none', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) scale(${s})`, opacity: 0 },
+    ], { duration: STOW_MS, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' });
+    // Held at its end frame until `done` has taken it out of the layout, then released, so a
+    // section that opens again later carries no leftover transform.
+    const finish = () => { done(); anim.cancel(); };
+    anim.finished.then(finish, finish);
+}
+
+/**
+ * How long the arrival pulse lasts. Matches the animation in edge-mark.css, which holds the
+ * dark outline for its first 30%: 300ms, long enough to be seen after the shrink lands.
+ */
+const FLASH_MS = 1000;
 /** @type {WeakMap<HTMLElement, number>} */
 const _flashTimers = new WeakMap();
 
@@ -132,34 +185,40 @@ export function flashMark(mark) {
 }
 
 /**
- * The three views one chevron gives of a section's vertical axis.
- *   natural  its own height: the reader's pinned one, or FULL's
- *   tight    fitted to its rows, with no blank band under the last one
- *   header   its head alone, still reporting
- * @typedef {'natural'|'tight'|'header'} FoldMode
+ * The four views one chevron gives of a section, in the order it steps through them, with the
+ * way the chevron points in each:
+ *   natural  ↓  its own size: the reader's pinned one, or FULL's
+ *   tight    →  fitted to its rows, taller or shorter, with no blank band under the last one
+ *   header   ↑  its head alone, still reporting
+ *   snug     ←  fitted to its rows AND its columns: tight, and as narrow as its content
+ * @typedef {'natural'|'tight'|'header'|'snug'} FoldMode
  */
 
 /**
  * The step a chevron press takes. ONE owner for the cycle, so the panel and the table cannot
- * grow two orders: natural, then tight, then header, then natural again. TIGHT is skipped when
- * the rows would fill the section anyway, because a press that changes nothing reads as a
- * broken button.
+ * grow two orders: natural, tight, header, snug, and natural again.
+ *
+ * A fitted view is skipped only when it could not do its job. TIGHT goes when the rows could
+ * not all fit on screen, since "fitted to its rows" would then be a lie; SNUG goes when there is
+ * no width to take in, since it would then be TIGHT again, and the step that is TIGHT's job
+ * already came.
  *
  * @param {FoldMode} mode
- * @param {boolean} tightDiffers would fitting to the rows actually make it shorter?
+ * @param {{tight: boolean, snug: boolean}} offer which fitted views can do their job right now
  * @returns {FoldMode}
  */
-export function nextFoldMode(mode, tightDiffers) {
-    if (mode === 'natural') return tightDiffers ? 'tight' : 'header';
+export function nextFoldMode(mode, offer) {
+    if (mode === 'natural') return offer.tight ? 'tight' : 'header';
     if (mode === 'tight') return 'header';
+    if (mode === 'header') return offer.snug ? 'snug' : 'natural';
     return 'natural';
 }
 
 /**
- * Make a section foldable: one chevron stepping through NATURAL, TIGHT and HEADER.
+ * Make a section foldable: one chevron stepping through NATURAL, TIGHT, HEADER and SNUG.
  *
- * TIGHT and HEADER are VIEWS, not sizes: each is a class on the section, so neither writes over
- * a height the reader pinned, and stepping back to NATURAL restores it exactly. The same rule
+ * Every view but NATURAL is a VIEW, not a size: each is a class on the section, so none writes
+ * over a size the reader pinned, and stepping back to NATURAL restores it exactly. The same rule
  * FULL follows, for the same reason.
  *
  * @param {object} opts
@@ -167,19 +226,24 @@ export function nextFoldMode(mode, tightDiffers) {
  * @param {HTMLButtonElement} opts.control the head button carrying the chevron
  * @param {HTMLElement} opts.body
  * @param {string} [opts.foldedClass] the class marking HEADER
- * @param {string} [opts.tightClass] the class marking TIGHT; without one the section only folds
- * @param {() => boolean} [opts.tightDiffers] would TIGHT make the section shorter right now?
+ * @param {string} [opts.tightClass] the class marking TIGHT; without one the step is not offered
+ * @param {string} [opts.snugClass] the class marking SNUG; without one the step is not offered
+ * @param {() => boolean} [opts.tightFits] could every row fit on screen right now?
+ * @param {() => boolean} [opts.snugDiffers] is there width to take in right now?
  * @param {Record<FoldMode, string>} [opts.labels] what a press does, by the view it goes to
  * @param {boolean} [opts.folded]
  * @param {(folded: boolean, mode: FoldMode) => void} [opts.onChange]
  */
 export function makeFoldable({
-    section, control, body, foldedClass = 'sgs-folded', tightClass, tightDiffers = () => false,
-    labels, folded = true, onChange,
+    section, control, body, foldedClass = 'sgs-folded', tightClass, snugClass,
+    tightFits = () => false, snugDiffers = () => false, labels, folded = true, onChange,
 }) {
     /** @type {FoldMode} */
     let _mode = folded ? 'header' : 'natural';
-    const next = () => nextFoldMode(_mode, !!tightClass && tightDiffers());
+    const next = () => nextFoldMode(_mode, {
+        tight: !!tightClass && tightFits(),
+        snug: !!snugClass && snugDiffers(),
+    });
 
     // The label names what the NEXT press does, which is what a reader hovering it wants.
     const relabel = () => {
@@ -193,6 +257,7 @@ export function makeFoldable({
         _mode = mode;
         section.classList.toggle(foldedClass, mode === 'header');
         if (tightClass) section.classList.toggle(tightClass, mode === 'tight');
+        if (snugClass) section.classList.toggle(snugClass, mode === 'snug');
         control.setAttribute('aria-expanded', String(mode !== 'header'));
         // `hidden` and not display:none in a rule: the body must leave the accessibility
         // tree too, or a screen reader still walks a table the sighted reader cannot see.

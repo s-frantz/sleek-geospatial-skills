@@ -43,6 +43,7 @@ const CLEAN_TOP = 10;
  * @property {() => void} dismiss
  * @property {() => void} unregister
  * @property {AbortController} drag
+ * @property {() => void} [onClose]
  */
 
 /** @type {OpenPopup[]} */
@@ -108,6 +109,7 @@ export function closePopup(p) {
     p.unregister();
     p.el.remove();
     p.leader.remove();
+    p.onClose?.();
     if (_open.length === 0) _cascadeOffset = 0;
 }
 
@@ -171,9 +173,15 @@ function wireDrag(el, onDrag) {
  *        the layer this feature came from: supplies the swatch and the type pill, and lets
  *        the title bar carry the same table action the layer row does
  * @param {(layerId: string) => void} [opts.onOpenTable]
+ * @param {() => {pressed: boolean, label: string}} [opts.tableButtonState] what the table
+ *        button shows right now: re-read whenever the table announces a change
+ *        (`sgs-table-change`), so a button stays pressed exactly while its row is lit
+ * @param {() => void} [opts.onClose]
  * @returns {OpenPopup}
  */
-export function openPopup({ lngLat, title, rows, accent, ctrlKey = false, layer, onOpenTable }) {
+export function openPopup({
+    lngLat, title, rows, accent, ctrlKey = false, layer, onOpenTable, tableButtonState, onClose,
+}) {
     ensureHost();
     if (!ctrlKey) closeAllPopups();
 
@@ -204,16 +212,23 @@ export function openPopup({ lngLat, title, rows, accent, ctrlKey = false, layer,
     actions.className = 'sgs-head-actions';
     head.appendChild(actions);
 
-    // The table action, for THIS feature: the caller finds its row in the table, lit and
-    // scrolled into view, and a second press toggles the table away, the same idiom as the
-    // layer row's button. What "find" means is the caller's; this file only offers the button.
+    // The table action, for THIS feature. What its presses mean (find, clear, close) is the
+    // caller's; this file offers the button and shows it PRESSED while the caller says so,
+    // drawn as a table with a row lit, which is what the press did.
+    /** @type {(() => void)|null} */
+    let refreshTableBtn = null;
     if (layer && onOpenTable) {
         const tableBtn = document.createElement('button');
         tableBtn.type = 'button';
-        tableBtn.className = 'sgs-icon-btn';
-        tableBtn.title = 'Find this feature in the table';
-        tableBtn.setAttribute('aria-label', tableBtn.title);
-        tableBtn.innerHTML = icon('table', 12);
+        tableBtn.className = 'sgs-icon-btn sgs-popup-table';
+        refreshTableBtn = () => {
+            const s = tableButtonState?.() ?? { pressed: false, label: 'Find this feature in the table' };
+            tableBtn.title = s.label;
+            tableBtn.setAttribute('aria-label', s.label);
+            tableBtn.setAttribute('aria-pressed', String(s.pressed));
+            tableBtn.innerHTML = icon(s.pressed ? 'table-lit' : 'table', 12);
+        };
+        refreshTableBtn();
         tableBtn.addEventListener('click', (ev) => { ev.stopPropagation(); onOpenTable(layer.id); });
         actions.appendChild(tableBtn);
     }
@@ -270,6 +285,9 @@ export function openPopup({ lngLat, title, rows, accent, ctrlKey = false, layer,
     p.dismiss = () => closePopup(p);
     p.unregister = pushDismissible(p.dismiss);
     p.drag = wireDrag(el, () => drawLeader(p));
+    p.onClose = onClose;
+    // On the drag's controller, so closing the popup removes this listener with the others.
+    if (refreshTableBtn) document.addEventListener('sgs-table-change', refreshTableBtn, { signal: p.drag.signal });
     _open.push(p);
     close.addEventListener('click', () => closePopup(p));
 

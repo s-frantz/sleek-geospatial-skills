@@ -68,40 +68,42 @@ berthed one, while the float, its position and its width wait underneath untouch
 FULL puts the table back where it was floating. A table that has taken the map is standing on the
 panel's room, loose or not, so it folds the panel either way.
 
-## One chevron, three views
+## One chevron, four views
 
-The chevron steps through three views of the vertical axis, the same cycle on the panel and the
-table, owned once by `nextFoldMode()` in `app/js/ui/stow.js`:
+The chevron steps through four views, the same cycle on the panel and the table, owned once by
+`nextFoldMode()` in `app/js/ui/stow.js`. The chevron points one way per view, the same on both:
 
-| view | the section shows |
-|---|---|
-| **NATURAL** | its own height: the reader's pinned one, or FULL's |
-| **TIGHT** | its rows, and no blank band under them |
-| **HEADER** | its head alone, still reporting |
+| view | chevron | the section shows |
+|---|---|---|
+| **NATURAL** | ↓ | its own size: the reader's pinned one, or FULL's |
+| **TIGHT** | → | its rows and no blank band, growing or shrinking to fit them |
+| **HEADER** | ↑ | its head alone, still reporting |
+| **SNUG** | ← | TIGHT, and as narrow as its content: the table's columns, the panel's rows |
 
-NATURAL, TIGHT, HEADER, and round again. TIGHT is skipped whenever the rows would fill the section
-anyway, because a press that changes nothing reads as a broken button: the eight-row neighbourhood
-table goes straight from NATURAL to HEADER, and the six-row station table takes all three steps.
-Like FULL, TIGHT and HEADER are views that write over no height, so stepping back to NATURAL
-restores the reader's number exactly. The button's label names what the NEXT press does.
+NATURAL, TIGHT, HEADER, SNUG, and round again. A fitted view is skipped only when it cannot do
+its job: TIGHT when the rows could not all fit on screen, since "fitted to its rows" would then
+be a lie, and SNUG when there is no width to take in, since it would then be TIGHT again. SNUG's
+height follows TIGHT's rule: fitted when the rows fit, the natural height when they do not. On
+the panel, whose automatic width is already its content's, SNUG appears only once a grip has
+pinned a wider one. Every view but NATURAL writes over no stored size, so stepping back to
+NATURAL restores the reader's numbers exactly. The button's label names what the NEXT press does.
 
 When the controls combine, the stronger wins, strongest first:
 
 | view or size | wins over |
 |---|---|
 | HEADER | everything: a folded section is as tall as its head |
-| TIGHT | FULL and the reader's height: the rows, inside whatever room there is |
-| FULL | the reader's pinned height, left untouched underneath |
-| PINNED | the automatic height |
+| TIGHT, SNUG | FULL and the reader's size: the content, inside whatever room there is |
+| FULL | the reader's pinned size, left untouched underneath |
+| PINNED | the automatic size |
 
 Two resets keep that honest. Pressing FULL puts the chevron back to NATURAL, because asking for
-the room is asking to see the rows. Dragging a grip cancels FULL and TIGHT both, because the
-reader has just said what the height is.
+the room is asking to see the rows. Dragging a grip cancels FULL and the fitted views, because
+the reader has just said what the size is.
 
-The chevron points where the next press moves the section's free edge. The panel hangs from the
-top, so with rows showing it points up and folded it points down; the table stands on the
-bottom, so the reverse. Both only ever flip. A chevron that turned sideways on one section and
-upright on the other was two rules for one control.
+Unpinning changes where a section is, never its size: a table picked up from its berth keeps
+its full width. Narrowing it is SNUG's job. A folded section unfolds from its chevron alone; its
+head is a handle to drag, on the table as on the panel.
 
 ### Why this is not an enum
 

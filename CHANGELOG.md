@@ -23,23 +23,36 @@ One release for everything below; each line has its own test.
   in both themes: every opaque token blended 1.25% toward `rgb(255, 80, 0)`. The `ui-theme`
   skill has the ladder.
 - **MapLibre's own chrome follows the theme**: the control group, its hover, its divider.
-- **The chosen segment in quick settings is monochrome**: the text colour as a plate, not the
+- **The chosen segment in quick settings is a quiet grey plate** (`--sgs-fg-dim`), not the
   accent blue. Component: `quick-settings`.
+- **Quick settings stay open** through clicks on the map, closing on the gear or Escape, so its
+  shortcuts can be tried while it shows. Component: `quick-settings`.
+- **The arrows pan the map without clicking it first**; Shift + ←/→ rotates and Shift + ↑/↓
+  tilts. MapLibre only hears them on its focused canvas, so `main.js` takes them anywhere else.
+  Component: `app-shell`.
 
 ### Furniture (panel and table)
 
-- **One model for the head buttons.** One chevron with three views on the panel and the table
-  alike (natural, fitted to its rows, head alone), skipping the fitted view when it would change
-  nothing; one owner for the cycle, `nextFoldMode()` in `stow.js`. The chevron only ever flips.
+- **One model for the head buttons.** One chevron with four views on the panel and the table
+  alike, pointing one way per view: natural ↓, fitted to its rows →, head alone ↑, fitted to
+  its rows and width ←. A fitted view is skipped only when it cannot do its job (the rows could
+  not all fit on screen; there is no width to take in). One owner for the cycle,
+  `nextFoldMode()` in `stow.js`, which now takes `{tight, snug}`; `makeFoldable()` gains
+  `snugClass`, `tightFits` and `snugDiffers`. A folded table unfolds from its chevron, not its
+  bar, as the panel does.
 - **FULL belongs to the table.** The panel's FULL is gone. FULL on a loose table takes the map
   and gives it back where it floated. Its glyphs sit on opposite diagonals now (FULL bottom-left
   to top-right, its release top-left to bottom-right).
 - **The table drags like the panel.** Its head is grabbable berthed or loose, folded or not, and
-  dragging it unpins it. Loose, it snaps back when held against the bottom edge anywhere, not
-  only near the left corner (new `nearBottomBerth()` in `furniture.js`).
+  dragging it unpins it. Unpinning, by drag or pin, keeps the table's width; narrowing it is
+  the chevron's fourth view.
+- **Both sections snap back anywhere along their edge**: the table along the bottom, the panel
+  along the left, not only near one corner (new `nearBottomBerth()` and `nearLeftBerth()` in
+  `furniture.js`). Ctrl held while dragging turns the snap off; `makeDraggable()` reports it.
 - **Head buttons are spaced by one rule** (`.sgs-head-actions`, 4px) in every furniture head.
-- **A closed section's mark pulses once** (`flashMark()` in `stow.js`), so the reader sees
-  where it went.
+- **A closing section shrinks into its tab** (160ms, `stowInto()` in `stow.js`), **and the tab
+  pulses once** in the chrome's own greys, its outline held for 300ms of a 1s pulse
+  (`flashMark()`), so the reader sees where it went.
 - Fixed: a folded panel stretched to full height under a loose table.
 - Components: `panel`, `dock`, `edge-mark`, `app-shell` (`furniture.css`), `framework`
   (`furniture.js`), `primitives` (`prefs.js`).
@@ -49,9 +62,14 @@ One release for everything below; each line has its own test.
 - **Zoom-to flashes the feature once**, on the press, while the camera is still moving (new
   `flashFeature()` in `layers.js`). `LayerDef` gains `key`, the property that tells features
   apart; without one a row still zooms and simply does not flash.
-- **A popup's table button is a toggle.** Table closed: it opens on the feature's layer with its
-  row lit and scrolled into view. Table open: it closes. The row a popup or a zoom pointed at is
-  the one lit row, announced with `aria-current`.
+- **A popup's table button takes three presses: find, clear, close.** The first lights the
+  feature's row (opening or switching the table as needed) and shows the button pressed, drawn
+  as a table with a row lit; the second clears the row; the third closes the table. A table
+  opened any other way gets its row lit, never closed. Closing the popup puts out a row its
+  button lit. The lit row is announced with `aria-current`. New `featureTableState()` and
+  `releaseFeatureRow()` in `dock.js`; `openPopup()` gains `tableButtonState` and `onClose`.
+- **A feature with a popup open is drawn selected**: a quiet neutral edge on a polygon, a ring
+  hugging a point, gone when its popup closes (`markSelected()` in `layers.js`).
 - **Faint row stripes on the dock's table** (the text colour at 2.5%); the popup's field table
   stays plain. Component: `field-table`.
 - Components: `app-shell` (`layers.js`, `main.js`), `dock`, `popups`.

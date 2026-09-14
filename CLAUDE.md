@@ -49,6 +49,14 @@ the old id, and `sgs:status`/`sgs:drift` report it as unknown until the manifest
 so the CHANGELOG entry must say what manifests should do. The `repo-maintain` skill carries the
 tests an addition must pass; read it before growing either file.
 
+## Working with the maintainer
+
+**Build locally; open a pull request only when asked.** Make changes on a local branch, verify
+them, and show them running on a localhost port. Then say what changed and ask what goes into a
+PR. Do not open one PR per change, and do not push each change as it lands. "One idea per PR"
+in CONTRIBUTING.md is about what a PR contains once it is opened, not a reason to open one per
+idea: nine small PRs for one session's work had to be folded back into one release.
+
 ## House rules
 
 **Measure, do not eyeball.** Never put a number in `SIZE_FACTOR` or `NUDGE` that did not come

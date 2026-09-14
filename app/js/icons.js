@@ -48,6 +48,14 @@ const PATHS = {
     table: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/>',
 
     /**
+     * `table` with its first body row lit: the PRESSED state of a find-in-table button, drawn
+     * as the thing it has done, one row lit in the table. The band paints from its own
+     * variable, the way the locate dot does, so it takes the table's lit-row colour while the
+     * rules stay the button's ink. Drawn first, so the rules sit on top of it.
+     */
+    'table-lit': '<rect x="3" y="9" width="18" height="6" fill="var(--sgs-lit-row, currentColor)" stroke="none"/><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/>',
+
+    /**
      * A popup, drawn so it cannot be confused with the table. Same box, one title rule instead
      * of a grid, and a speech tail. The tail is what a popup has and a table never does, and
      * it sits INSIDE the ink budget rather than being added to it, which is why the box is

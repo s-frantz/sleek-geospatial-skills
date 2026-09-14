@@ -69,6 +69,38 @@ const _data = {};
 const NOTHING = ['literal', false];
 
 /**
+ * The ink of the selected-feature edge: a near-black neutral, fixed rather than read from the
+ * theme, because the basemap underneath it is the same light style in both themes.
+ */
+const SELECTED_INK = '#2a2b30';
+
+/**
+ * Which features have a popup open, per layer, counted: two popups on one feature (Ctrl keeps
+ * them) must both close before the feature stops looking selected.
+ * @type {Map<string, Map<unknown, number>>}
+ */
+const _selected = new Map();
+
+/**
+ * Mark a feature as being read, or no longer, and redraw its layer's selected edge.
+ * @param {string} layerId
+ * @param {any} feature
+ * @param {boolean} on
+ * @returns {void}
+ */
+export function markSelected(layerId, feature, on) {
+    const def = layerById(layerId);
+    const value = def ? feature?.properties?.[def.key] : undefined;
+    if (!def || value === undefined || value === null || !map.getLayer(`${def.id}-selected`)) return;
+    const counts = _selected.get(layerId) ?? new Map();
+    _selected.set(layerId, counts);
+    const n = (counts.get(value) ?? 0) + (on ? 1 : -1);
+    if (n > 0) counts.set(value, n); else counts.delete(value);
+    map.setFilter(`${def.id}-selected`,
+        counts.size ? ['in', ['get', def.key], ['literal', [...counts.keys()]]] : NOTHING);
+}
+
+/**
  * The GL ids of a layer's flash layers: a polygon gets two, a fill and a heavy edge, and a
  * point gets one filled ring.
  * @param {LayerDef} def
@@ -123,6 +155,30 @@ export async function addAllLayers() {
                     'circle-color': def.color,
                     'circle-stroke-width': 1.5,
                     'circle-stroke-color': '#fff',
+                },
+            });
+        }
+        // The SELECTED layer: a quiet neutral edge on every feature with a popup open, so the
+        // one being read looks different from the others of its kind while it is read. Neutral
+        // ink rather than the layer's colour or the accent, because it marks a state of the
+        // reading, not a fact of the data, and it must not compete with the flash that answers
+        // "which one?". Below the flash layers, so a flash still draws over it.
+        if (def.kind === 'fill') {
+            map.addLayer({
+                id: `${def.id}-selected`, type: 'line', source: def.id, filter: NOTHING,
+                paint: { 'line-color': SELECTED_INK, 'line-width': 2.5, 'line-opacity': 0.6 },
+            });
+        } else {
+            map.addLayer({
+                id: `${def.id}-selected`, type: 'circle', source: def.id, filter: NOTHING,
+                paint: {
+                    // Hugging the point: its dot is 6 with a 1.5 white edge, so its ink ends at
+                    // 7.5, and a 2-wide ring centred on 8.5 starts exactly there. No gap.
+                    'circle-radius': 8.5,
+                    'circle-color': 'rgba(0, 0, 0, 0)',
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': SELECTED_INK,
+                    'circle-stroke-opacity': 0.6,
                 },
             });
         }

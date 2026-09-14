@@ -10,7 +10,23 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { edgeOf, coverFromEdgeFurniture, nearBerth, nearBottomBerth, makeBorrow, HOME, SNAP } from '../../app/js/utils/furniture.js';
+import {
+    edgeOf, coverFromEdgeFurniture, nearBerth, nearBottomBerth, nearLeftBerth, makeBorrow, HOME, SNAP,
+} from '../../app/js/utils/furniture.js';
+
+describe('nearLeftBerth', () => {
+    it('catches the panel held against the left edge anywhere down it, the middle included', () => {
+        // Halfway down a tall viewport: 400px from the top corner nearBerth() compared against.
+        expect(nearLeftBerth({ left: 10 }, 10)).toBe(true);
+        expect(nearLeftBerth({ left: 10 + SNAP }, 10)).toBe(true);
+        expect(nearLeftBerth({ left: 0 }, 10)).toBe(true);
+    });
+
+    it('lets a panel clear of the edge stay loose', () => {
+        expect(nearLeftBerth({ left: 10 + SNAP + 1 }, 10)).toBe(false);
+        expect(nearLeftBerth({ left: 500 }, 10)).toBe(false);
+    });
+});
 
 const VIEWPORT = { width: 1280, height: 800 };
 

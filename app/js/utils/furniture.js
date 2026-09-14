@@ -154,8 +154,10 @@ export const SNAP = HOME * 2;
  * Per-axis rather than Euclidean: a diagonal miss of 40px in both directions is not "nearly
  * home" in any sense a reader would recognise, and the radial version catches it.
  *
- * For a berth that is a CORNER, like the panel's. A berth that is a whole edge is a different
- * test: see nearBottomBerth() below.
+ * For a berth that is a single CORNER. Neither piece of furniture in this app has one any
+ * more: the panel's berth is the whole left edge (nearLeftBerth) and the table's the whole
+ * bottom (nearBottomBerth). Kept because a corner berth is a real shape, and the edge tests
+ * are easiest to read against it.
  *
  * Pure, and takes the berth point rather than deriving one, because only the furniture knows
  * where its own berth is. Deriving it here would mean this file knowing about specific pieces
@@ -192,6 +194,25 @@ export function nearBerth(rect, berth, snap = SNAP) {
  */
 export function nearBottomBerth(rect, berthTop, snap = SNAP) {
     return rect.top >= berthTop - snap;
+}
+
+/**
+ * Is this rect held against a LEFT-EDGE berth closely enough that letting go should re-berth
+ * it? nearBottomBerth() rotated, for the panel.
+ *
+ * The panel's berth used to be tested as its top-left CORNER, so a panel dropped against the
+ * left edge halfway down the map stayed loose: the same miss the table had along the bottom.
+ * Its docked form spans the whole left edge, so the edge is the target, and y is ignored.
+ * One-sided for the same reason too, though the drag clamps x at 0: anything at or left of the
+ * berth, or within SNAP to its right, counts.
+ *
+ * @param {{left: number}} rect where the furniture is now
+ * @param {number} berthLeft the left it would have if it were pinned
+ * @param {number} [snap]
+ * @returns {boolean}
+ */
+export function nearLeftBerth(rect, berthLeft, snap = SNAP) {
+    return rect.left <= berthLeft + snap;
 }
 
 /**

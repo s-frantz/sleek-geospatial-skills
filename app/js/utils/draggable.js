@@ -43,9 +43,14 @@ export function releaseDrag(el) {
 /**
  * @param {HTMLElement} el the element that moves
  * @param {HTMLElement} handle the element you grab
- * @param {(pos: {x: number, y: number}) => void} [onMove] called with each new position
- * @param {(pos: {x: number, y: number}) => void} [onEnd] called once, on release
+ * @param {(pos: {x: number, y: number, ctrl: boolean}) => void} [onMove] called with each new
+ *        position, and whether Ctrl is held
+ * @param {(pos: {x: number, y: number, ctrl: boolean}) => void} [onEnd] called once, on release
  * @returns {() => void} teardown
+ *
+ * Ctrl held means "put it exactly here": furniture that snaps to a berth reads it as leave the
+ * snap off, so a reader can park a section a little way off its edge on purpose. The drag
+ * only reports it; what it means is each piece of furniture's call.
  */
 export function makeDraggable(el, handle, onMove, onEnd) {
     let startX = 0, startY = 0, baseX = 0, baseY = 0, dragging = false;
@@ -84,7 +89,7 @@ export function makeDraggable(el, handle, onMove, onEnd) {
         el.style.top = `${y}px`;
         el.style.right = 'auto';
         el.style.bottom = 'auto';
-        onMove?.({ x, y });
+        onMove?.({ x, y, ctrl: e.ctrlKey });
     };
 
     /** @param {PointerEvent} e */
@@ -97,7 +102,7 @@ export function makeDraggable(el, handle, onMove, onEnd) {
         // mid-drag and leave the reader dragging something that is no longer under the
         // cursor.
         const r = el.getBoundingClientRect();
-        onEnd?.({ x: Math.round(r.left), y: Math.round(r.top) });
+        onEnd?.({ x: Math.round(r.left), y: Math.round(r.top), ctrl: e.ctrlKey });
     };
 
     handle.addEventListener('pointerdown', down);

@@ -14,10 +14,13 @@
  */
 
 import { map } from './map.js';
-import { addAllLayers, LAYERS, layerById, interactiveLayerId } from './layers.js';
+import { addAllLayers, LAYERS, layerById, interactiveLayerId, markSelected } from './layers.js';
 import { initPanel } from './ui/panel.js';
 import { renderLayerRows } from './ui/layer-rows.js';
-import { initDock, toggleLayerTable, toggleFeatureInTable } from './ui/dock.js';
+import {
+    initDock, toggleLayerTable, toggleFeatureInTable, featureTableState, FEATURE_TABLE_LABELS,
+    releaseFeatureRow,
+} from './ui/dock.js';
 import { makeControl } from './ui/control-stack.js';
 import { settingsControl } from './ui/settings-control.js';
 import { toggleQuickSettings } from './ui/quick-settings.js';
@@ -79,9 +82,21 @@ map.on('load', async () => {
                 // A plain click replaces the open popup; Ctrl keeps it, for comparing.
                 ctrlKey: !!e.originalEvent?.ctrlKey,
                 layer,
-                // A popup is one feature, so its table button finds that feature's row.
+                // A popup is one feature, so its table button finds that feature's row, then
+                // clears it, then closes the table, and shows pressed while its row is lit.
                 onOpenTable: () => toggleFeatureInTable(def.id, feature.properties?.[layer.key]),
+                tableButtonState: () => {
+                    const s = featureTableState(def.id, feature.properties?.[layer.key]);
+                    return { pressed: s === 'lit', label: FEATURE_TABLE_LABELS[s] };
+                },
+                // The feature looks selected for as long as its popup is open, and a row its
+                // table button lit goes dark with it.
+                onClose: () => {
+                    markSelected(def.id, feature, false);
+                    releaseFeatureRow(def.id, feature.properties?.[layer.key]);
+                },
             });
+            markSelected(def.id, feature, true);
         });
         map.on('mouseenter', glId, () => { map.getCanvas().style.cursor = 'pointer'; });
         map.on('mouseleave', glId, () => { map.getCanvas().style.cursor = ''; });
@@ -117,4 +132,34 @@ document.addEventListener('keydown', (e) => {
         const step = (e.key === '!' || e.key === '@') ? 2 : 1;
         map.zoomTo(map.getZoom() + (zoomOut ? -step : step));
     }
+
+    // Arrows pan, Shift + ←/→ rotates: the steps MapLibre's own keyboard handler takes (100px,
+    // 15°), for the times it cannot hear them. It listens on its canvas alone, so the arrows did
+    // nothing on a fresh load, or after pressing any control (the gear, a layer toggle) until
+    // the reader thought to click the map first. When the canvas has focus it handles the key
+    // itself, so this steps aside; so it does inside the table, whose rows the arrows scroll.
+    const dir = ARROWS[e.key];
+    if (dir && !e.defaultPrevented && !isMapOrScroller(e.target)) {
+        if (e.shiftKey) {
+            // Shift turns the map with ←/→ and tilts it with ↑/↓, 15° and 10° a press, MapLibre's
+            // own steps, so the keys behave the same whether or not its canvas has focus.
+            if (dir[0]) map.easeTo({ bearing: map.getBearing() + dir[0] * 15 });
+            else map.easeTo({ pitch: map.getPitch() - dir[1] * 10 });
+        } else {
+            map.panBy([dir[0] * 100, dir[1] * 100]);
+        }
+        e.preventDefault();
+    }
 });
+
+/** @type {Record<string, [number, number]>} */
+const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+
+/**
+ * Where the arrows already mean something: the map's canvas (MapLibre handles them there) and
+ * the table's scrolling body.
+ * @param {EventTarget|null} el
+ */
+function isMapOrScroller(el) {
+    return el instanceof Element && !!el.closest('.maplibregl-canvas, .sgs-dock-body');
+}

@@ -19,18 +19,22 @@ when pinned, and where its mark parks when closed. Never a lane of its own.
 coordinates rather than by the stylesheet.
 **SNAP** — an unpinned section dropped near its berth re-pins itself.
 
-A mark pulses once, briefly, at the moment of the close (`flashMark()` in `stow.js`), because
-a tab designed to be quiet is also easy to miss: one pulse teaches where it lives, and after
-that it stays quiet. Only a close pulses, never the initial state and never an open.
+A close shows where the section went in two quick steps: the section shrinks into its mark
+(`stowInto()` in `stow.js`, 160ms, one transform on its own box), then the mark pulses once
+(`flashMark()`), going to full ink on a sunk ground in the chrome's own greys. A tab designed
+to be quiet is also easy to miss, and the reader's eye is on the section, not the far edge, so
+the section leads the eye there. Only a close does this, never the initial state and never an
+open; reduced motion skips the shrink and the pulse.
 
-FOLD is one chevron with three steps: the section's natural height, then TIGHT (its rows and no
-blank band), then the head alone, and round again, skipping TIGHT when the rows would fill the
-section anyway. The cycle has one owner, `nextFoldMode()` in `app/js/ui/stow.js`, so the panel
+FOLD is one chevron with four steps: the section's natural size, then TIGHT (its rows and no
+blank band), then the head alone, then SNUG (its rows and its content's width), and round again.
+A fitted step is skipped only when it cannot do its job: TIGHT when the rows could not all fit
+on screen, SNUG when there is no width to take in. The cycle has one owner, `nextFoldMode()` in `app/js/ui/stow.js`, so the panel
 and the table cannot grow two orders; the `ui-furniture` skill has what each view does to the
 geometry and which wins when they combine.
 
 `app/js/ui/stow.js` — `makeClosable()` for the FOLD/close pair's CLOSE half and its MARK,
-`makeFoldable()` for FOLD. `nearBerth()`, `nearBottomBerth()` and `SNAP` in
+`makeFoldable()` for FOLD. `nearLeftBerth()`, `nearBottomBerth()` and `SNAP` in
 `app/js/utils/furniture.js` for the snap test; `makeDraggable()` in
 `app/js/utils/draggable.js` for the drag it answers.
 
@@ -74,14 +78,18 @@ section were docked. Snapping does not introduce a behaviour; it ends a disagree
 already started. Larger than `HOME` rather than equal to it, because `HOME` judges a rect at
 rest and `SNAP` is a target a moving hand has to hit.
 
-**The snap test has the shape of the berth.** A corner berth (the panel's) is a point, and a
-drop snaps when it lands within `SNAP` of it on both axes, `nearBerth()`. An edge berth (the
-dock's, the whole bottom) is a line, and a drop snaps when it is held against that line
-ANYWHERE along it, `nearBottomBerth()`, which reads y alone. Testing an edge berth against one
-of its corners is the bug this avoids: a loose table dropped at the foot of the map, in the
-middle where a hand naturally aims, stayed loose because it was 500px from the bottom-left
-corner it was being compared to. The edge test is also one-sided, because a section pushed
-down PAST its berth is being held against the edge harder, not missing it.
+**The snap test has the shape of the berth.** A corner berth is a point, and a drop snaps when
+it lands within `SNAP` of it on both axes, `nearBerth()`. An edge berth is a line, and a drop
+snaps when it is held against that line ANYWHERE along it: `nearBottomBerth()` for the table
+(y alone) and `nearLeftBerth()` for the panel (x alone), since both dock along a whole edge.
+Testing an edge berth against one of its corners is the bug this avoids: a loose table dropped
+at the foot of the map, in the middle where a hand naturally aims, stayed loose because it was
+500px from the bottom-left corner it was being compared to, and the panel had the same miss
+halfway down the left edge. The edge tests are one-sided, because a section pushed PAST its
+berth is being held against the edge harder, not missing it.
+
+**Ctrl held turns the snap off**, for both sections: the drag reports it, and each piece of
+furniture skips its snap, so a reader can park a section just off its edge on purpose.
 
 Two rules keep it honest:
 

@@ -66,6 +66,15 @@
     max-height: calc(100% - 2 * var(--sgs-panel-inset, 10px));
 }
 
+/* SNUG, the chevron's fourth view: TIGHT, and as narrow as the rows. Also a class, so a width
+   the reader pinned survives underneath it; declared after --manual-w so it wins. */
+.sgs-panel--snug {
+    bottom: auto;
+    height: auto;
+    max-height: calc(100% - 2 * var(--sgs-panel-inset, 10px));
+    width: max-content;
+}
+
 /* SNAPPING: shown while a dragged piece of furniture is inside the catch radius of its berth,
    so "close enough" is something the reader can see rather than something they discover by
    letting go. Outline rather than a moved shadow: it must not change the element's geometry
@@ -93,12 +102,15 @@
 
 .sgs-panel--folded .sgs-grip { display: none; }
 .sgs-panel--folded .sgs-panel-head { border-bottom: none; }
-/* The chevron points where the next press moves the section's free edge. The panel hangs from
-   the top, so with rows showing it points UP (its bottom edge rises), and folded it points
-   down. It only ever flips: turning sideways here and upright on the table was two rules for
-   one control. The table's is the same rule on a section standing on the bottom edge. */
-.sgs-panel-fold svg { transform: rotate(180deg); }
-.sgs-panel--folded .sgs-panel-fold svg { transform: none; }
+/* The chevron points one way per view, the same on both sections, so it reads without knowing
+   which section it sits on: NATURAL down, TIGHT right, HEADER up, SNUG left. Four views, a
+   quarter turn per press, round the dial. The glyph is drawn pointing down. */
+.sgs-panel--tight .sgs-panel-fold svg,
+.sgs-dock--tight .sgs-dock-fold svg { transform: rotate(-90deg); }
+.sgs-panel--folded .sgs-panel-fold svg,
+.sgs-dock--folded .sgs-dock-fold svg { transform: rotate(180deg); }
+.sgs-panel--snug .sgs-panel-fold svg,
+.sgs-dock--snug .sgs-dock-fold svg { transform: rotate(90deg); }
 
 /* CLOSED: the section leaves the layout entirely. What remains is its MARK (edge-mark.css),
    berthed on the left edge — the panel's own edge, so the tab is where the panel went. */
@@ -205,7 +217,7 @@ body.sgs-dock-float .sgs-panel { bottom: var(--sgs-panel-inset, 10px); }
    Stated ONCE, after both rules above, because each of them outweighs a single class. This
    list used to sit between the two, so the loose-dock rule after it handed a folded panel its
    bottom back, and the panel stretched to full height around its hidden body. */
-body.sgs-dock-open :is(.sgs-panel--manual-h, .sgs-panel--float, .sgs-panel--folded, .sgs-panel--tight) { bottom: auto; }
+body.sgs-dock-open :is(.sgs-panel--manual-h, .sgs-panel--float, .sgs-panel--folded, .sgs-panel--tight, .sgs-panel--snug) { bottom: auto; }
 
 /* Resize grips: a thin strip with a centred pill, overlaid absolutely so each adds zero size
    to the head. The height grip is on the top edge and always present; the width grip is on the
@@ -276,6 +288,10 @@ body.sgs-dock-open :is(.sgs-panel--manual-h, .sgs-panel--float, .sgs-panel--fold
     width: auto;
 }
 
+/* SNUG: the width is dock.js's (inline, the columns' own), so the right anchor goes and the
+   table stands at the left inset, berthed or FULL; loose it already has no right anchor. */
+.sgs-dock--snug { right: auto; }
+
 /* The width grip mirrors the height grip on the right edge, and only exists loose: berthed,
    the dock spans the viewport and has no width to argue about. */
 .sgs-dock-grip--w {
@@ -297,15 +313,14 @@ body.sgs-dock-open :is(.sgs-panel--manual-h, .sgs-panel--float, .sgs-panel--fold
 .sgs-dock-head { cursor: grab; user-select: none; }
 .sgs-dock-head:active { cursor: grabbing; }
 
-/* Folded: the head alone, still a full-width bar, still reporting. The whole bar unfolds. */
+/* Folded: the head alone, still a full-width bar, still reporting, and still a handle to drag.
+   It unfolds from its chevron, as the panel does. */
 .sgs-dock--folded .sgs-dock-body { display: none; }
 .sgs-dock--folded .sgs-dock-grip { display: none; }
 .sgs-dock--full .sgs-dock-grip--w { display: none; }
-.sgs-dock--folded .sgs-dock-head { border-bottom: none; cursor: pointer; }
-/* The same chevron rule as the panel's, on a section standing on the bottom edge: with rows
-   showing it points DOWN (the top edge sinks), folded it points up. Only ever a flip. */
+.sgs-dock--folded .sgs-dock-head { border-bottom: none; }
+/* The chevron's directions are one rule with the panel's; see .sgs-panel-fold. */
 .sgs-dock-fold svg { transition: transform 120ms ease; }
-.sgs-dock--folded .sgs-dock-fold svg { transform: rotate(180deg); }
 
 /* The dock's mark is .sgs-mark--bottom; see components/edge-mark.css. */
 
@@ -358,6 +373,15 @@ body.sgs-dock-open :is(.sgs-panel--manual-h, .sgs-panel--float, .sgs-panel--fold
     border-bottom: 1px solid var(--sgs-line-soft, #e9ebef);
     cursor: grab;
     user-select: none;
+}
+
+/* The popup's table button while its feature's row is lit: held down in the hover tone, and
+   its glyph's lit row in the table's own lit-row hue, so the button looks like what it did.
+   Pressing it again clears the row, which is what a pressed-looking button promises. */
+.sgs-popup-table[aria-pressed="true"] {
+    background: var(--sgs-hover, rgba(0,0,0,.06));
+    color: var(--sgs-fg, #1b1e24);
+    --sgs-lit-row: color-mix(in srgb, var(--sgs-accent, #2f6fd0) 45%, transparent);
 }
 
 .sgs-popup-title {

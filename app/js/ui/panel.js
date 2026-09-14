@@ -55,7 +55,7 @@
 import { getPrefs, setPrefs } from '../utils/prefs.js';
 import { icon } from '../icons.js';
 import { makeDraggable, releaseDrag } from '../utils/draggable.js';
-import { nearBerth, makeBorrow } from '../utils/furniture.js';
+import { nearLeftBerth, makeBorrow } from '../utils/furniture.js';
 import { makeClosable, makeFoldable } from './stow.js';
 
 /** @typedef {'auto'|'manual-w'|'manual-h'|'float'} Posture */
@@ -282,20 +282,40 @@ export function initPanel(panel) {
     const foldBtn = /** @type {HTMLButtonElement} */ (panel.querySelector('.sgs-panel-fold'));
     foldBtn.innerHTML = icon('chevron', 12);
     const body = /** @type {HTMLElement} */ (panel.querySelector('.sgs-panel-body'));
+    /**
+     * The panel's width at max-content, rows included, read by one inline override. Folded, the
+     * body is hidden and the head alone would measure, so it is shown for the read.
+     * @returns {number}
+     */
+    const contentWidth = () => {
+        const prevW = panel.style.width;
+        const hidden = body.hidden;
+        body.hidden = false;
+        panel.style.width = 'max-content';
+        const w = panel.getBoundingClientRect().width;
+        panel.style.width = prevW;
+        body.hidden = hidden;
+        return w;
+    };
     const foldable = _foldable = makeFoldable({
         section: panel,
         control: foldBtn,
         body,
         foldedClass: 'sgs-panel--folded',
-        // The chevron's middle step: the panel hugs its rows. Offered only while the rows are
-        // shorter than the panel, since a step that changes nothing reads as broken.
+        // TIGHT hugs the rows, offered whenever they all fit on screen. SNUG hugs the rows and
+        // takes the width in to them, offered when there is width to take in: the panel's
+        // automatic width is already its content's, so SNUG appears once a grip has pinned a
+        // wider one, and is skipped otherwise rather than repeating TIGHT.
         tightClass: 'sgs-panel--tight',
-        tightDiffers: () => body.scrollHeight + head.getBoundingClientRect().height + 2
-            < panel.getBoundingClientRect().height,
+        snugClass: 'sgs-panel--snug',
+        tightFits: () => body.scrollHeight + head.getBoundingClientRect().height + 2
+            <= window.innerHeight - 2 * berthPoint().x,
+        snugDiffers: () => contentWidth() < panel.getBoundingClientRect().width - 2,
         labels: {
             natural: 'Unfold the layer panel',
             tight: 'Fit the layer panel to its rows',
             header: 'Fold the layer panel to its head',
+            snug: 'Fit the layer panel to its rows and width',
         },
         folded: false,
         onChange: (folded) => {
@@ -396,14 +416,18 @@ export function initPanel(panel) {
     // panelX/panelY, still needing the pin pressed to actually be docked. The app and the
     // reader disagreed about a thing the reader could see, which is the whole argument in
     // furniture.js's SNAP.
-    makeDraggable(panel, head, ({ x, y }) => {
+    //
+    // The berth is the whole LEFT EDGE, not the top-left corner: a panel held against the left
+    // edge anywhere along it docks, the table's rule along the bottom rotated (nearLeftBerth).
+    // Ctrl held leaves the snap off, so a reader can park it just off the edge on purpose.
+    makeDraggable(panel, head, ({ x, y, ctrl }) => {
         _frame.float = true;
         _frame.x = x; _frame.y = y;
-        panel.classList.toggle('sgs-snapping', nearBerth({ left: x, top: y }, berthPoint()));
+        panel.classList.toggle('sgs-snapping', !ctrl && nearLeftBerth({ left: x }, berthPoint().x));
         apply();
-    }, ({ x, y }) => {
+    }, ({ x, ctrl }) => {
         panel.classList.remove('sgs-snapping');
-        if (!nearBerth({ left: x, top: y }, berthPoint())) return;
+        if (ctrl || !nearLeftBerth({ left: x }, berthPoint().x)) return;
         // Re-berthing by drag lands in the same state the pin lands in, on purpose: two
         // gestures for one outcome, not two outcomes that look alike.
         _frame.float = false;

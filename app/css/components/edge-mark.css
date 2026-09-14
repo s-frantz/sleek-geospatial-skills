@@ -51,19 +51,23 @@ body.sgs-mark--left-shown .sgs-mark--left { display: flex; }
 body:not(.sgs-dock-open) .sgs-mark--bottom { display: flex; }
 
 /* ARRIVING: one short pulse as the mark appears after a close, so the reader sees where the
-   section went and where it comes back from. Colour and a ring only, never transform: the
-   mark's transform is what centres it on its edge, and animating it would knock the tab off
-   its berth for the length of the pulse. The class is added and cleared by flashMark() in
-   stow.js, whose timer matches this duration. Reduced motion (tokens.css) suppresses it. */
-.sgs-mark--flash { animation: sgs-mark-arrive 700ms ease-out 1; }
+   section went and where it comes back from. It follows the section in (stowInto() in stow.js
+   shrinks the section toward the tab first), so it only has to say "here", quietly: the tab
+   darkens to full ink on a sunk ground with a faint halo of the text colour, in the same greys
+   as the rest of the chrome, and settles. Colour and a ring only, never transform: the mark's
+   transform is what centres it on its edge, and animating it would knock the tab off its berth
+   for the length of the pulse. The class is added and cleared by flashMark() in stow.js, whose
+   timer matches this duration. Reduced motion (tokens.css) suppresses it. */
+/* 1s with the outline held for the first 30%: 300ms of full ink, then a 700ms settle. */
+.sgs-mark--flash { animation: sgs-mark-arrive 1000ms ease-out 1; }
 
 @keyframes sgs-mark-arrive {
-    0%, 40% {
+    0%, 30% {
         opacity: 1;
-        color: var(--sgs-accent-fg, #fff);
-        background: var(--sgs-accent, #2f6fd0);
-        border-color: var(--sgs-accent, #2f6fd0);
-        box-shadow: 0 0 0 4px color-mix(in srgb, var(--sgs-accent, #2f6fd0) 30%, transparent);
+        color: var(--sgs-fg, #1b1e24);
+        background: var(--sgs-bg-sunk, #f4f5f7);
+        border-color: var(--sgs-fg-dim, #5c636e);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--sgs-fg, #1b1e24) 14%, transparent);
     }
-    100% { box-shadow: 0 0 0 4px transparent; }
+    100% { box-shadow: 0 0 0 3px transparent; }
 }
