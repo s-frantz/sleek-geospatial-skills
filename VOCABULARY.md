@@ -61,8 +61,8 @@ capabilities; the registry answers in components.
 
 A component owns the **SKILL** that describes it, listed among its files, so a capability
 also decides which instructions reach the app and an old watermark keeps the skill that
-matches what it actually has. Two skills belong to no component and stay in the clone:
-`app-start` and `repo-maintain`.
+matches what it actually has. The skills for how an app begins (`app-start`, `app-adopt`) and
+the laws for this repo (`repo-maintain`) belong to no component and stay in the clone.
 
 ## Contribution and admission
 

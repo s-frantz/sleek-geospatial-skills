@@ -6,7 +6,7 @@ trade.
 
 ## Read the skill first
 
-`.claude/skills/` holds fifteen skills. Before changing anything, read the one that covers it.
+`.claude/skills/` holds the skills. Before changing anything, read the one that covers it.
 
 Names carry their category: `app-` procedures act on an app, `repo-` procedures act on this
 repo, `ui-` and `map-` conventions are consulted while building. Procedures run in a rough
@@ -35,10 +35,11 @@ order (`app-start`, then `app-verify` forever, then `app-upgrade` paired with
 Framework terms (clone, app, manifest, watermark, drift, ejected, tier, capability) are
 defined once, in `VOCABULARY.md` — link there, never redefine.
 
-Twelve of these fifteen also travel into apps: a component owns the SKILL.md that describes
-it, listed among its files in `sgs-components.json`, so `sgs:init` copies it exactly when it
-copies the code. Writing or moving a skill means editing that file too. `app-start`,
-`app-adopt` and `repo-maintain` belong to no component and stay here.
+Most skills also travel into apps: a component owns the SKILL.md that describes it, listed
+among its files in `sgs-components.json`, so `sgs:init` copies it exactly when it copies the
+code. Writing or moving a skill means editing that file too. The skills for deciding how an
+app begins (`app-start`, `app-adopt`) and the laws for this repo (`repo-maintain`) belong to
+no component and stay here.
 
 ## Editing sgs-components.json or sgs-capabilities.json
 
@@ -115,5 +116,5 @@ Types, unit, geometry, ink. All four, and quote what came back.
 Kept deliberately small, and deliberately not here: a real layer model, a group tree, drag
 reordering, a config schema, symbology, a basemap switcher, a minimap. Each is a reasonable
 addition; none is required to demonstrate a convention, and every one of them makes the repo
-harder to read as a set of examples. Add one only when it teaches something the current ten
+harder to read as a set of examples. Add one only when it teaches something the existing
 skills do not.

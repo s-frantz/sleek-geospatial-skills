@@ -23,8 +23,9 @@
  * SKILL.md that describes it, so an app that took no popups gets no popup-placement skill,
  * and an app pinned to an old watermark keeps the skill that describes what it actually has.
  * They land at <app>/.claude/skills/, where an agent working in the app finds them without
- * knowing the clone exists. Two skills stay behind on purpose: `app-start` (the app has
- * already started) and `repo-maintain` (the laws for this repo, not for an app).
+ * knowing the clone exists. Some skills stay behind on purpose: `app-start` and `app-adopt`
+ * (decisions taken before the app has any of these files) and `repo-maintain` (the laws for
+ * this repo, not for an app).
  *
  * Earlier versions kept skills only in the clone, reasoning that two copies visible to one
  * agent is a bug generator. That is handled: Claude Code scopes skills by directory and

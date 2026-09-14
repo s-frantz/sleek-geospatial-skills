@@ -116,6 +116,9 @@ One release for everything below; each line has its own test.
   `quick-settings`.
 - **The attribution is a small-cornered card**, not MapLibre's round pill. Component:
   `map-controls`.
+- **The README is ordered by task**: run the demo, start an app, pull in upstream changes,
+  send changes back, verify. The naming law and the decision log moved to CONTRIBUTING.md. No
+  doc states how many skills there are any more; the tables are the list.
 
 Breaking: `tokens` now needs `light-dark()` (Chrome and Edge 123, Firefox 120, Safari 17.5).
 Below that floor surfaces render transparent, not light. An app that switches theme some way
