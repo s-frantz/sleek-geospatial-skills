@@ -11,9 +11,8 @@
            --sgs-gap:  var(--my-app-space-sm);
        }
 
-   — and every component in components/ themes itself for free. See
-   docs/working/PLAN-skills-framework-architecture.md § 4 (private) for why fallbacks were
-   chosen over a strict canon (fails silently when a token is missing) or per-component scoped
+   — and every component in components/ themes itself for free.
+   Fallbacks were chosen over a strict canon (fails silently when a token is missing) or per-component scoped
    variables only (portable, but kills app-wide restyling as a one-place edit).
 
    Two rules hold this file together:

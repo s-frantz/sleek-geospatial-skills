@@ -9,7 +9,7 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
-## [0.2.0] - 2026-09-13
+## [0.2.0] - 2026-09-14
 
 One release for everything below; each line has its own test.
 
@@ -42,10 +42,11 @@ One release for everything below; each line has its own test.
   bar, as the panel does.
 - **FULL belongs to the table.** The panel's FULL is gone. FULL on an undocked table takes the
   map, and giving the room back returns the table to the state it was in before: where it was,
-  its size, and its chevron view, so a folded or fitted table folds or fits again. Its glyphs sit on opposite diagonals now (FULL bottom-left
-  to top-right, its release top-left to bottom-right).
-- **The table drags like the panel.** Its head is grabbable berthed or loose, folded or not, and
-  dragging it unpins it. Unpinning, by drag or pin, keeps the table's width; narrowing it is
+  its size, and its chevron view, so a folded or fitted table folds or fits again. Its glyphs
+  sit on opposite diagonals now (FULL bottom-left to top-right, its release top-left to
+  bottom-right).
+- **The table drags like the panel.** Its head is grabbable docked or undocked, folded or not, and
+  dragging it undocks it. Undocking, by drag or button, keeps the table's width; narrowing it is
   the chevron's fourth view.
 - **Both sections snap back anywhere along their edge**: the table along the bottom, the panel
   along the left, not only near one corner (new `nearBottomEdge()` and `nearLeftEdge()` in
@@ -61,7 +62,7 @@ One release for everything below; each line has its own test.
 - **A closing section shrinks into its tab** (160ms, `stowInto()` in `stow.js`), **and the tab
   pulses once** in the chrome's own greys, its outline held for 300ms of a 1s pulse
   (`flashMark()`), so the reader sees where it went.
-- Fixed: a folded panel stretched to full height under a loose table.
+- Fixed: a folded panel stretched to full height under an undocked table.
 - Components: `panel`, `table`, `edge-mark`, `app-shell` (`furniture.css`), `framework`
   (`furniture.js`), `primitives` (`prefs.js`).
 
@@ -106,7 +107,6 @@ One release for everything below; each line has its own test.
 - The panel's dock button is in `index.html` beside its fold and close, instead of being
   injected into a `display: contents` wrapper, which is gone.
 - The fitted view ← narrows the table from the right again, so its left edge stays put.
-
 
 ### Smaller
 
