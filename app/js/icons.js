@@ -158,7 +158,14 @@ const SIZE_FACTOR = {
  */
 const NUDGE = {
     // Same rule as SIZE_FACTOR: an entry here is a measured correction, never a nudge that
-    // made a screenshot look better. Empty means every measured glyph is already centred.
+    // made a screenshot look better.
+    //
+    // The compass measured dx +0.50 and dy +0.50: inside the 0.6px tolerance, and still seen
+    // as sitting low, because its ink (11 x 17) is odd in a 22px box and the half pixel left
+    // over lands below and right (headroom 6.5 above, 5.5 below). Half a pixel back at a 22px
+    // box for 24 units is 0.55 units. The one glyph that ROTATES is the one where a half pixel
+    // shows, as a wobble about the centre.
+    compass: { x: -0.55, y: -0.55 },
 };
 
 /** The one nominal ink size for a control-stack glyph, in CSS pixels. */

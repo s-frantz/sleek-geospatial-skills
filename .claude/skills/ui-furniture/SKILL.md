@@ -10,7 +10,10 @@ description: The geometry every piece of this app's large furniture shares - thr
 
 **This is not only the panel.** The bottom dock (`app/js/ui/dock.js`) is the same model rotated:
 same three facts, same single applier, the same chevron, same pin-and-snap pair
-from the `ui-stow` skill. Read it as the geometry contract for any large piece of furniture in an
+from the `ui-stow` skill. It is the same surface too: one rule each in `furniture.css` for the
+card, the head, the title and the grip, shared by the panel, the table and the popups, so a
+change to one is a change to all three rather than a third copy drifting. The same goes for
+the words: both pins say Dock and Undock. Read it as the geometry contract for any large piece of furniture in an
 app built from this repo, and when you add a third one, add it here rather than inventing a
 fourth arrangement.
 

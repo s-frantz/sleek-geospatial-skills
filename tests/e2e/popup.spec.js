@@ -79,7 +79,7 @@ test('closing the popup whose button lit the row puts the row out, and leaves th
     const popup = page.locator('.sgs-popup').last();
     await popup.locator('.sgs-popup-table').click();
     await expect(page.locator('#sgs-dock tbody tr.sgs-row-hit')).toHaveCount(1);
-    await popup.locator('button[aria-label="Close"]').click();
+    await popup.locator('button[aria-label="Close the popup"]').click();
     await expect(page.locator('#sgs-dock tbody tr.sgs-row-hit')).toHaveCount(0);
     await expect(page.locator('#sgs-dock')).toHaveCount(1);
 });
@@ -89,7 +89,7 @@ test('a clicked feature is drawn selected while its popup is open, and plain aga
     expect(await filter()).toBe('["literal",false]');
     await clickAFeature(page, 3);
     await expect.poll(filter).toContain('"in"');
-    await page.locator('.sgs-popup').last().locator('button[aria-label="Close"]').click();
+    await page.locator('.sgs-popup').last().locator('button[aria-label="Close the popup"]').click();
     await expect.poll(filter).toBe('["literal",false]');
 });
 

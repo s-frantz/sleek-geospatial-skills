@@ -105,4 +105,5 @@ test('the nudge line in the shortcut inventory is the short one', async ({ page 
     const line = page.locator('.sgs-shortcut', { hasText: 'Nudge the top popup' });
     await expect(line).toHaveCount(1);
     await expect(line).not.toContainText('Shift');
+    await expect(page.locator('.sgs-shortcut', { hasText: 'Keep multiple popups open' })).toHaveCount(1);
 });

@@ -1024,6 +1024,75 @@ test('the selected ring hugs a point: its inner edge meets the dot\'s white edge
     expect(p.ring - p.ringW / 2).toBeCloseTo(p.dot + p.edge, 5);
 });
 
+test('fitting the table to its columns keeps its right edge, so the chevron stays under the pointer', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    const dock = page.locator('#sgs-dock');
+    const chev = page.locator('.sgs-dock-fold');
+    const at = async () => (await chev.boundingBox())?.x ?? NaN;
+    const before = await at();
+
+    // Natural, tight, header, snug: three presses, and the last one narrows the table.
+    for (let i = 0; i < 3; i++) await chev.click();
+    await expect(dock).toHaveClass(/sgs-dock--snug/);
+    expect(Math.abs(await at() - before)).toBeLessThan(2);
+
+    // Undocked while snug, it stays exactly where it was drawn: nothing shifts it twice.
+    const drawn = await dock.boundingBox();
+    await page.locator('.sgs-dock-pin').click();
+    await expect(dock).toHaveClass(/sgs-dock--float/);
+    const loose = await dock.boundingBox();
+    if (!drawn || !loose) throw new Error('no dock');
+    expect(loose.x).toBeCloseTo(drawn.x, 0);
+    expect(loose.width).toBeCloseTo(drawn.width, 0);
+});
+
+test('both pins say Dock and Undock: one verb for one gesture', async ({ page }) => {
+    // The accessible name, not `title`: the one tooltip lifts `title` into `data-tip` while the
+    // pointer is over a button, which a click always is (tooltip.js). The two carry one text.
+    const panelPin = page.locator('.sgs-panel-pin');
+    await expect(panelPin).toHaveAttribute('aria-label', 'Undock the layer panel');
+    await panelPin.click();
+    await expect(panelPin).toHaveAttribute('aria-label', 'Dock the layer panel');
+
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    const dockPin = page.locator('.sgs-dock-pin');
+    await expect(dockPin).toHaveAttribute('aria-label', 'Undock the table');
+    await dockPin.click();
+    await expect(dockPin).toHaveAttribute('aria-label', 'Dock the table');
+});
+
+test('the three heads share one look, and every grip one pill', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    // A popup, for its head: a click on a station, found by asking the map.
+    const pt = await page.evaluate(() => {
+        const m = window.sgsMap;
+        const f = m.queryRenderedFeatures({ layers: ['stations-circle'] })[0];
+        return f ? m.project(/** @type {any} */ (f.geometry).coordinates) : null;
+    });
+    if (pt) await page.mouse.click(pt.x, pt.y);
+
+    const look = (/** @type {string} */ sel) => page.locator(sel).first().evaluate((el) => {
+        const s = getComputedStyle(el);
+        return [s.padding, s.gap, s.backgroundColor, s.borderBottom, s.cursor].join(' | ');
+    });
+    const panel = await look('.sgs-panel-head');
+    expect(await look('.sgs-dock-head')).toBe(panel);
+    if (pt) expect(await look('.sgs-popup-head')).toBe(panel);
+
+    const pill = (/** @type {string} */ sel) => page.locator(sel).first()
+        .evaluate((el) => getComputedStyle(el, '::before').backgroundColor);
+    expect(await pill('.sgs-grip--w')).toBe(await pill('.sgs-dock-grip--h'));
+});
+
+test('the attribution is a small-cornered card, not a round pill', async ({ page }) => {
+    const radius = await page.locator('.maplibregl-ctrl-attrib').evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius));
+    expect(radius).toBeGreaterThan(0);
+    expect(radius).toBeLessThanOrEqual(6);
+});
+
 test('a folded table unfolds from its chevron, not from a click on its bar', async ({ page }) => {
     await page.locator('.sgs-row[data-layer="stations"]').hover();
     await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();

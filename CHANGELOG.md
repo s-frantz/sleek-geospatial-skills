@@ -50,6 +50,15 @@ One release for everything below; each line has its own test.
   along the left, not only near one corner (new `nearBottomBerth()` and `nearLeftBerth()` in
   `furniture.js`). Ctrl held while dragging turns the snap off; `makeDraggable()` reports it.
 - **Head buttons are spaced by one rule** (`.sgs-head-actions`, 4px) in every furniture head.
+- **One card, one head, one title, one grip.** The panel, the table and the popups share one
+  rule for each in `furniture.css` instead of three drifting copies: the popup's head now sits
+  one step off the ground like the others, the heads share one padding and gap, and the panel's
+  grips show the table's quiet pill instead of an accent wash on hover.
+- **One vocabulary in the copy**: both pins say "Dock" and "Undock" (the table's said
+  "Berth"), the panel is "the layer panel" everywhere, the popup's close says "Close the popup",
+  and the four grips read "Drag to set the width/height, double-click to …".
+- **Fitting the table to its columns keeps its right edge**, so the chevron just pressed stays
+  under the pointer.
 - **A closing section shrinks into its tab** (160ms, `stowInto()` in `stow.js`), **and the tab
   pulses once** in the chrome's own greys, its outline held for 300ms of a 1s pulse
   (`flashMark()`), so the reader sees where it went.
@@ -76,10 +85,12 @@ One release for everything below; each line has its own test.
 
 ### Smaller
 
-- **The compass is a hollow notched arrowhead**, its ink centred so it spins in place.
-  Component: `icons`.
-- **A shorter nudge line** in the shortcut inventory: "Nudge the top popup". Component:
+- **The compass is a hollow notched arrowhead**, its ink centred so it spins in place, with a
+  measured half-pixel `NUDGE` so it no longer sits low and right. Component: `icons`.
+- **Shorter shortcut lines**: "Nudge the top popup", "Keep multiple popups open". Component:
   `quick-settings`.
+- **The attribution is a small-cornered card**, not MapLibre's round pill. Component:
+  `map-controls`.
 
 Breaking: `tokens` now needs `light-dark()` (Chrome and Edge 123, Firefox 120, Safari 17.5).
 Below that floor surfaces render transparent, not light. An app that switches theme some way

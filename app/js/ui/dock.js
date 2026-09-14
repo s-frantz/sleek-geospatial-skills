@@ -152,7 +152,9 @@ function apply() {
     if (loose) {
         const { x, y } = clampXY(_x, _y);
         _x = x; _y = y;
-        dock.style.left = `${x}px`;
+        // SNUG takes the width in from the left, so the right edge, and the chevron on it,
+        // stay where they were. `_x` keeps the loose table's own left edge underneath.
+        dock.style.left = `${x + snugTaken()}px`;
         dock.style.top = `${y}px`;
         dock.style.setProperty('--sgs-dock-w', `${_width || Math.round(window.innerWidth * 0.6)}px`);
     } else {
@@ -166,7 +168,9 @@ function apply() {
     const pin = dock.querySelector('.sgs-dock-pin');
     if (pin) {
         pin.innerHTML = icon(_float ? 'pin-off' : 'pin', 13);
-        pin.setAttribute('title', _float ? 'Berth the table' : 'Undock the table');
+        // "Dock" and "Undock", the words the panel's pin uses. The code calls this the berth
+        // (see the `ui-stow` skill); the reader is told one verb for one gesture everywhere.
+        pin.setAttribute('title', _float ? 'Dock the table' : 'Undock the table');
         pin.setAttribute('aria-label', /** @type {string} */ (pin.getAttribute('title')));
         pin.setAttribute('aria-pressed', String(!_float));
     }
@@ -496,6 +500,18 @@ function snugWidth() { return Math.round(Math.min(_contentW + 2, window.innerWid
 function berthedWidth() { return Math.round(window.innerWidth - 2 * INSET); }
 
 /**
+ * How far SNUG moves a loose table's left edge in, so its right edge stays put: the loose width
+ * less the fitted one. Every place that turns a drawn left edge into `_x`, the table's own left
+ * edge underneath SNUG, subtracts this, and apply() adds it back; one helper, so none of them
+ * can shift the table twice.
+ * @returns {number}
+ */
+function snugTaken() {
+    if (!_snug || _folded) return 0;
+    return Math.max(0, (_width || Math.round(window.innerWidth * 0.6)) - snugWidth());
+}
+
+/**
  * Is there width to take in? SNUG is skipped when there is not, because it would then be
  * TIGHT again, and the step that is TIGHT's job has already come round.
  * @returns {boolean}
@@ -556,7 +572,7 @@ function buildDock() {
     // undo, same as the panel's.
     const grip = document.createElement('div');
     grip.className = 'sgs-dock-grip sgs-dock-grip--h';
-    grip.title = 'Drag to resize, double-click to fit the rows';
+    grip.title = 'Drag to set the height, double-click to fit the rows';
     let resizing = false;
     grip.addEventListener('pointerdown', (e) => {
         if (_folded) return;
@@ -605,7 +621,7 @@ function buildDock() {
     // rebuilt correctly every time that state changes.
     const wgrip = document.createElement('div');
     wgrip.className = 'sgs-dock-grip sgs-dock-grip--w';
-    wgrip.title = 'Drag to resize, double-click to fit the columns';
+    wgrip.title = 'Drag to set the width, double-click to fit the columns';
     let wresizing = false;
     wgrip.addEventListener('pointerdown', (e) => {
         if (_folded || !_float) return;
@@ -681,7 +697,7 @@ function buildDock() {
             // was two gestures in one button.
             _width = berthedWidth();
             const r = dock.getBoundingClientRect();
-            _x = Math.round(r.left); _y = Math.round(r.top);
+            _x = Math.round(r.left) - snugTaken(); _y = Math.round(r.top);
             _float = true;
             apply();
         }
@@ -728,7 +744,8 @@ function buildDock() {
         if (!_float) _width = berthedWidth();
         _float = true;
         _full = false;
-        _x = x; _y = y;
+        // `x` is where the drawn edge is; under SNUG that is in from the table's own left edge.
+        _x = x - snugTaken(); _y = y;
         // Ctrl held leaves the snap off, as it does for the panel.
         dock.classList.toggle('sgs-snapping', !ctrl && nearBottomBerth({ top: y }, berthPoint().y));
         apply();

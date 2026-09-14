@@ -155,7 +155,7 @@ function apply() {
     }
 
     _pin.innerHTML = icon(_frame.float ? 'pin-off' : 'pin', 13);
-    _pin.title = _frame.float ? 'Dock the panel' : 'Undock the panel';
+    _pin.title = _frame.float ? 'Dock the layer panel' : 'Undock the layer panel';
     _pin.setAttribute('aria-label', _pin.title);
     _pin.setAttribute('aria-pressed', String(!_frame.float));
 

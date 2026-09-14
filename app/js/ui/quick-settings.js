@@ -106,7 +106,7 @@ const SHORTCUTS = [
     ['Shift + ←→', 'Rotate the map'],
     ['Shift + ↑↓', 'Tilt the map'],
     ['Shift + Drag', 'Box zoom'],
-    ['Ctrl + Click', 'Keep popups open (compare)'],
+    ['Ctrl + Click', 'Keep multiple popups open'],
     // The glyphs, not the word "Arrows". Two rows away, "Pan the map" already shows the four
     // keys as ←↓→↑; naming them in one row and drawing them in another makes a reader check
     // whether two different things are meant.

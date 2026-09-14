@@ -236,8 +236,9 @@ export function openPopup({
     const close = document.createElement('button');
     close.className = 'sgs-icon-btn';
     close.type = 'button';
-    close.title = 'Close';
-    close.setAttribute('aria-label', 'Close');
+    // Named for what it closes, as the table's and the layer panel's close buttons are.
+    close.title = 'Close the popup';
+    close.setAttribute('aria-label', close.title);
     close.innerHTML = icon('close', 12);
     actions.appendChild(close);
 
