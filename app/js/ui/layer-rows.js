@@ -13,7 +13,7 @@
  */
 
 import { LAYERS, setLayerVisible, zoomToLayer } from '../layers.js';
-import { icon } from '../icons.js';
+import { iconButton } from './buttons.js';
 import { getSourcePill, makeTypePill } from './type-pill.js';
 import { buildSymbolSwatch } from './symbology.js';
 
@@ -39,7 +39,7 @@ export function renderLayerRows(body, onShowTable) {
         cb.addEventListener('change', () => setLayerVisible(def.id, cb.checked));
 
         // Swatch (how it paints), then pill (what it IS), then name. The same three, in
-        // the same order, as a popup's title bar and the dock's head.
+        // the same order, as a popup's title bar and the table's head.
         const text = document.createElement('span');
         text.className = 'sgs-row-text';
         text.textContent = def.label;
@@ -49,23 +49,19 @@ export function renderLayerRows(body, onShowTable) {
         const actions = document.createElement('span');
         actions.className = 'sgs-row-actions';
 
-        const zoom = document.createElement('button');
-        zoom.type = 'button';
-        zoom.className = 'sgs-icon-btn';
-        zoom.title = `Zoom to ${def.label}`;
-        zoom.setAttribute('aria-label', zoom.title);
-        zoom.innerHTML = icon('target', 12);
-        zoom.addEventListener('click', () => zoomToLayer(def.id));
+        const zoom = iconButton({
+            glyph: 'target',
+            label: `Zoom to ${def.label}`,
+            onClick: () => zoomToLayer(def.id),
+        });
 
-        const table = document.createElement('button');
-        table.type = 'button';
-        table.className = 'sgs-icon-btn';
-        table.title = `Show ${def.label} in the table`;
-        table.setAttribute('aria-label', table.title);
-        table.innerHTML = icon('table', 12);
-        // Toggling, not merely opening: pressing it again is the obvious way to put the
-        // table away, and a button that ignores its second press reads as broken.
-        table.addEventListener('click', () => onShowTable(def.id));
+        const table = iconButton({
+            glyph: 'table',
+            label: `Show ${def.label} in the table`,
+            // Toggling, not merely opening: pressing it again is the obvious way to put the
+            // table away, and a button that ignores its second press reads as broken.
+            onClick: () => onShowTable(def.id),
+        });
 
         actions.append(zoom, table);
         row.append(label, actions);

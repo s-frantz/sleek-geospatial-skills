@@ -22,7 +22,7 @@ test.beforeEach(async ({ page }) => {
     await page.waitForSelector('body[data-ready="true"]');
 });
 
-test('at boot: panel docked left, no dock, the sliver parked at the bottom edge', async ({ page }) => {
+test('at boot: panel docked left, no table, the mark parked at the bottom edge', async ({ page }) => {
     const panel = await page.locator('#sgs-panel').boundingBox();
     const vp = page.viewportSize();
     if (!panel || !vp) throw new Error('missing furniture');
@@ -32,13 +32,13 @@ test('at boot: panel docked left, no dock, the sliver parked at the bottom edge'
     // Docked and automatic: the panel reaches the bottom inset.
     expect(panel.y + panel.height).toBeGreaterThan(vp.height - 24);
 
-    // The dock does not exist until a table is asked for; its whole closed-state footprint
-    // is the sliver tab, centred on the bottom edge.
-    await expect(page.locator('#sgs-dock')).toHaveCount(0);
-    const sliver = await page.locator('#sgs-dock-sliver').boundingBox();
-    if (!sliver) throw new Error('no sliver');
-    expect(sliver.y + sliver.height).toBeGreaterThan(vp.height - 2);
-    expect(Math.abs(sliver.x + sliver.width / 2 - vp.width / 2)).toBeLessThan(4);
+    // The table does not exist until a table is asked for; its whole closed-state footprint
+    // is the mark tab, centred on the bottom edge.
+    await expect(page.locator('#sgs-table')).toHaveCount(0);
+    const mark = await page.locator('#sgs-table-mark').boundingBox();
+    if (!mark) throw new Error('no mark');
+    expect(mark.y + mark.height).toBeGreaterThan(vp.height - 2);
+    expect(Math.abs(mark.x + mark.width / 2 - vp.width / 2)).toBeLessThan(4);
 });
 
 test('the layer rows drive the map layers', async ({ page }) => {
@@ -50,7 +50,27 @@ test('the layer rows drive the map layers', async ({ page }) => {
     expect(await visible()).toBe('none');
 });
 
-test('the open dock spans the bottom and displaces the panel; folded it keeps reporting; closed it leaves the sliver', async ({ page }) => {
+/**
+ * Step a section's chevron until it shows its head alone. The chevron has three steps
+ * (natural, tight, head) and skips tight when it would change nothing, so how many presses
+ * that takes depends on the data, which is exactly what a test should not hardcode.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} chevron
+ */
+async function foldToHead(page, chevron) {
+    for (let i = 0; i < 3; i++) {
+        if ((await page.locator(chevron).getAttribute('aria-expanded')) === 'false') return;
+        await page.locator(chevron).click();
+    }
+    await expect(page.locator(chevron)).toHaveAttribute('aria-expanded', 'false');
+}
+
+/** The rendered height of one element. @param {import('@playwright/test').Page} page @param {string} sel */
+async function heightOf(page, sel) {
+    return (await page.locator(sel).boundingBox())?.height ?? 0;
+}
+
+test('the open table spans the bottom and displaces the panel; folded it keeps reporting; closed it leaves the mark', async ({ page }) => {
     const vp = page.viewportSize();
     if (!vp) throw new Error('no viewport');
 
@@ -58,62 +78,63 @@ test('the open dock spans the bottom and displaces the panel; folded it keeps re
     await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
 
     // Open: a full-width band at the foot.
-    const dock = await page.locator('#sgs-dock').boundingBox();
-    if (!dock) throw new Error('no dock');
-    expect(dock.width).toBeGreaterThan(vp.width * 0.9);
-    expect(dock.height).toBeGreaterThan(150);
-    expect(dock.y + dock.height).toBeGreaterThan(vp.height - 24);
-    await expect(page.locator('.sgs-dock-title')).toHaveText('Stations');
+    const table = await page.locator('#sgs-table').boundingBox();
+    if (!table) throw new Error('no table');
+    expect(table.width).toBeGreaterThan(vp.width * 0.9);
+    expect(table.height).toBeGreaterThan(150);
+    expect(table.y + table.height).toBeGreaterThan(vp.height - 24);
+    await expect(page.locator('.sgs-table-title')).toHaveText('Stations');
     // The count is asserted against the table it is counting, never against a literal. A
     // literal here is a test of the demo data, and it fails the day the demo data changes for
-    // reasons that have nothing to do with the dock.
-    const rows = await page.locator('.sgs-dock-body tbody tr').count();
+    // reasons that have nothing to do with the table.
+    const rows = await page.locator('.sgs-table-body tbody tr').count();
     expect(rows).toBeGreaterThan(0);
-    await expect(page.locator('.sgs-dock-count')).toHaveText(`${rows} rows`);
+    await expect(page.locator('.sgs-table-count')).toHaveText(`${rows} rows`);
 
-    // Displacement: the panel's bottom sits ABOVE the dock, not underneath it.
+    // Displacement: the panel's bottom sits ABOVE the table, not underneath it.
     const panel = await page.locator('#sgs-panel').boundingBox();
     if (!panel) throw new Error('no panel');
-    expect(panel.y + panel.height).toBeLessThan(dock.y);
+    expect(panel.y + panel.height).toBeLessThan(table.y);
 
     // Folded: the head alone, still full width, still reporting.
-    await page.locator('.sgs-dock-fold').click();
-    const folded = await page.locator('#sgs-dock').boundingBox();
+    await foldToHead(page, '.sgs-table-fold');
+    const folded = await page.locator('#sgs-table').boundingBox();
     expect(folded?.height).toBeLessThan(60);
     expect(folded?.width).toBeGreaterThan(vp.width * 0.9);
-    await expect(page.locator('.sgs-dock-count')).toHaveText(`${rows} rows`);
+    await expect(page.locator('.sgs-table-count')).toHaveText(`${rows} rows`);
     // And the panel takes the space back.
     const panelAfterFold = await page.locator('#sgs-panel').boundingBox();
     expect((panelAfterFold?.y ?? 0) + (panelAfterFold?.height ?? 0))
         .toBeGreaterThan(panel.y + panel.height + 100);
 
-    // Closed: the dock leaves entirely and the sliver returns.
-    await page.locator('#sgs-dock button[aria-label^="Close"]').click();
-    await expect(page.locator('#sgs-dock')).toHaveCount(0);
-    await expect(page.locator('#sgs-dock-sliver')).toBeVisible();
+    // Closed: the table leaves entirely and the mark returns.
+    await page.locator('#sgs-table button[aria-label^="Close"]').click();
+    await expect(page.locator('#sgs-table')).toHaveCount(0);
+    await expect(page.locator('#sgs-table-mark')).toBeVisible();
 
-    // The sliver reopens what last held the dock.
-    await page.locator('#sgs-dock-sliver').click();
-    await expect(page.locator('.sgs-dock-title')).toHaveText('Stations');
+    // The mark reopens what last held the table. Scoped to the live table: the one that just
+    // closed may still be shrinking into the mark, id-less but with its title in it.
+    await page.locator('#sgs-table-mark').click();
+    await expect(page.locator('#sgs-table .sgs-table-title')).toHaveText('Stations');
 });
 
-test('the panel unpins to float, and re-pins back to docked', async ({ page }) => {
-    const pin = page.locator('.sgs-panel-pin');
+test('the panel undocks, and docks again', async ({ page }) => {
+    const dockBtn = page.locator('.sgs-panel-dock');
     const docked = await page.locator('#sgs-panel').boundingBox();
 
-    await pin.click();
-    await expect(page.locator('#sgs-panel')).toHaveClass(/sgs-panel--float/);
-    const floating = await page.locator('#sgs-panel').boundingBox();
-    // Floating hugs its content, so it no longer reaches the bottom of the window.
-    expect(floating?.height).toBeLessThan((docked?.height ?? 0) - 40);
+    await dockBtn.click();
+    await expect(page.locator('#sgs-panel')).toHaveClass(/sgs-panel--undocked/);
+    const undocked = await page.locator('#sgs-panel').boundingBox();
+    // Undocked, it hugs its content, so it no longer reaches the bottom of the window.
+    expect(undocked?.height).toBeLessThan((docked?.height ?? 0) - 40);
 
-    await pin.click();
-    await expect(page.locator('#sgs-panel')).not.toHaveClass(/sgs-panel--float/);
+    await dockBtn.click();
+    await expect(page.locator('#sgs-panel')).not.toHaveClass(/sgs-panel--undocked/);
 });
 
-test('resizing a floating panel resizes it in place instead of re-docking it', async ({ page }) => {
-    await page.locator('.sgs-panel-pin').click();
-    await expect(page.locator('#sgs-panel')).toHaveClass(/sgs-panel--float/);
+test('resizing an undocked panel resizes it in place instead of docking it', async ({ page }) => {
+    await page.locator('.sgs-panel-dock').click();
+    await expect(page.locator('#sgs-panel')).toHaveClass(/sgs-panel--undocked/);
 
     const before = await page.locator('#sgs-panel').boundingBox();
     if (!before) throw new Error('no panel');
@@ -128,15 +149,15 @@ test('resizing a floating panel resizes it in place instead of re-docking it', a
 
     const after = await page.locator('#sgs-panel').boundingBox();
     if (!after) throw new Error('no panel');
-    // Still floating, still where it was, only wider. The failure mode this guards is the
+    // Still undocked, still where it was, only wider. The failure mode this guards is the
     // grip silently switching the posture and snapping the panel back to the left edge.
-    await expect(page.locator('#sgs-panel')).toHaveClass(/sgs-panel--float/);
+    await expect(page.locator('#sgs-panel')).toHaveClass(/sgs-panel--undocked/);
     expect(Math.abs(after.x - before.x)).toBeLessThan(2);
     expect(Math.abs(after.y - before.y)).toBeLessThan(2);
     expect(after.width).toBeGreaterThan(before.width + 60);
 });
 
-test('zoom to lands the layer clear of the panel and the dock', async ({ page }) => {
+test('zoom to lands the layer clear of the panel and the table', async ({ page }) => {
     await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
     await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
     await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
@@ -144,8 +165,8 @@ test('zoom to lands the layer clear of the panel and the dock', async ({ page })
     await page.waitForTimeout(900);
 
     const panel = await page.locator('#sgs-panel').boundingBox();
-    const dock = await page.locator('#sgs-dock').boundingBox();
-    if (!panel || !dock) throw new Error('missing furniture');
+    const table = await page.locator('#sgs-table').boundingBox();
+    if (!panel || !table) throw new Error('missing furniture');
 
     // Project the layer's own bounding box back to the screen and check it landed in the
     // part of the window a person can actually see.
@@ -166,10 +187,10 @@ test('zoom to lands the layer clear of the panel and the dock', async ({ page })
     });
 
     expect(corners.left).toBeGreaterThan(panel.x + panel.width);
-    expect(corners.bottom).toBeLessThan(dock.y);
+    expect(corners.bottom).toBeLessThan(table.y);
 });
 
-test('occlusion follows the panel geometry, not its pin state', async ({ page }) => {
+test('occlusion follows the panel geometry, not whether it is docked', async ({ page }) => {
     const readPad = () => page.evaluate(async () => {
         const src = '/js/utils/visible-area.js';
         const m = await import(src);
@@ -179,14 +200,14 @@ test('occlusion follows the panel geometry, not its pin state', async ({ page })
     const padWhileDocked = await readPad();
     expect(padWhileDocked).toBeGreaterThan(48);
 
-    // Unpin: the float parks away from the left edge (its default home is x=60), so the
+    // Undock: the panel parks away from the left edge (its default home is x=60), so the
     // left band is released.
-    await page.locator('.sgs-panel-pin').click();
+    await page.locator('.sgs-panel-dock').click();
     expect(await readPad()).toBe(48);
 
-    // Now drag the float back against the left edge. Occlusion is a question about WHERE
-    // THE PANEL IS: a float hugging the edge covers exactly as much map as a docked one,
-    // so the band comes back — pin state never entered into it.
+    // Now drag it back against the left edge. Occlusion is a question about WHERE
+    // THE PANEL IS: an undocked panel hugging the edge covers exactly as much map as a docked one,
+    // so the band comes back; docked or not never entered into it.
     const head = await page.locator('.sgs-panel-head').boundingBox();
     if (!head) throw new Error('no head');
     await page.mouse.move(head.x + head.width / 2, head.y + head.height / 2);
@@ -245,24 +266,46 @@ test('the table button toggles: open, then close', async ({ page }) => {
     const btn = page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]');
     await page.locator('.sgs-row[data-layer="stations"]').hover();
     await btn.click();
-    await expect(page.locator('#sgs-dock')).toHaveCount(1);
+    await expect(page.locator('#sgs-table')).toHaveCount(1);
 
     // Pressing the same button again is the obvious way to put the table away.
     await page.locator('.sgs-row[data-layer="stations"]').hover();
     await btn.click();
-    await expect(page.locator('#sgs-dock')).toHaveCount(0);
-    await expect(page.locator('#sgs-dock-sliver')).toBeVisible();
+    await expect(page.locator('#sgs-table')).toHaveCount(0);
+    await expect(page.locator('#sgs-table-mark')).toBeVisible();
+});
+
+test('the head buttons of the panel and the table are spaced by one rule', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await expect(page.locator('#sgs-table')).toHaveCount(1);
+
+    /** The gaps between neighbouring icon buttons in one head, left to right. @param {string} head */
+    const gaps = (head) => page.locator(`${head} .sgs-icon-btn`).evaluateAll((els) => {
+        const rects = els.map((el) => el.getBoundingClientRect())
+            .filter((r) => r.width > 0)
+            .sort((a, b) => a.left - b.left);
+        return rects.slice(1).map((r, i) => Math.round((r.left - rects[i].right) * 10) / 10);
+    });
+
+    const panel = await gaps('.sgs-panel-head');
+    const table = await gaps('.sgs-table-head');
+    // Dock, fold, close on the panel (FULL is the table's alone), and FULL besides on the table.
+    expect(panel.length).toBeGreaterThanOrEqual(2);
+    expect(table.length).toBeGreaterThanOrEqual(3);
+    // Every gap the same, in both heads.
+    expect(new Set([...panel, ...table]).size).toBe(1);
 });
 
 test('a second layer switches the table rather than closing it', async ({ page }) => {
     await page.locator('.sgs-row[data-layer="stations"]').hover();
     await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
-    await expect(page.locator('.sgs-dock-title')).toHaveText('Stations');
+    await expect(page.locator('.sgs-table-title')).toHaveText('Stations');
 
     await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
     await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
-    await expect(page.locator('#sgs-dock')).toHaveCount(1);
-    await expect(page.locator('.sgs-dock-title')).toHaveText('Neighborhoods');
+    await expect(page.locator('#sgs-table')).toHaveCount(1);
+    await expect(page.locator('.sgs-table-title')).toHaveText('Neighborhoods');
 });
 
 test('the panel folds to its head and closes to a left-edge mark', async ({ page }) => {
@@ -270,7 +313,7 @@ test('the panel folds to its head and closes to a left-edge mark', async ({ page
     if (!open) throw new Error('no panel');
 
     // FOLD: the head stays in its slot, the body collapses.
-    await page.locator('.sgs-panel-fold').click();
+    await foldToHead(page, '.sgs-panel-fold');
     const folded = await page.locator('#sgs-panel').boundingBox();
     expect(folded?.height).toBeLessThan(60);
     expect(await page.locator('.sgs-panel-title').isVisible()).toBe(true);
@@ -283,7 +326,7 @@ test('the panel folds to its head and closes to a left-edge mark', async ({ page
     // CLOSE: the section leaves the layout and its mark appears on the left edge.
     await page.locator('.sgs-panel-close').click();
     await expect(page.locator('#sgs-panel')).toBeHidden();
-    const mark = await page.locator('#sgs-panel-sliver').boundingBox();
+    const mark = await page.locator('#sgs-panel-mark').boundingBox();
     if (!mark) throw new Error('no panel mark');
     expect(mark.x).toBeLessThan(2);
 
@@ -295,8 +338,31 @@ test('the panel folds to its head and closes to a left-edge mark', async ({ page
     });
     expect(pad).toBe(48);
 
-    await page.locator('#sgs-panel-sliver').click();
+    await page.locator('#sgs-panel-mark').click();
     await expect(page.locator('#sgs-panel')).toBeVisible();
+});
+
+test('closing the panel or the table pulses its mark once, briefly', async ({ page }) => {
+    const panelMark = page.locator('#sgs-panel-mark');
+    const tableMark = page.locator('#sgs-table-mark');
+    // Nothing has closed yet, so nothing pulses: the table's mark is on screen from first
+    // paint, and a pulse there would announce a close that never happened.
+    await expect(tableMark).not.toHaveClass(/sgs-mark--flash/);
+
+    await page.locator('.sgs-panel-close').click();
+    await expect(panelMark).toHaveClass(/sgs-mark--flash/);
+    // Brief: gone again within a second, with no further input.
+    await expect(panelMark).not.toHaveClass(/sgs-mark--flash/, { timeout: 1500 });
+    // Opening does not pulse.
+    await panelMark.click();
+    await expect(panelMark).not.toHaveClass(/sgs-mark--flash/);
+
+    // The table leaves by a different path (it removes itself), and gets the same pulse.
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await page.locator('#sgs-table button[aria-label="Close the table"]').click();
+    await expect(tableMark).toHaveClass(/sgs-mark--flash/);
+    await expect(tableMark).not.toHaveClass(/sgs-mark--flash/, { timeout: 1500 });
 });
 
 test('MapLibre control glyphs are adopted: our svg, no baked background', async ({ page }) => {
@@ -314,28 +380,120 @@ test('MapLibre control glyphs are adopted: our svg, no baked background', async 
     }
 });
 
-test('layer rows, popup titles and the dock head all carry the swatch and type pill', async ({ page }) => {
+test('layer rows, popup titles and the table head all carry the swatch and type pill', async ({ page }) => {
     const row = page.locator('.sgs-row[data-layer="neighborhoods"]');
     await expect(row.locator('.sgs-swatch')).toBeVisible();
     await expect(row.locator('.sgs-source-pill')).toHaveText('{GEO}');
 
     await row.hover();
     await row.locator('button[aria-label^="Show"]').click();
-    await expect(page.locator('.sgs-dock-swatch .sgs-swatch')).toBeVisible();
-    await expect(page.locator('.sgs-dock-pill .sgs-source-pill')).toHaveText('{GEO}');
+    await expect(page.locator('.sgs-table-swatch .sgs-swatch')).toBeVisible();
+    await expect(page.locator('.sgs-table-pill .sgs-source-pill')).toHaveText('{GEO}');
 });
 
 test('field type badges appear in popups and in the table header', async ({ page }) => {
     await page.locator('.sgs-row[data-layer="stations"]').hover();
     await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
 
-    // The dock's header: one badge per column, typed from the data.
-    const heads = page.locator('#sgs-dock thead .sgs-field-badge');
+    // The table's header: one badge per column, typed from the data.
+    const heads = page.locator('#sgs-table thead .sgs-field-badge');
     await expect(heads).toHaveCount(5);
     // capacity is an integer, online is a boolean, name is a string.
     await expect(heads.nth(1)).toHaveText('abc');
     await expect(heads.nth(3)).toHaveText('123');
     await expect(heads.nth(4)).toHaveText('T/F');
+});
+
+test('every other table row carries a stripe, far fainter than hover', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
+    await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
+
+    /** The painted stripe on one row's first data cell. @param {number} n 1-based */
+    const stripe = (n) => page.locator(`#sgs-table tbody tr:nth-child(${n}) td`).nth(1)
+        .evaluate((el) => getComputedStyle(el).backgroundImage);
+    expect(await stripe(1)).toBe('none');
+    expect(await stripe(2)).toContain('gradient');
+    expect(await stripe(3)).toBe('none');
+
+    // Strength, as a number: the stripe's alpha against hover's, both resolved in place.
+    const alpha = await page.locator('#sgs-table table').evaluate((table) => {
+        const probe = document.createElement('span');
+        table.appendChild(probe);
+        /** @param {string} v */
+        const read = (v) => {
+            probe.style.color = v;
+            const c = getComputedStyle(probe).color;
+            const m = c.match(/\/\s*([\d.]+)\)/) ?? c.match(/rgba\([^)]*,\s*([\d.]+)\)/);
+            return m ? Number(m[1]) : 1;
+        };
+        const out = { stripe: read('var(--sgs-row-stripe)'), hover: read('var(--sgs-hover)') };
+        probe.remove();
+        return out;
+    });
+    expect(alpha.stripe).toBeGreaterThan(0);
+    expect(alpha.stripe).toBeLessThan(alpha.hover / 2);
+});
+
+test('the app boots without a console error', async ({ page }) => {
+    // MapLibre reports an invalid layer as an `error` EVENT, logged to the console, and carries
+    // on: a flash layer with a bad filter was silently never added while every other test here
+    // passed. The console is the one place that failure is visible, so it is asserted on.
+    // Errors only (the basemap's own style emits warnings), and not the GPU driver's
+    // performance notices, which headless Chrome logs at error level.
+    /** @type {string[]} */
+    const errors = [];
+    page.on('console', (m) => {
+        if (m.type() === 'error' && !m.text().includes('GL Driver Message')) errors.push(m.text());
+    });
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.reload();
+    await page.waitForSelector('body[data-ready="true"]');
+    await page.waitForTimeout(500);
+    expect(errors).toEqual([]);
+});
+
+test('zooming to a row flashes its feature on the map and makes it the current row', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
+    await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
+    const row = page.locator('#sgs-table tbody tr').nth(2);
+    const key = await row.getAttribute('data-key');
+    if (!key) throw new Error('row has no key');
+
+    // Record every filter the flash layers are given, from inside the page. Sampling the map by
+    // animation frame is not evidence: headless Chromium renders here at about 23fps, which
+    // leaves a handful of frames to land in each showing, and a sampled test can miss one.
+    await page.evaluate(() => {
+        const w = /** @type {any} */ (window);
+        const m = w.sgsMap;
+        /** @type {Array<[string, string, boolean]>} */
+        const calls = [];
+        w.flashCalls = calls;
+        const set = m.setFilter.bind(m);
+        m.setFilter = (/** @type {string} */ id, /** @type {unknown} */ f, /** @type {any[]} */ ...rest) => {
+            if (id.startsWith('neighborhoods-flash')) calls.push([id, JSON.stringify(f), m.isMoving()]);
+            return set(id, f, ...rest);
+        };
+    });
+
+    await row.locator('.sgs-go-col button').click();
+    await expect(row).toHaveClass(/sgs-row-hit/);
+    await expect(page.locator('#sgs-table tbody tr.sgs-row-hit')).toHaveCount(1);
+
+    // ONE showing, on both polygon flash layers: the body filled as well as the edge drawn
+    // heavy, because an edge alone vanishes once the camera has fitted the polygon to the
+    // screen and its edge is the screen's edge. Then matching nothing again.
+    await expect.poll(
+        () => page.evaluate(() => /** @type {any} */ (window).flashCalls.length), { timeout: 5000 },
+    ).toBe(4);
+    const calls = await page.evaluate(() => /** @type {any} */ (window).flashCalls);
+    const on = `["==",["get","id"],"${key}"]`;
+    const off = '["literal",false]';
+    for (const id of ['neighborhoods-flash', 'neighborhoods-flash-fill']) {
+        const mine = calls.filter((/** @type {any[]} */ c) => c[0] === id);
+        expect(mine.map((/** @type {any[]} */ c) => c[1]), id).toEqual([on, off]);
+        // Lit on the press, while the camera is still on its way: not held back for its arrival.
+        expect(mine[0][2], `${id} lit while moving`).toBe(true);
+    }
 });
 
 /* ── Regressions ─────────────────────────────────────────────────────────────────────────
@@ -346,7 +504,7 @@ test('folding the panel collapses its height without changing its width', async 
     const open = await page.locator('#sgs-panel').boundingBox();
     if (!open) throw new Error('no panel');
 
-    await page.locator('.sgs-panel-fold').click();
+    await foldToHead(page, '.sgs-panel-fold');
     const folded = await page.locator('#sgs-panel').boundingBox();
     if (!folded) throw new Error('no panel');
 
@@ -355,13 +513,13 @@ test('folding the panel collapses its height without changing its width', async 
     expect(folded.height).toBeLessThan(60);
     expect(folded.width).toBeCloseTo(open.width, 0);
 
-    // And unfolding gives the automatic width back, because the FOLD is what pinned it.
+    // And unfolding gives the automatic width back, because the FOLD is what set it.
     await page.locator('.sgs-panel-fold').click();
     const back = await page.locator('#sgs-panel').boundingBox();
     expect(back?.width).toBeCloseTo(open.width, 0);
 });
 
-test('pinning a height keeps a width the reader already pinned', async ({ page }) => {
+test('setting a height keeps a width the reader already set', async ({ page }) => {
     const panel = page.locator('#sgs-panel');
     const start = await panel.boundingBox();
     if (!start) throw new Error('no panel');
@@ -427,36 +585,36 @@ test('dragging the large window by its head moves it by the drag distance', asyn
     expect(after.width).toBeCloseTo(before.width, 0);
 });
 
-test('the dock rises to symmetric margins and folds the panel out of its way', async ({ page }) => {
+test('the table rises to symmetric margins and folds the panel out of its way', async ({ page }) => {
     const vp = page.viewportSize();
     if (!vp) throw new Error('no viewport');
 
     await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
     await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
-    await expect(page.locator('#sgs-dock')).toHaveCount(1);
+    await expect(page.locator('#sgs-table')).toHaveCount(1);
     await expect(page.locator('#sgs-panel-body')).toBeVisible();
 
-    // Drag the dock's top grip well past the top of the screen. It should stop where its top
+    // Drag the table's top grip well past the top of the screen. It should stop where its top
     // margin equals its bottom one, not at the old arbitrary 70%.
-    const grip = page.locator('.sgs-dock-grip--h');
+    const grip = page.locator('.sgs-table-grip--h');
     const gb = await grip.boundingBox();
-    if (!gb) throw new Error('no dock grip');
+    if (!gb) throw new Error('no table grip');
     await page.mouse.move(gb.x + gb.width / 2, gb.y + gb.height / 2);
     await page.mouse.down();
     await page.mouse.move(gb.x + gb.width / 2, -200, { steps: 12 });
     await page.mouse.up();
 
-    const dock = await page.locator('#sgs-dock').boundingBox();
-    if (!dock) throw new Error('no dock');
-    expect(dock.y).toBeCloseTo(vp.height - dock.y - dock.height, 0);
-    expect(dock.y).toBeGreaterThan(4);
+    const table = await page.locator('#sgs-table').boundingBox();
+    if (!table) throw new Error('no table');
+    expect(table.y).toBeCloseTo(vp.height - table.y - table.height, 0);
+    expect(table.y).toBeGreaterThan(4);
 
     // On the way up it folded the layer panel, which had run out of usable height.
     await expect(page.locator('#sgs-panel-body')).toBeHidden();
 
-    // And on the way back down it gives it back, because the dock is what took it.
+    // And on the way back down it gives it back, because the table is what took it.
     const gb2 = await grip.boundingBox();
-    if (!gb2) throw new Error('no dock grip');
+    if (!gb2) throw new Error('no table grip');
     await page.mouse.move(gb2.x + gb2.width / 2, gb2.y + gb2.height / 2);
     await page.mouse.down();
     await page.mouse.move(gb2.x + gb2.width / 2, vp.height - 240, { steps: 12 });
@@ -465,7 +623,7 @@ test('the dock rises to symmetric margins and folds the panel out of its way', a
 });
 
 /**
- * Snap, pin and FULL.
+ * Snap, dock and FULL.
  *
  * The drags below all grab a HEAD and move it, which is the reader's gesture, rather than
  * calling into the module. That matters here more than usual: the bug these replace was not
@@ -488,21 +646,21 @@ async function dragHead(page, head, toX, toY) {
     await page.mouse.up();
 }
 
-test('the panel dragged back near its berth re-docks itself', async ({ page }) => {
+test('the panel dragged back near its edge docks itself', async ({ page }) => {
     const panel = page.locator('#sgs-panel');
-    await page.locator('.sgs-panel-pin').click();
-    await expect(panel).toHaveClass(/sgs-panel--float/);
+    await page.locator('.sgs-panel-dock').click();
+    await expect(panel).toHaveClass(/sgs-panel--undocked/);
 
-    // Out to the middle of the map: nowhere near the berth, so it stays loose.
+    // Out to the middle of the map: nowhere near its edge, so it stays undocked.
     await dragHead(page, '.sgs-panel-head', 500, 400);
-    await expect(panel).toHaveClass(/sgs-panel--float/);
+    await expect(panel).toHaveClass(/sgs-panel--undocked/);
 
-    // And back to the corner. Inside the catch radius, letting go re-berths it, and the panel
+    // And back to the corner. Inside the catch radius, letting go re-docks it, and the panel
     // reaches the bottom inset again the way a docked panel does.
     const vp = page.viewportSize();
     if (!vp) throw new Error('no viewport');
     await dragHead(page, '.sgs-panel-head', 50, 30);
-    await expect(panel).not.toHaveClass(/sgs-panel--float/);
+    await expect(panel).not.toHaveClass(/sgs-panel--undocked/);
     const box = await panel.boundingBox();
     if (!box) throw new Error('no panel');
     expect(box.x).toBeLessThan(24);
@@ -511,7 +669,7 @@ test('the panel dragged back near its berth re-docks itself', async ({ page }) =
 });
 
 test('the panel shows it will snap before the reader lets go', async ({ page }) => {
-    await page.locator('.sgs-panel-pin').click();
+    await page.locator('.sgs-panel-dock').click();
     const panel = page.locator('#sgs-panel');
 
     const h = await page.locator('.sgs-panel-head').boundingBox();
@@ -527,69 +685,500 @@ test('the panel shows it will snap before the reader lets go', async ({ page }) 
     await expect(panel).not.toHaveClass(/sgs-snapping/);
 });
 
-test('the table unpins, drags loose, and snaps back to the bottom berth', async ({ page }) => {
+test('the docked table drags undocked by its head, as the panel does, and its head says so', async ({ page }) => {
     const vp = page.viewportSize();
     if (!vp) throw new Error('no viewport');
     await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
     await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
-    const dock = page.locator('#sgs-dock');
-    await expect(dock).toHaveCount(1);
+    const table = page.locator('#sgs-table');
+    await expect(table).not.toHaveClass(/sgs-table--undocked/);
 
-    const berthed = await dock.boundingBox();
-    if (!berthed) throw new Error('no dock');
-    // Berthed, the dock spans the viewport and sits on the bottom inset.
-    expect(berthed.x).toBeLessThan(24);
-    expect(berthed.width).toBeGreaterThan(vp.width - 48);
-    expect(berthed.y + berthed.height).toBeGreaterThan(vp.height - 24);
+    // Grabbable while docked, not only once already undocked: the cursor is the affordance.
+    expect(await page.locator('.sgs-table-head').evaluate((el) => getComputedStyle(el).cursor)).toBe('grab');
 
-    await page.locator('.sgs-dock-pin').click();
-    await expect(dock).toHaveClass(/sgs-dock--float/);
-    await dragHead(page, '.sgs-dock-head', 420, 200);
-    const loose = await dock.boundingBox();
-    if (!loose) throw new Error('no dock');
-    // Loose it takes a width and leaves the bottom, so it stops being the bottom edge — and
-    // the panel gets its own bottom anchor back.
-    expect(loose.width).toBeLessThan(vp.width - 100);
-    expect(loose.y + loose.height).toBeLessThan(vp.height - 60);
+    // No button pressed: the drag alone undocks it.
+    await dragHead(page, '.sgs-table-head', vp.width / 2, 200);
+    await expect(table).toHaveClass(/sgs-table--undocked/);
+    await expect(page.locator('.sgs-table-dock')).toHaveAttribute('aria-pressed', 'false');
+    const box = await table.boundingBox();
+    if (!box) throw new Error('no table');
+    expect(box.y + box.height).toBeLessThan(vp.height - 60);
+});
+
+test('a folded table drags undocked too, and stays folded when it is put down', async ({ page }) => {
+    const vp = page.viewportSize();
+    if (!vp) throw new Error('no viewport');
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await foldToHead(page, '.sgs-table-fold');
+
+    await dragHead(page, '.sgs-table-head', vp.width / 2, 200);
+    const table = page.locator('#sgs-table');
+    await expect(table).toHaveClass(/sgs-table--undocked/);
+    // The browser fires a click at the end of the drag; it must not unfold the bar.
+    await expect(page.locator('.sgs-table-fold')).toHaveAttribute('aria-expanded', 'false');
+    const box = await table.boundingBox();
+    if (!box) throw new Error('no table');
+    expect(box.height).toBeLessThan(60);
+    expect(box.y).toBeLessThan(260);
+});
+
+test('the table undocks, drags, and snaps back to the bottom edge', async ({ page }) => {
+    const vp = page.viewportSize();
+    if (!vp) throw new Error('no viewport');
+    await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
+    await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
+    const table = page.locator('#sgs-table');
+    await expect(table).toHaveCount(1);
+
+    const docked = await table.boundingBox();
+    if (!docked) throw new Error('no table');
+    // Docked, the table spans the viewport and sits on the bottom inset.
+    expect(docked.x).toBeLessThan(24);
+    expect(docked.width).toBeGreaterThan(vp.width - 48);
+    expect(docked.y + docked.height).toBeGreaterThan(vp.height - 24);
+
+    await page.locator('.sgs-table-dock').click();
+    await expect(table).toHaveClass(/sgs-table--undocked/);
+    await dragHead(page, '.sgs-table-head', 420, 200);
+    const undocked = await table.boundingBox();
+    if (!undocked) throw new Error('no table');
+    // Undocked it leaves the bottom, so it stops being the bottom edge and the panel gets its own
+    // bottom anchor back. It keeps its width: undocking moves a table, never resizes it.
+    expect(undocked.width).toBeCloseTo(docked.width, 0);
+    expect(undocked.y + undocked.height).toBeLessThan(vp.height - 60);
     const panel = await page.locator('#sgs-panel').boundingBox();
     if (!panel) throw new Error('no panel');
     expect(panel.y + panel.height).toBeGreaterThan(vp.height - 24);
 
-    // Dropped back at the foot of the map it berths itself: full-bleed again, on the inset.
-    await dragHead(page, '.sgs-dock-head', 30, vp.height - loose.height + 10);
-    await expect(dock).not.toHaveClass(/sgs-dock--float/);
-    const reberthed = await dock.boundingBox();
-    if (!reberthed) throw new Error('no dock');
-    expect(reberthed.width).toBeGreaterThan(vp.width - 48);
-    expect(reberthed.y + reberthed.height).toBeGreaterThan(vp.height - 24);
+    // Dropped back at the foot of the map it docks itself: full-bleed again, on the inset.
+    await dragHead(page, '.sgs-table-head', 30, vp.height - undocked.height + 10);
+    await expect(table).not.toHaveClass(/sgs-table--undocked/);
+    const redocked = await table.boundingBox();
+    if (!redocked) throw new Error('no table');
+    expect(redocked.width).toBeGreaterThan(vp.width - 48);
+    expect(redocked.y + redocked.height).toBeGreaterThan(vp.height - 24);
 });
 
-test('FULL fills the map and gives back the exact width the reader pinned', async ({ page }) => {
+test('the undocked table snaps back when held against the bottom anywhere, the middle included', async ({ page }) => {
     const vp = page.viewportSize();
     if (!vp) throw new Error('no viewport');
-    const panel = page.locator('#sgs-panel');
+    await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
+    await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
+    const table = page.locator('#sgs-table');
+    await expect(table).toHaveCount(1);
 
-    // Pin a width the reader would notice losing.
+    /** Undock it and park it mid-map, well clear of every edge. */
+    const undockMidMap = async () => {
+        await page.locator('.sgs-table-dock').click();
+        await expect(table).toHaveClass(/sgs-table--undocked/);
+        await dragHead(page, '.sgs-table-head', vp.width / 2, 200);
+        await expect(table).toHaveClass(/sgs-table--undocked/);
+        const box = await table.boundingBox();
+        if (!box) throw new Error('no table');
+        return box;
+    };
+
+    // Dropped at the foot of the map in the MIDDLE, far from the bottom-left corner. This is
+    // the case the corner test missed: it stayed undocked.
+    let undocked = await undockMidMap();
+    const h = await page.locator('.sgs-table-head').boundingBox();
+    if (!h) throw new Error('no head');
+    await page.mouse.move(h.x + 40, h.y + h.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(vp.width / 2, vp.height - undocked.height + 10, { steps: 10 });
+    // The cue shows before letting go, as it does for the panel.
+    await expect(table).toHaveClass(/sgs-snapping/);
+    await page.mouse.up();
+    await expect(table).not.toHaveClass(/sgs-snapping/);
+    await expect(table).not.toHaveClass(/sgs-table--undocked/);
+    let docked = await table.boundingBox();
+    if (!docked) throw new Error('no table');
+    expect(docked.x).toBeLessThan(24);
+    expect(docked.width).toBeGreaterThan(vp.width - 48);
+    expect(docked.y + docked.height).toBeGreaterThan(vp.height - 24);
+
+    // Pushed down PAST its docked top, near the right, until little more than the head shows:
+    // shoving it into the edge it belongs on puts it back too.
+    undocked = await undockMidMap();
+    await dragHead(page, '.sgs-table-head', vp.width - 120, vp.height - 20);
+    await expect(table).not.toHaveClass(/sgs-table--undocked/);
+    docked = await table.boundingBox();
+    if (!docked) throw new Error('no table');
+    expect(docked.width).toBeGreaterThan(vp.width - 48);
+    expect(docked.y + docked.height).toBeGreaterThan(vp.height - 24);
+    expect(docked.y + docked.height).toBeLessThanOrEqual(vp.height);
+});
+
+test('the table is the one thing that fills the map: the panel has no FULL', async ({ page }) => {
+    await expect(page.locator('.sgs-panel-full')).toHaveCount(0);
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await expect(page.locator('.sgs-table-full')).toHaveCount(1);
+});
+
+test('one chevron, four views, on the table: natural, its rows, its head, its rows and columns', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    const table = page.locator('#sgs-table');
+    const chev = page.locator('.sgs-table-fold');
+    const natural = await table.boundingBox();
+    if (!natural) throw new Error('no table');
+    const rows = async () => (await heightOf(page, '.sgs-table-body table')) + (await heightOf(page, '.sgs-table-head'));
+
+    // TIGHT: the table plus its head, no blank band.
+    await chev.click();
+    await expect(table).toHaveClass(/sgs-table--tight/);
+    expect(Math.abs((await heightOf(page, '#sgs-table')) - await rows())).toBeLessThan(4);
+
+    // HEAD.
+    await chev.click();
+    await expect(chev).toHaveAttribute('aria-expanded', 'false');
+    expect(await heightOf(page, '#sgs-table')).toBeLessThan(60);
+
+    // SNUG: the rows' height AND the columns' width.
+    await chev.click();
+    await expect(table).toHaveClass(/sgs-table--snug/);
+    const snug = await table.boundingBox();
+    if (!snug) throw new Error('no table');
+    const tableW = await page.locator('.sgs-table-body table').evaluate((t) => t.getBoundingClientRect().width);
+    expect(snug.width).toBeLessThan(natural.width - 100);
+    expect(Math.abs(snug.width - tableW)).toBeLessThan(6);
+    expect(Math.abs(snug.height - await rows())).toBeLessThan(4);
+
+    // NATURAL again, to the pixel both ways, because no view wrote over a size.
+    await chev.click();
+    const back = await table.boundingBox();
+    if (!back) throw new Error('no table');
+    expect(back.height).toBeCloseTo(natural.height, 0);
+    expect(back.width).toBeCloseTo(natural.width, 0);
+});
+
+test('the fitted view grows the table to rows that fit on screen', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
+    await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
+    const natural = await heightOf(page, '#sgs-table');
+    const rows = (await heightOf(page, '.sgs-table-body table')) + (await heightOf(page, '.sgs-table-head'));
+    // The precondition, checked rather than assumed: this layer's rows need more than natural.
+    expect(rows).toBeGreaterThan(natural + 2);
+    await page.locator('.sgs-table-fold').click();
+    await expect(page.locator('#sgs-table')).toHaveClass(/sgs-table--tight/);
+    expect(Math.abs((await heightOf(page, '#sgs-table')) - rows)).toBeLessThan(4);
+});
+
+test('the fitted view is skipped only when the rows could not all fit on screen', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 240 });
+    await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
+    await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
+    const rows = (await heightOf(page, '.sgs-table-body table')) + (await heightOf(page, '.sgs-table-head'));
+    // The precondition: taller than the most the table may be (the viewport less its insets).
+    expect(rows).toBeGreaterThan(240 - 20);
+    await page.locator('.sgs-table-fold').click();
+    await expect(page.locator('.sgs-table-fold')).toHaveAttribute('aria-expanded', 'false');
+});
+
+/**
+ * Which way a chevron points once its transition settles, read off its computed transform. The
+ * glyph points down unrotated.
+ * @param {import('@playwright/test').Page} page @param {string} sel
+ */
+const pointing = (page, sel) => page.locator(`${sel} svg`).evaluate((el) => {
+    const t = getComputedStyle(el).transform.replace(/\s/g, '');
+    if (t === 'none' || t.startsWith('matrix(1,0,0,1')) return 'down';
+    if (t.startsWith('matrix(-1,')) return 'up';
+    if (t.startsWith('matrix(0,1,-1,0')) return 'left';
+    if (t.startsWith('matrix(0,-1,1,0')) return 'right';
+    return t;
+});
+
+test('the table\'s chevron points one way per view: down, right, up, left, and down again', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    const ways = ['down', 'right', 'up', 'left', 'down'];
+    for (let i = 0; i < ways.length; i++) {
+        await expect.poll(() => pointing(page, '.sgs-table-fold')).toBe(ways[i]);
+        if (i < ways.length - 1) await page.locator('.sgs-table-fold').click();
+    }
+});
+
+test('the panel goes round the same dial, skipping SNUG at its own width', async ({ page }) => {
+    const chev = page.locator('.sgs-panel-fold');
+    const natural = await heightOf(page, '#sgs-panel');
+
+    await expect.poll(() => pointing(page, '.sgs-panel-fold')).toBe('down');
+    await chev.click();
+    expect(await heightOf(page, '#sgs-panel')).toBeLessThan(natural - 100);
+    await expect.poll(() => pointing(page, '.sgs-panel-fold')).toBe('right');
+
+    await chev.click();
+    expect(await heightOf(page, '#sgs-panel')).toBeLessThan(60);
+    await expect.poll(() => pointing(page, '.sgs-panel-fold')).toBe('up');
+
+    // The automatic width is already the rows' own, so SNUG would be TIGHT again: skipped.
+    await chev.click();
+    expect(await heightOf(page, '#sgs-panel')).toBeCloseTo(natural, 0);
+    await expect.poll(() => pointing(page, '.sgs-panel-fold')).toBe('down');
+});
+
+test('with a wider width set, the panel offers SNUG: its rows and its own width, pointing left', async ({ page }) => {
+    const panel = page.locator('#sgs-panel');
     const grip = await page.locator('.sgs-grip--w').boundingBox();
     if (!grip) throw new Error('no grip');
     await page.mouse.move(grip.x + grip.width / 2, grip.y + 200);
     await page.mouse.down();
-    await page.mouse.move(grip.x + grip.width / 2 + 90, grip.y + 200, { steps: 5 });
+    await page.mouse.move(grip.x + grip.width / 2 + 120, grip.y + 200, { steps: 5 });
     await page.mouse.up();
-    const pinned = await panel.boundingBox();
-    if (!pinned) throw new Error('no panel');
+    const wide = await panel.boundingBox();
+    if (!wide) throw new Error('no panel');
 
-    await page.locator('.sgs-panel-full').click();
-    const full = await panel.boundingBox();
-    if (!full) throw new Error('no panel');
-    expect(full.width).toBeGreaterThan(pinned.width + 60);
-    expect(full.width).toBeCloseTo(vp.width * 0.6, 0);
+    const chev = page.locator('.sgs-panel-fold');
+    await chev.click();
+    await chev.click();
+    await chev.click();
+    await expect(panel).toHaveClass(/sgs-panel--snug/);
+    await expect.poll(() => pointing(page, '.sgs-panel-fold')).toBe('left');
+    const snug = await panel.boundingBox();
+    if (!snug) throw new Error('no panel');
+    expect(snug.width).toBeLessThan(wide.width - 60);
+    expect(snug.height).toBeLessThan(wide.height - 100);
 
-    // Releasing restores the pinned width to the pixel, because FULL never overwrote it.
-    await page.locator('.sgs-panel-full').click();
+    // And the set width is still there underneath, to the pixel.
+    await chev.click();
     const back = await panel.boundingBox();
-    if (!back) throw new Error('no panel');
-    expect(back.width).toBeCloseTo(pinned.width, 0);
+    expect(back?.width).toBeCloseTo(wide.width, 0);
+});
+
+test('the panel docks when held against the left edge anywhere, and not with Ctrl held', async ({ page }) => {
+    const vp = page.viewportSize();
+    if (!vp) throw new Error('no viewport');
+    const panel = page.locator('#sgs-panel');
+    await page.locator('.sgs-panel-dock').click();
+    await dragHead(page, '.sgs-panel-head', 500, 300);
+    await expect(panel).toHaveClass(/sgs-panel--undocked/);
+
+    // With Ctrl held the snap is off: parked against the edge halfway down, it stays undocked.
+    await page.keyboard.down('Control');
+    await dragHead(page, '.sgs-panel-head', 50, vp.height / 2);
+    await page.keyboard.up('Control');
+    await expect(panel).toHaveClass(/sgs-panel--undocked/);
+
+    // The same drop without Ctrl docks it: halfway down the edge, nowhere near the top corner
+    // the old test compared against.
+    await dragHead(page, '.sgs-panel-head', 500, 300);
+    await dragHead(page, '.sgs-panel-head', 50, vp.height / 2);
+    await expect(panel).not.toHaveClass(/sgs-panel--undocked/);
+    const box = await panel.boundingBox();
+    if (!box) throw new Error('no panel');
+    expect(box.y).toBeLessThan(24);
+    expect(box.y + box.height).toBeGreaterThan(vp.height - 24);
+});
+
+test('closing the table shrinks it into its tab, fast, and the tab pulses in the chrome\'s own greys', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await page.evaluate(() => {
+        const w = /** @type {any} */ (window);
+        w.stows = [];
+        const animate = Element.prototype.animate;
+        Element.prototype.animate = function (/** @type {any} */ frames, /** @type {any} */ opts) {
+            if (this.classList.contains('sgs-table')) w.stows.push({ to: frames[frames.length - 1].transform, ms: opts.duration });
+            return animate.call(this, frames, opts);
+        };
+    });
+    await page.locator('#sgs-table button[aria-label="Close the table"]').click();
+    await expect(page.locator('#sgs-table')).toHaveCount(0);
+    await expect(page.locator('.sgs-table')).toHaveCount(0);
+    await expect(page.locator('#sgs-table-mark')).toBeVisible();
+    const stows = await page.evaluate(() => /** @type {any} */ (window).stows);
+    expect(stows).toHaveLength(1);
+    expect(stows[0].to).toContain('scale(');
+    expect(stows[0].ms).toBeLessThanOrEqual(200);
+
+    // The pulse names no accent colour: it is the tab going to full ink, not going blue.
+    const pulse = await page.evaluate(() => {
+        for (const sheet of document.styleSheets) {
+            for (const rule of sheet.cssRules) {
+                if (rule instanceof CSSKeyframesRule && rule.name === 'sgs-mark-arrive') return rule.cssText;
+            }
+        }
+        return '';
+    });
+    expect(pulse).toContain('--sgs-fg');
+    expect(pulse).not.toContain('accent');
+    // Held dark for the first 30% of a full second: 300ms of outline before it settles.
+    expect(pulse).toContain('30%');
+    const mark = page.locator('#sgs-table-mark');
+    await expect(mark).toHaveClass(/sgs-mark--flash/);
+    expect(await mark.evaluate((el) => getComputedStyle(el).animationDuration)).toBe('1s');
+});
+
+test('the selected ring hugs a point: its inner edge meets the dot\'s white edge', async ({ page }) => {
+    const p = await page.evaluate(() => {
+        const m = window.sgsMap;
+        return {
+            ring: m.getPaintProperty('stations-selected', 'circle-radius'),
+            ringW: m.getPaintProperty('stations-selected', 'circle-stroke-width'),
+            dot: m.getPaintProperty('stations-circle', 'circle-radius'),
+            edge: m.getPaintProperty('stations-circle', 'circle-stroke-width'),
+        };
+    });
+    expect(p.ring - p.ringW / 2).toBeCloseTo(p.dot + p.edge, 5);
+});
+
+test('fitting the table to its columns keeps its left edge, docked or not', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    const table = page.locator('#sgs-table');
+    const chev = page.locator('.sgs-table-fold');
+    const left = async () => (await table.boundingBox())?.x ?? NaN;
+    const before = await left();
+
+    // Natural, tight, head, snug: three presses, and the last one narrows the table from the
+    // right, so its left edge stays at the inset.
+    for (let i = 0; i < 3; i++) await chev.click();
+    await expect(table).toHaveClass(/sgs-table--snug/);
+    expect(Math.abs(await left() - before)).toBeLessThan(2);
+
+    // Undocked while snug, it stays exactly where it was drawn.
+    await page.locator('.sgs-table-dock').click();
+    await expect(table).toHaveClass(/sgs-table--undocked/);
+    expect(Math.abs(await left() - before)).toBeLessThan(2);
+});
+
+test('both dock buttons say Dock and Undock: one verb for one gesture', async ({ page }) => {
+    // The accessible name, not `title`: the one tooltip lifts `title` into `data-tip` while the
+    // pointer is over a button, which a click always is (tooltip.js). The two carry one text.
+    const panelDock = page.locator('.sgs-panel-dock');
+    await expect(panelDock).toHaveAttribute('aria-label', 'Undock the layer panel');
+    await panelDock.click();
+    await expect(panelDock).toHaveAttribute('aria-label', 'Dock the layer panel');
+
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    const tableDock = page.locator('.sgs-table-dock');
+    await expect(tableDock).toHaveAttribute('aria-label', 'Undock the table');
+    await tableDock.click();
+    await expect(tableDock).toHaveAttribute('aria-label', 'Dock the table');
+});
+
+test('the three heads share one look, and every grip one pill', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    // A popup, for its head: a click on a station, found by asking the map.
+    const pt = await page.evaluate(() => {
+        const m = window.sgsMap;
+        const f = m.queryRenderedFeatures({ layers: ['stations-circle'] })[0];
+        return f ? m.project(/** @type {any} */ (f.geometry).coordinates) : null;
+    });
+    if (pt) await page.mouse.click(pt.x, pt.y);
+
+    const look = (/** @type {string} */ sel) => page.locator(sel).first().evaluate((el) => {
+        const s = getComputedStyle(el);
+        return [s.padding, s.gap, s.backgroundColor, s.borderBottom, s.cursor].join(' | ');
+    });
+    const panel = await look('.sgs-panel-head');
+    expect(await look('.sgs-table-head')).toBe(panel);
+    if (pt) expect(await look('.sgs-popup-head')).toBe(panel);
+
+    const pill = (/** @type {string} */ sel) => page.locator(sel).first()
+        .evaluate((el) => getComputedStyle(el, '::before').backgroundColor);
+    expect(await pill('.sgs-grip--w')).toBe(await pill('.sgs-table-grip--h'));
+});
+
+test('the attribution is a small-cornered card, not a round pill', async ({ page }) => {
+    const radius = await page.locator('.maplibregl-ctrl-attrib').evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius));
+    expect(radius).toBeGreaterThan(0);
+    expect(radius).toBeLessThanOrEqual(6);
+});
+
+test('a folded table unfolds from its chevron, not from a click on its bar', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await foldToHead(page, '.sgs-table-fold');
+    await page.locator('.sgs-table-title').click();
+    await expect(page.locator('.sgs-table-fold')).toHaveAttribute('aria-expanded', 'false');
+    expect(await page.locator('.sgs-table-head').evaluate((el) => getComputedStyle(el).cursor)).toBe('grab');
+});
+
+test('FULL on an undocked table takes the map, and letting go puts it back where it was', async ({ page }) => {
+    const vp = page.viewportSize();
+    if (!vp) throw new Error('no viewport');
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    const table = page.locator('#sgs-table');
+    await page.locator('.sgs-table-dock').click();
+    await dragHead(page, '.sgs-table-head', vp.width / 2, 200);
+    await expect(table).toHaveClass(/sgs-table--undocked/);
+    const undocked = await table.boundingBox();
+    if (!undocked) throw new Error('no table');
+
+    await page.locator('.sgs-table-full').click();
+    const full = await table.boundingBox();
+    if (!full) throw new Error('no table');
+    expect(full.x).toBeLessThan(24);
+    expect(full.width).toBeGreaterThan(vp.width - 48);
+    expect(full.y).toBeCloseTo(vp.height - full.y - full.height, 0);
+    // A table that has taken the map is standing on the panel's room, undocked or not.
+    await expect(page.locator('#sgs-panel-body')).toBeHidden();
+
+    await page.locator('.sgs-table-full').click();
+    await expect(table).toHaveClass(/sgs-table--undocked/);
+    const back = await table.boundingBox();
+    if (!back) throw new Error('no table');
+    expect(back.x).toBeCloseTo(undocked.x, 0);
+    expect(back.y).toBeCloseTo(undocked.y, 0);
+    expect(back.width).toBeCloseTo(undocked.width, 0);
+    expect(back.height).toBeCloseTo(undocked.height, 0);
+    await expect(page.locator('#sgs-panel-body')).toBeVisible();
+});
+
+test('FULL on a folded table unfolds it, and giving the room back folds it again', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await foldToHead(page, '.sgs-table-fold');
+    await page.locator('.sgs-table-full').click();
+    // Asking for the room is asking to see the rows.
+    await expect(page.locator('.sgs-table-fold')).toHaveAttribute('aria-expanded', 'true');
+    expect(await heightOf(page, '#sgs-table')).toBeGreaterThan(400);
+    // Giving it back returns the table to the view it was in before: its head alone.
+    await page.locator('.sgs-table-full').click();
+    await expect(page.locator('.sgs-table-fold')).toHaveAttribute('aria-expanded', 'false');
+    expect(await heightOf(page, '#sgs-table')).toBeLessThan(60);
+});
+
+test('giving the room back returns a fitted table to its fitted view', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    const table = page.locator('#sgs-table');
+    // One press: the stations table's rows fit, so the first step is TIGHT.
+    await page.locator('.sgs-table-fold').click();
+    await expect(table).toHaveClass(/sgs-table--tight/);
+    const tight = await heightOf(page, '#sgs-table');
+
+    await page.locator('.sgs-table-full').click();
+    await expect(table).not.toHaveClass(/sgs-table--tight/);
+    await page.locator('.sgs-table-full').click();
+    await expect(table).toHaveClass(/sgs-table--tight/);
+    expect(Math.abs(await heightOf(page, '#sgs-table') - tight)).toBeLessThan(2);
+
+    // A view picked while the map is taken is the reader's newer choice, and it stays: folded to
+    // its head under FULL, it is still folded after, not fitted again.
+    await page.locator('.sgs-table-full').click();
+    await foldToHead(page, '.sgs-table-fold');
+    await page.locator('.sgs-table-full').click();
+    await expect(page.locator('.sgs-table-fold')).toHaveAttribute('aria-expanded', 'false');
+    await expect(table).not.toHaveClass(/sgs-table--tight/);
+});
+
+test('a folded panel stays folded while the table is undocked', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await foldToHead(page, '.sgs-panel-fold');
+    await page.locator('.sgs-table-dock').click();
+    await expect(page.locator('#sgs-table')).toHaveClass(/sgs-table--undocked/);
+    // The bug: the undocked-table rule gave the panel back its bottom anchor, and a folded panel
+    // anchored at both ends stretched to full height around its hidden body.
+    expect(await heightOf(page, '#sgs-panel')).toBeLessThan(60);
 });
 
 test('FULL on the table takes the map and folds the panel; the grip takes the room back', async ({ page }) => {
@@ -599,43 +1188,43 @@ test('FULL on the table takes the map and folds the panel; the grip takes the ro
     await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
     await expect(page.locator('#sgs-panel-body')).toBeVisible();
 
-    await page.locator('.sgs-dock-full').click();
-    const dock = await page.locator('#sgs-dock').boundingBox();
-    if (!dock) throw new Error('no dock');
+    await page.locator('.sgs-table-full').click();
+    const table = await page.locator('#sgs-table').boundingBox();
+    if (!table) throw new Error('no table');
     // Symmetric margins on every side: the limit the grip stops at, reached in one click.
-    expect(dock.y).toBeCloseTo(vp.height - dock.y - dock.height, 0);
-    expect(dock.x).toBeLessThan(24);
-    expect(dock.width).toBeGreaterThan(vp.width - 48);
+    expect(table.y).toBeCloseTo(vp.height - table.y - table.height, 0);
+    expect(table.x).toBeLessThan(24);
+    expect(table.width).toBeGreaterThan(vp.width - 48);
     await expect(page.locator('#sgs-panel-body')).toBeHidden();
 
     // Dragging the edge is the reader taking the height back, so it cancels FULL rather than
     // being outranked by it — and the button says so.
-    const gb = await page.locator('.sgs-dock-grip--h').boundingBox();
+    const gb = await page.locator('.sgs-table-grip--h').boundingBox();
     if (!gb) throw new Error('no grip');
     await page.mouse.move(gb.x + gb.width / 2, gb.y + gb.height / 2);
     await page.mouse.down();
     await page.mouse.move(gb.x + gb.width / 2, vp.height - 200, { steps: 8 });
     await page.mouse.up();
-    await expect(page.locator('.sgs-dock-full')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('.sgs-table-full')).toHaveAttribute('aria-pressed', 'false');
     await expect(page.locator('#sgs-panel-body')).toBeVisible();
 });
 
-test('double-clicking the dock grip fits the table rather than jumping to a fixed height', async ({ page }) => {
+test('double-clicking the table grip fits the table rather than jumping to a fixed height', async ({ page }) => {
     await page.locator('.sgs-row[data-layer="stations"]').hover();
     await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
-    const dock = page.locator('#sgs-dock');
-    await expect(dock).toHaveCount(1);
+    const table = page.locator('#sgs-table');
+    await expect(table).toHaveCount(1);
 
-    const gb = await page.locator('.sgs-dock-grip--h').boundingBox();
+    const gb = await page.locator('.sgs-table-grip--h').boundingBox();
     if (!gb) throw new Error('no grip');
     await page.mouse.dblclick(gb.x + gb.width / 2, gb.y + gb.height / 2);
 
-    const box = await dock.boundingBox();
-    const table = await page.locator('.sgs-dock-body table').boundingBox();
-    const head = await page.locator('.sgs-dock-head').boundingBox();
-    if (!box || !table || !head) throw new Error('missing geometry');
+    const box = await table.boundingBox();
+    const grid = await page.locator('.sgs-table-body table').boundingBox();
+    const head = await page.locator('.sgs-table-head').boundingBox();
+    if (!box || !grid || !head) throw new Error('missing geometry');
     // TIGHT means the band is the table plus its head, with no blank strip underneath.
-    expect(Math.abs(box.height - (table.height + head.height))).toBeLessThan(4);
+    expect(Math.abs(box.height - (grid.height + head.height))).toBeLessThan(4);
 });
 
 test('the large window carries a rail of pages, and switching keeps what a page was doing', async ({ page }) => {

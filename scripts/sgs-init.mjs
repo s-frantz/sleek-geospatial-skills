@@ -23,8 +23,9 @@
  * SKILL.md that describes it, so an app that took no popups gets no popup-placement skill,
  * and an app pinned to an old watermark keeps the skill that describes what it actually has.
  * They land at <app>/.claude/skills/, where an agent working in the app finds them without
- * knowing the clone exists. Two skills stay behind on purpose: `app-start` (the app has
- * already started) and `repo-maintain` (the laws for this repo, not for an app).
+ * knowing the clone exists. Some skills stay behind on purpose: `app-start` and `app-adopt`
+ * (decisions taken before the app has any of these files) and `repo-maintain` (the laws for
+ * this repo, not for an app).
  *
  * Earlier versions kept skills only in the clone, reasoning that two copies visible to one
  * agent is a bug generator. That is handled: Claude Code scopes skills by directory and
@@ -74,7 +75,7 @@ const explicitComponents = listArg('--components');
  * quietly loses the skill along the way.
  *
  * Takes CAPABILITY names or COMPONENT ids, unlike --with. An app arriving with code of its own
- * rarely overlaps this repo along capability lines: it has a tooltip but no dock, or its own
+ * rarely overlaps this repo along capability lines: it has a tooltip but no table, or its own
  * popup and nothing else. Making the adopter round their real situation up to the nearest
  * capability would be asking them to eject files they wanted.
  */
@@ -211,7 +212,7 @@ if (ejectCaps) {
     // But it is not enough to quietly keep the file. "I asked to own the panel and the panel
     // is still here" is the adopter learning nothing, and the first version of this flag did
     // exactly that: `--eject layer-panel` on a default scaffold reported no ejections at all,
-    // because the dock imports foldPanel from the panel. That coupling is the single most
+    // because the table imports foldPanel from the panel. That coupling is the single most
     // useful thing the flag can tell somebody adopting this into an app they already have, so
     // it is collected and printed rather than resolved in silence.
     for (const id of [...ejected]) {

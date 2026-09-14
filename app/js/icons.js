@@ -33,9 +33,9 @@ const PATHS = {
 
     close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
 
-    /** Pinned: the panel is docked to the left edge and reserves that band. */
+    /** Docked: the section sits against its edge and reserves that band. */
     pin: '<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/>',
-    /** Unpinned: the panel floats, and stops being something the camera has to avoid. */
+    /** Undocked: the section sits where it was dragged, and the camera stops avoiding it. */
     'pin-off': '<path d="M12 17v5"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/><path d="m2 2 20 20"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11"/>',
 
     /** The stack of things a map shows. Doubles as the panel's MARK when the panel stows. */
@@ -44,8 +44,16 @@ const PATHS = {
     /** Crosshair: bring this into view. */
     target: '<circle cx="12" cy="12" r="7"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>',
 
-    /** Ruled box: rows and columns, the dock's table. */
+    /** Ruled box: rows and columns, the table. */
     table: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/>',
+
+    /**
+     * `table` with its first body row lit: the PRESSED state of a find-in-table button, drawn
+     * as the thing it has done, one row lit in the table. The band paints from its own
+     * variable, the way the locate dot does, so it takes the table's lit-row colour while the
+     * rules stay the button's ink. Drawn first, so the rules sit on top of it.
+     */
+    'table-lit': '<rect x="3" y="9" width="18" height="6" fill="var(--sgs-lit-row, currentColor)" stroke="none"/><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/>',
 
     /**
      * A popup, drawn so it cannot be confused with the table. Same box, one title rule instead
@@ -55,27 +63,33 @@ const PATHS = {
      */
     popup: '<path d="M5 3h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-8l-4 4v-4H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><line x1="3" y1="8" x2="21" y2="8"/>',
 
-    /** Diagonal arrows drawn inward: give the pixels back. */
-    tight: '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>',
+    /** Diagonal arrows drawn inward, top-left to bottom-right: give the pixels back. */
+    tight: '<polyline points="20 14 14 14 14 20"/><polyline points="4 10 10 10 10 4"/><line x1="10" y1="10" x2="3" y2="3"/><line x1="21" y1="21" x2="14" y2="14"/>',
 
-    /** `tight` with both arrows reversed: take the room the app can spare. */
-    full: '<polyline points="9 3 3 3 3 9"/><polyline points="15 21 21 21 21 15"/><line x1="3" y1="3" x2="10" y2="10"/><line x1="21" y1="21" x2="14" y2="14"/>',
+    /**
+     * Diagonal arrows drawn outward, bottom-left to top-right: take the room the app can spare.
+     * The two sit on OPPOSITE diagonals, so the swap on a press reads as a different glyph at
+     * 12px rather than the same one with its arrowheads moved.
+     */
+    full: '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>',
 
     info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8"/>',
 
     /**
-     * Compass: a two-tone needle in a ring, drawn with its INK CENTRED in the 24 box rather
-     * than merely fitted inside it. A needle drawn from y 1.2 to 17.3 has an ink centre of
-     * 9.25 in a box centred at 12, so it renders 2.5px high and no amount of sizing fixes
-     * it — the single most common way a compass glyph goes wrong.
+     * Compass: a hollow notched arrowhead, drawn with its INK CENTRED in the 24 box rather
+     * than merely fitted inside it (y 3.95 to 20.05 and x 7.1 to 16.9, both centred on 12).
+     * An arrow drawn from y 1.2 to 17.3 has an ink centre of 9.25 in a box centred at 12, so
+     * it renders 2.5px high and no amount of sizing fixes it: the single most common way a
+     * compass glyph goes wrong.
      */
-    // A needle, not a needle inside a ring. This glyph is the one thing on screen that
-    // ROTATES: MapLibre spins the compass button to the map's bearing. A ring is rotationally
-    // symmetric, so it contributes nothing while turning and costs the needle most of the
-    // box, which at 17px left the pointer too short to read an angle from. Two triangles
-    // meeting at the centre, north solid and south hollow, is the convention every physical
-    // compass uses for the same reason: the eye needs to know which end is the answer.
-    compass: '<polygon points="12 4.5 16 12 8 12" fill="currentColor"/><polygon points="12 19.5 16 12 8 12"/>',
+    // This glyph is the one thing on screen that ROTATES: MapLibre spins the compass button to
+    // the map's bearing, about the element's centre, and centred ink is what makes it spin in
+    // place rather than swing round a small orbit. An arrowhead, not a two-ended needle: it
+    // has ONE end, so it cannot be read backwards, and the end is north. The notch in its base
+    // is what tells tip from tail at 17px, where a plain triangle reads as a direction-less
+    // wedge. Hollow, in the same stroke as every other glyph in the stack, because a solid
+    // shape carries more visual weight than the outlines beside it at the same size.
+    compass: '<path d="M12 3.95 L16.9 20.05 L12 16.55 L7.1 20.05 Z"/>',
 
     /** Crosshair with a centre dot: find my location. */
     // The centre dot paints from its own variable so the geolocate control can colour it
@@ -127,9 +141,12 @@ const SIZE_FACTOR = {
     // why a plus must not be matched to a gear by the ruler. 14.5 / 11 = 1.318.
     plus: 1.318,
     minus: 1.318,
-    // The needle is narrow and its long axis is the shaft, which at the old factor drew 14.00
-    // against the 17 requested: 1.133 * 17 / 14.00 = 1.376.
-    compass: 1.376,
+    // The arrowhead is narrow and its long axis is tip to tail, which at the needle's old
+    // factor of 1.376 measured 17.50 against the 17 requested. The proportional correction,
+    // 1.376 * 17 / 17.50 = 1.337, was tried and FAILED the centre check (dy 0.75): it asks for
+    // a 22.73px art box, and a fractional box leaves a half-pixel margin the rasteriser cannot
+    // split evenly. So the factor is chosen for an EVEN art box instead, 22 / 17 = 1.294.
+    compass: 1.294,
     // 17 / 16.00 measured.
     locate: 1.0625,
 };
@@ -141,7 +158,14 @@ const SIZE_FACTOR = {
  */
 const NUDGE = {
     // Same rule as SIZE_FACTOR: an entry here is a measured correction, never a nudge that
-    // made a screenshot look better. Empty means every measured glyph is already centred.
+    // made a screenshot look better.
+    //
+    // The compass measured dx +0.50 and dy +0.50: inside the 0.6px tolerance, and still seen
+    // as sitting low, because its ink (11 x 17) is odd in a 22px box and the half pixel left
+    // over lands below and right (headroom 6.5 above, 5.5 below). Half a pixel back at a 22px
+    // box for 24 units is 0.55 units. The one glyph that ROTATES is the one where a half pixel
+    // shows, as a wobble about the centre.
+    compass: { x: -0.55, y: -0.55 },
 };
 
 /** The one nominal ink size for a control-stack glyph, in CSS pixels. */

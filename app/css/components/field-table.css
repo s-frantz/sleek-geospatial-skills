@@ -1,16 +1,16 @@
 /* ── Field tables — TIER 2 component ───────────────────────────────────────────────────────
-   Two surfaces, one vocabulary: the dock's row table and the popup's TYPE | FIELD | VALUE
+   Two surfaces, one vocabulary: the table's rows and the popup's TYPE | FIELD | VALUE
    table both read as badge-then-name, so they are one file rather than two that must be kept
-   in sync by hand. Self-contained: knows nothing about the panel or dock that hosts it. */
+   in sync by hand. Self-contained: knows nothing about the panel or table that hosts it. */
 
-.sgs-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.sgs-grid { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 
 /* Ruled both ways. The popup's field table below already rules each column off the next,
    and for the same reason: a dense grid of numbers is scannable across a row only if the eye
    has a vertical edge to stop at. The two surfaces show the same attributes, so they get the
-   same treatment rather than one being ruled and the other striped. */
-.sgs-table th,
-.sgs-table td {
+   same rules. Only this one is striped (see ROW STRIPES below). */
+.sgs-grid th,
+.sgs-grid td {
     padding: 4px 10px;
     text-align: left;
     border-bottom: 1px solid var(--sgs-line-soft, #e9ebef);
@@ -18,18 +18,32 @@
     white-space: nowrap;
 }
 
-.sgs-table th:last-child,
-.sgs-table td:last-child { border-right: none; }
+.sgs-grid th:last-child,
+.sgs-grid td:last-child { border-right: none; }
+
+/* ROW STRIPES, on the table only. Every other row carries a tint of the text colour,
+   so it is a faint darkening in light and a faint lifting in dark from one rule. Deliberately
+   about a third of hover's strength, and far below a lit row: the stripe is there to carry the
+   eye along one row of a wide grid, not to be looked at, and it must never be mistaken for a
+   state. It is a background-IMAGE on the cells rather than a background on the row, so it
+   lays over whatever a cell already paints (a hovered row) instead of replacing it. The
+   popup's field table is left plain: a few short rows, each already split by its sunk name
+   column, have no long run for the eye to lose its place in. */
+.sgs-grid { --sgs-row-stripe: color-mix(in srgb, var(--sgs-fg, #1b1e24) 2.5%, transparent); }
+
+.sgs-grid tbody tr:nth-child(even) > td {
+    background-image: linear-gradient(var(--sgs-row-stripe), var(--sgs-row-stripe));
+}
 
 /* The zoom-to rail. Fixed width and flush left, so it forms an edge the eye skips rather
    than a column it has to read, the same job the type column does in the popup's table. */
-.sgs-table .sgs-go-col {
+.sgs-grid .sgs-go-col {
     width: 1%;
     padding: 0 2px 0 6px;
     text-align: center;
 }
 
-.sgs-table thead th {
+.sgs-grid thead th {
     position: sticky;
     top: 0;
     background: var(--sgs-bg, #fff);
@@ -43,13 +57,19 @@
    two surfaces that show attributes. */
 .sgs-th-field { display: flex; align-items: center; gap: 6px; }
 
-.sgs-table tbody tr:hover { background: var(--sgs-hover, rgba(0,0,0,.06)); }
-.sgs-table tbody tr:focus { outline: 2px solid var(--sgs-accent, #2f6fd0); outline-offset: -2px; }
+/* The CURRENT feature's row: the one a popup asked for or a zoom went to. Plainly lit, in
+   the accent, so it reads at a glance against hover, which is faint on purpose. Stays lit on
+   hover, which is why the :hover is named: otherwise the hover rule below would win and the
+   row would go dark exactly when the pointer arrives to look at it. */
+.sgs-grid tbody tr.sgs-row-hit,
+.sgs-grid tbody tr.sgs-row-hit:hover { background: color-mix(in srgb, var(--sgs-accent, #2f6fd0) 20%, transparent); }
+
+.sgs-grid tbody tr:hover { background: var(--sgs-hover, rgba(0,0,0,.06)); }
+.sgs-grid tbody tr:focus { outline: 2px solid var(--sgs-accent, #2f6fd0); outline-offset: -2px; }
 
 /* TYPE | FIELD | VALUE. The type column is first because it is fixed-width and monospace, so
    it forms a clean left rail the eye can skip; last, it would ragged-edge against
-   variable-length values. Each column is ruled off the next, which is what makes a dense field
-   list scannable without alternating row colours. */
+   variable-length values. Each column is ruled off the next, and each row off the one below. */
 .sgs-fields { border-collapse: collapse; width: 100%; }
 
 .sgs-fields tr { border-bottom: 1px solid var(--sgs-line-soft, #e9ebef); }

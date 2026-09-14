@@ -15,7 +15,7 @@ The rule underneath everything here:
 |---|---|---|---|
 | 1 TYPE | `npm run typecheck` | contracts hold, nothing calls a function that moved | seconds |
 | 2 UNIT | `npm run test:unit` | decisions that are arithmetic: placement, bounds | seconds |
-| 3 GEOMETRY | `npm test` | the popup is not on the panel, the camera cleared the dock | ~1 min |
+| 3 GEOMETRY | `npm test` | the popup is not on the panel, the camera cleared the table | ~1 min |
 | 4 INK | `npm run icons` | the glyph is centred within half a pixel | ~20s |
 
 `npm run verify` runs all four. Each exits non-zero on failure, so they chain.

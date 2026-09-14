@@ -101,8 +101,10 @@ Run it when a release touched several components, or when nobody remembers the l
    one id. Diff the file list against the union of the catalog.
 5. VOCABULARY.md against the code: does every term still match? Any new term defined ad hoc
    in a skill or comment that belongs there?
-6. Skills count in README and CLAUDE.md matches `ls .claude/skills/`, and every skill except
-   `app-start` and `repo-maintain` appears in exactly one component's file list.
+6. Every directory in `ls .claude/skills/` has a row in README's skill tables and in
+   CLAUDE.md's "touching / read" table, and every skill except `app-start`, `app-adopt` and
+   `repo-maintain` appears in exactly one component's file list. Neither doc states a count: a
+   number is one more thing to fall out of date, and the tables already are the list.
 7. Scaffold a throwaway app with a NARROW capability set and read its generated `CLAUDE.md`
    and `.claude/skills/`. Anything in there describing a capability the app did not take is
    a mis-attached skill, and it is invisible from inside this repo where everything exists.

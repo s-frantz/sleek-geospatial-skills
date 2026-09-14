@@ -34,6 +34,7 @@
  */
 
 import { icon, GLYPH } from '../icons.js';
+import { setButton } from './buttons.js';
 
 /**
  * MapLibre button class → the glyph from icons.js that replaces its baked artwork.
@@ -92,9 +93,7 @@ export function adoptControlGlyphs(root) {
     for (const btn of host.querySelectorAll('button')) {
         const current = btn.getAttribute('aria-label') || btn.getAttribute('title') || '';
         const renamed = RENAME[current];
-        if (!renamed) continue;
-        btn.setAttribute('aria-label', renamed);
-        btn.setAttribute('title', renamed);
+        if (renamed) setButton(btn, { label: renamed });
     }
     return n;
 }

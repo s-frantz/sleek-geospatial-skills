@@ -4,7 +4,7 @@
  * An app with furniture has a viewport and a smaller, differently shaped region a person can
  * actually see into. `fitBounds` knows about the first one. Left to itself it centres a
  * feature in the middle of the canvas, which in an app with a docked panel is a spot half
- * covered by it, and half covered by an open dock besides.
+ * covered by it, and half covered by an open table besides.
  *
  * So every camera move goes through `visiblePadding()`. It is not a cosmetic margin: the
  * numbers are read off whatever is currently marked `data-sgs-furniture` (see furniture.js),
@@ -13,10 +13,10 @@
  *
  * ── Occlusion is a question about WHERE FURNITURE IS, not what state it is in ────────────
  * The geometric contract this file relies on — edgeOf() in furniture.js — exists because an
- * earlier version of this file asked whether the panel carried the float class and gave up
- * the moment it did. Consequence: unpinning the panel WITHOUT MOVING IT ONE PIXEL sent every
+ * earlier version of this file asked whether the panel carried the undocked class and gave up
+ * the moment it did. Consequence: undocking the panel WITHOUT MOVING IT ONE PIXEL sent every
  * popup back to the far left, underneath it, and stopped the camera reserving the band it
- * plainly still covered. A float parked at home occludes exactly as much as a docked panel,
+ * plainly still covered. An undocked panel parked at home occludes exactly as much as a docked panel,
  * and that has to be true for ANY piece of furniture an app adds, not just the one this
  * repo ships — which is the whole reason the check moved into a shared, DOM-agnostic
  * function instead of staying a fact this file knew about one element.

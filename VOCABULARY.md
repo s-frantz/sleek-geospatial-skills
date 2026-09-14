@@ -53,7 +53,7 @@ Every copied file belongs to exactly one **COMPONENT** (an id in
 | **TOKENS** | ~20 CSS custom property names, referenced everywhere with a fallback. Aliased into an app's own vocabulary, never renamed. |
 | **COMPONENTS** | self-contained pieces (swatch, tooltip, overlay window…). A component never knows what it sits next to. Upgraded file-wholesale when unmodified. |
 | **FRAMEWORK** | the contracts BETWEEN pieces: `data-sgs-furniture`, camera padding, popup obstacle avoidance. The contract is stable; the implementation is copyable and rewritable. |
-| **APP-SHELL / FURNITURE** | this app's specific chrome and wiring (`main.js`, panel, dock, popups, `furniture.css`). Expected to be rewritten; drift here is the app being an app. |
+| **APP-SHELL / FURNITURE** | this app's specific chrome and wiring (`main.js`, panel, table, popups, `furniture.css`). Expected to be rewritten; drift here is the app being an app. |
 
 **CAPABILITY** — a plain-language feature ("a table across the bottom") that resolves to a
 set of components (`scripts/sgs-capabilities.json`). The `app-start` interview asks in
@@ -61,8 +61,8 @@ capabilities; the registry answers in components.
 
 A component owns the **SKILL** that describes it, listed among its files, so a capability
 also decides which instructions reach the app and an old watermark keeps the skill that
-matches what it actually has. Two skills belong to no component and stay in the clone:
-`app-start` and `repo-maintain`.
+matches what it actually has. The skills for how an app begins (`app-start`, `app-adopt`) and
+the laws for this repo (`repo-maintain`) belong to no component and stay in the clone.
 
 ## Contribution and admission
 
@@ -85,10 +85,15 @@ should lose, which is the point.
 
 ## UI vocabulary
 
-Owned by the skills, not restated here: **FURNITURE / MARK / BERTH / PIN / SNAP / FOLD /
+Owned by the skills, not restated here: **FURNITURE / MARK / DOCK / SNAP / FOLD /
 CLOSE** (`ui-stow`, `map-camera`), **CLEAN / ADJACENT** popup placement
-(`map-popups`), **TIGHT / PINNED / FULL** sizing and the postures **auto / manual-w /
-manual-h / float** (`ui-furniture`), **INK / WANT / NUDGE** (`ui-icons`).
+(`map-popups`), **TIGHT / MANUAL / FULL** sizing and the postures **auto / manual-w /
+manual-h / undocked** (`ui-furniture`), **INK / WANT / NUDGE** (`ui-icons`).
+
+One word per thing, the same in the code as on screen: the section across the bottom is
+the **TABLE**, a section is **DOCKED** or **UNDOCKED**, and a closed one leaves a **MARK**.
+`tests/unit/vocabulary.spec.js` lists the words these replaced and keeps them from coming
+back one comment at a time.
 
 ### BORROW
 

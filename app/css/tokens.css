@@ -11,34 +11,65 @@
            --sgs-gap:  var(--my-app-space-sm);
        }
 
-   — and every component in components/ themes itself for free. See
-   docs/working/PLAN-skills-framework-architecture.md § 4 (private) for why fallbacks were
-   chosen over a strict canon (fails silently when a token is missing) or per-component scoped
+   — and every component in components/ themes itself for free.
+   Fallbacks were chosen over a strict canon (fails silently when a token is missing) or per-component scoped
    variables only (portable, but kills app-wide restyling as a one-place edit).
 
    Two rules hold this file together:
 
-   1. EVERY COLOUR IS A TOKEN, and every token has a value on bare `:root`. Dark mode only
-      redefines them. A colour whose only definition lives inside a media query is a colour
-      that will be missing in one of the three theme states.
+   1. EVERY COLOUR IS A TOKEN, AND EVERY TOKEN IS DEFINED ONCE. Each colour is a
+      `light-dark(<light>, <dark>)` pair on one line, and `color-scheme` picks the half. There
+      is no dark block anywhere, in this file or in components/, so a dark value cannot be
+      forgotten in one of the three theme states or left behind in a second copy. See the
+      `ui-theme` skill.
 
    2. GEOMETRY ARRIVES AS A VARIABLE, NOT AS AN INLINE STYLE. JavaScript sets --sgs-panel-w;
       furniture.css decides what that means, including the minimum, the maximum, and what else
       responds. See the `ui-furniture` skill.
    ========================================================================================= */
 
+/* The three theme states, and the ONLY place they are named. No attribute is system: both
+   halves are allowed and the operating system chooses. An explicit choice narrows it to one.
+   Nothing else in the stylesheet mentions data-theme or prefers-color-scheme. */
+:root                    { color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark; }
+
 :root {
-    --sgs-bg: #ffffff;
-    --sgs-bg-sunk: #f4f5f7;
-    --sgs-fg: #1b1e24;
-    --sgs-fg-dim: #5c636e;
-    --sgs-line: #d9dce2;
-    --sgs-line-soft: #e9ebef;
-    --sgs-accent: #2f6fd0;
-    --sgs-accent-fg: #ffffff;
-    --sgs-scrim: rgba(20, 24, 31, 0.42);
-    --sgs-shadow: 0 6px 20px rgba(16, 20, 28, 0.16), 0 1px 3px rgba(16, 20, 28, 0.1);
-    --sgs-hover: rgba(20, 24, 31, 0.06);
+    /* ── Colour. light-dark(<light>, <dark>), one line per token. ──
+
+       The dark half is a mid-grey family, not near-black. Near-black leaves no room below the
+       ground for a shadow to read, so every raised surface has to separate itself with a
+       border instead, and the chrome goes heavy. Starting at L* ~18 leaves room both ways.
+
+       Surfaces are ADJACENT TONES, each one step from its neighbour (~3 L* in dark), and the
+       order is decided per theme rather than mirrored. Light sinks the head a step darker than
+       the body; dark lifts it a step lighter, because in dark raised reads as lighter. The
+       full ladder, including steps this demo has no surface for, is in the `ui-theme` skill.
+
+       A FAINT WARM CAST is baked into every opaque hex below: each is its cool original
+       blended 1.25% toward rgb(255, 80, 0), which is what a blue-light filter does at a low
+       setting. Enough to take the blue edge off the greys, not enough to read as tinted.
+       Baked in rather than laid over the page, so it costs nothing, cannot cover the map, and
+       leaves data colours (layer swatches, source-pill hues, the basemap) exactly as they are.
+       A new token gets the same blend; `ui-theme` has the arithmetic. */
+    --sgs-bg:        light-dark(#fffdfc, #2d2d33);  /* the ground: panel, table, popup, controls */
+    --sgs-bg-sunk:   light-dark(#f4f3f4, #34343b);  /* the adjacent step: heads, sidebars, table heads */
+    --sgs-fg:        light-dark(#1e1f24, #e8e8ed);
+    --sgs-fg-dim:    light-dark(#5e636d, #9599ae);
+    --sgs-line:      light-dark(#d9dadf, #65656e);  /* a real edge: well past the surface steps */
+    --sgs-line-soft: light-dark(#e9e9ec, #3c3b44);  /* a divider: one step past the ground */
+    /* Brighter on dark, so it reads on a dark panel. Dark ink on it in dark (4.9:1); white
+       would be 3.7:1. */
+    --sgs-accent:    light-dark(#326fcd, #3d81f3);
+    --sgs-accent-fg: light-dark(#fffdfc, #121419);
+    --sgs-scrim:     light-dark(rgba(20, 24, 31, 0.42), rgba(6, 9, 14, 0.58));
+    /* A shadow on a dark ground needs roughly three times the alpha to register at all. */
+    --sgs-shadow:    0 6px 20px light-dark(rgba(16, 20, 28, 0.16), rgba(0, 0, 0, 0.45)),
+                     0 1px 3px light-dark(rgba(16, 20, 28, 0.1), rgba(0, 0, 0, 0.35));
+    /* Translucent, so one value is right on the ground AND on the adjacent step. Hover LIFTS
+       in dark (white overlay) and darkens in light, which is the same rule: toward the text. */
+    --sgs-hover:     light-dark(rgba(20, 24, 31, 0.06), rgba(255, 255, 255, 0.08));
 
     --sgs-radius: 8px;
     --sgs-radius-sm: 5px;
@@ -52,38 +83,6 @@
 
     --sgs-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --sgs-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-}
-
-/* Dark, in both the explicit and the system case. The `:not([data-theme="light"])` guard is
-   what lets an explicit light choice win over a dark operating system. */
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-        --sgs-bg: #171a20;
-        --sgs-bg-sunk: #1f232b;
-        --sgs-fg: #e7e9ee;
-        --sgs-fg-dim: #99a1ae;
-        --sgs-line: #333944;
-        --sgs-line-soft: #262b34;
-        --sgs-accent: #5b96ea;
-        --sgs-accent-fg: #0f1319;
-        --sgs-scrim: rgba(6, 9, 14, 0.58);
-        --sgs-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
-        --sgs-hover: rgba(255, 255, 255, 0.08);
-    }
-}
-
-:root[data-theme="dark"] {
-    --sgs-bg: #171a20;
-    --sgs-bg-sunk: #1f232b;
-    --sgs-fg: #e7e9ee;
-    --sgs-fg-dim: #99a1ae;
-    --sgs-line: #333944;
-    --sgs-line-soft: #262b34;
-    --sgs-accent: #5b96ea;
-    --sgs-accent-fg: #0f1319;
-    --sgs-scrim: rgba(6, 9, 14, 0.58);
-    --sgs-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
-    --sgs-hover: rgba(255, 255, 255, 0.08);
 }
 
 /* ── Reset ──────────────────────────────────────────────────────────────────────────────── */

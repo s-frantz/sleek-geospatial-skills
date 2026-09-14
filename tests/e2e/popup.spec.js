@@ -14,6 +14,85 @@ test.beforeEach(async ({ page }) => {
     await page.waitForSelector('body[data-ready="true"]');
 });
 
+test('the popup field table is left unstriped: the stripe belongs to the table alone', async ({ page }) => {
+    await clickAFeature(page, 0);
+    const images = await page.locator('.sgs-popup').last().locator('.sgs-fields tr > *')
+        .evaluateAll((els) => els.map((el) => getComputedStyle(el).backgroundImage));
+    // Enough rows that an even one is in the list, or "no stripe" would prove nothing.
+    expect(images.length).toBeGreaterThan(4);
+    expect(new Set(images)).toEqual(new Set(['none']));
+});
+
+test('the popup table button lights its row in a table opened some other way, rather than closing it', async ({ page }) => {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await expect(page.locator('#sgs-table')).toHaveCount(1);
+
+    // A district's popup over a table of stations: nothing there was lit by THIS button, so
+    // the press means "show me my row", and the table switches to districts to do it.
+    await clickAFeature(page, 3);
+    const popup = page.locator('.sgs-popup').last();
+    const title = (await popup.locator('.sgs-popup-title').textContent()) ?? '';
+    await popup.locator('.sgs-popup-table').click();
+    await expect(page.locator('.sgs-table-title')).toHaveText('Neighborhoods');
+    await expect(page.locator('#sgs-table tbody tr.sgs-row-hit td').nth(2)).toHaveText(title);
+});
+
+test('the popup table button takes three presses: find the row, clear it, close the table', async ({ page }) => {
+    await clickAFeature(page, 3);
+    const popup = page.locator('.sgs-popup').last();
+    const title = (await popup.locator('.sgs-popup-title').textContent()) ?? '';
+    const btn = popup.locator('.sgs-popup-table');
+    const hit = page.locator('#sgs-table tbody tr.sgs-row-hit');
+    await expect(btn).toHaveAttribute('aria-pressed', 'false');
+
+    // FIND: the table opens on the feature's row, lit and in view, and the button shows
+    // pressed, drawn as a table with a row lit.
+    await btn.click();
+    await expect(hit).toHaveCount(1);
+    // Cells run go-to, id, name: the lit row is the popup's own feature, by name.
+    await expect(hit.locator('td').nth(2)).toHaveText(title);
+    const r = await hit.boundingBox();
+    const b = await page.locator('#sgs-table .sgs-table-body').boundingBox();
+    if (!r || !b) throw new Error('no geometry');
+    expect(r.y).toBeGreaterThanOrEqual(b.y - 1);
+    expect(r.y + r.height).toBeLessThanOrEqual(b.y + b.height + 1);
+    await expect(btn).toHaveAttribute('aria-pressed', 'true');
+    await expect(btn.locator('svg')).toHaveAttribute('data-glyph', 'table-lit');
+    await expect(btn).toHaveAttribute('aria-label', 'Clear this feature\'s row');
+
+    // CLEAR: the row goes dark, the table stays, and the button says what comes next.
+    await btn.click();
+    await expect(hit).toHaveCount(0);
+    await expect(page.locator('#sgs-table')).toHaveCount(1);
+    await expect(btn).toHaveAttribute('aria-pressed', 'false');
+    await expect(btn).toHaveAttribute('aria-label', 'Close the table');
+
+    // CLOSE.
+    await btn.click();
+    await expect(page.locator('#sgs-table')).toHaveCount(0);
+    await expect(btn).toHaveAttribute('aria-label', 'Find this feature in the table');
+});
+
+test('closing the popup whose button lit the row puts the row out, and leaves the table', async ({ page }) => {
+    await clickAFeature(page, 3);
+    const popup = page.locator('.sgs-popup').last();
+    await popup.locator('.sgs-popup-table').click();
+    await expect(page.locator('#sgs-table tbody tr.sgs-row-hit')).toHaveCount(1);
+    await popup.locator('button[aria-label="Close the popup"]').click();
+    await expect(page.locator('#sgs-table tbody tr.sgs-row-hit')).toHaveCount(0);
+    await expect(page.locator('#sgs-table')).toHaveCount(1);
+});
+
+test('a clicked feature is drawn selected while its popup is open, and plain again after', async ({ page }) => {
+    const filter = () => page.evaluate(() => JSON.stringify(window.sgsMap.getFilter('neighborhoods-selected')));
+    expect(await filter()).toBe('["literal",false]');
+    await clickAFeature(page, 3);
+    await expect.poll(filter).toContain('"in"');
+    await page.locator('.sgs-popup').last().locator('button[aria-label="Close the popup"]').click();
+    await expect.poll(filter).toBe('["literal",false]');
+});
+
 /**
  * Click a district polygon, choosing the point by ASKING THE MAP what it has rendered
  * rather than guessing a coordinate.
@@ -185,13 +264,13 @@ test('escape closes the topmost popup only', async ({ page }) => {
     await expect(page.locator('.sgs-popup')).toHaveCount(1);
 });
 
-test('a clean popup never covers the panel or the dock', async ({ page }) => {
+test('a clean popup never covers the panel or the table', async ({ page }) => {
     await page.locator('.sgs-row[data-layer="neighborhoods"]').hover();
     await page.locator('.sgs-row[data-layer="neighborhoods"] button[aria-label^="Show"]').click();
     await clickAFeature(page);
 
     const popup = await popupBox(page);
-    for (const sel of ['#sgs-panel', '#sgs-dock']) {
+    for (const sel of ['#sgs-panel', '#sgs-table']) {
         const f = await page.locator(sel).boundingBox();
         if (!f) throw new Error(`no box for ${sel}`);
         const clear = popup.x >= f.x + f.width || popup.x + popup.width <= f.x

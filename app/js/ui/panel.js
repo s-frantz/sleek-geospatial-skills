@@ -2,16 +2,16 @@
  * panel.js — the left panel's geometry: three independent facts, one applier.
  *
  * ── Not four postures ────────────────────────────────────────────────────────────────────
- * This started as an enum: auto | manual-w | manual-h | float. It reads well and it is
+ * This started as an enum: auto | manual-w | manual-h | undocked. It reads well and it is
  * wrong, because those four names describe a SINGLE state variable and the panel does not
  * have one. It has three, and they vary independently:
  *
- *   float     docked into the top-left inset, or loose and dragged by its head.
- *   w         a pinned width, or automatic (the panel fits its content).
- *   h         a pinned height, or automatic (the panel reaches the bottom inset).
+ *   undocked  docked in the top-left inset, or undocked and dragged by its head.
+ *   w         a manual width, or automatic (the panel fits its content).
+ *   h         a manual height, or automatic (the panel reaches the bottom inset).
  *
  * The enum forced the two size axes to be mutually exclusive, so pinning a height silently
- * threw away a pinned width: widen the panel, then shorten it, and the width snaps back to
+ * threw away a manual width: widen the panel, then shorten it, and the width snaps back to
  * automatic because the mode has become `manual-h` and the applier clears the other
  * variable. That is not a bug in the applier, it is the applier faithfully expressing a
  * model that cannot hold both facts.
@@ -24,9 +24,9 @@
  * reports one for anything that wants a single word. Nothing stores one.
  *
  * ── One applier ──────────────────────────────────────────────────────────────────────────
- * Every control mutates the frame object and calls `apply`. Grips, the pin, the fold, the
+ * Every control mutates the frame object and calls `apply`. Grips, the dock button, the fold, the
  * window-resize clamp, the restore from storage: all one path. The alternative, where each
- * control writes the styles it cares about, is how a panel ends up floating and 320px wide
+ * control writes the styles it cares about, is how a panel ends up undocked and 320px wide
  * and anchored to the bottom at the same time.
  *
  * ── Geometry reaches CSS through variables ───────────────────────────────────────────────
@@ -34,13 +34,13 @@
  * charge of what those numbers MEAN: minimums, maximums, and what else in the layout responds
  * to the panel's size. JavaScript supplies a number; CSS decides the consequences. Because
  * the three facts are independent, so are their classes: `--manual-w`, `--manual-h` and
- * `--float` combine freely and no rule assumes the absence of another.
+ * `--undocked` combine freely and no rule assumes the absence of another.
  *
  * ── Folding must not resize ──────────────────────────────────────────────────────────────
  * In the automatic width the panel is `width: max-content`, so collapsing the body shrinks it
- * to the width of its own header and the fold reads as a jump. Folding therefore PINS the
+ * to the width of its own header and the fold reads as a jump. Folding therefore SETS the
  * width it already had, and unfolding gives the automatic width back if the fold is what
- * pinned it. A gesture named "collapse the contents" may not change the other axis.
+ * set it. A gesture named "collapse the contents" may not change the other axis.
  *
  * ── Postures are a viewer preference ─────────────────────────────────────────────────────
  * They live in localStorage, never in anything shared. Where you like your panel is a fact
@@ -48,37 +48,36 @@
  *
  * ── Every axis carries its own undo ──────────────────────────────────────────────────────
  * There is no "restore automatic" button, because there does not need to be one: each grip
- * double-clicks ITS OWN axis back to automatic and the pin toggles back to docked. A grip
+ * double-clicks ITS OWN axis back to automatic and the dock button toggles back to docked. A grip
  * that reset both axes would be the enum leaking back in through the undo.
  */
 
 import { getPrefs, setPrefs } from '../utils/prefs.js';
-import { icon } from '../icons.js';
+import { setButton } from './buttons.js';
 import { makeDraggable, releaseDrag } from '../utils/draggable.js';
-import { nearBerth, makeBorrow } from '../utils/furniture.js';
+import { nearLeftEdge, makeBorrow } from '../utils/furniture.js';
 import { makeClosable, makeFoldable } from './stow.js';
 
-/** @typedef {'auto'|'manual-w'|'manual-h'|'float'} Posture */
+/** @typedef {'auto'|'manual-w'|'manual-h'|'undocked'} Posture */
 
 const MIN_W = 200;
 const MIN_H = 140;
 
 /**
- * The three independent facts, plus FULL.
+ * The three independent facts.
  *
- * FULL is not a fourth fact and not a size: it is a temporary takeover that overrides both
- * size axes in CSS and remembers nothing, because there is nothing to remember. `w` and `h`
- * keep whatever the reader pinned; the class simply outranks them while it is on, and letting
- * go restores the reader's numbers exactly because they were never overwritten. A maximize
- * that SAVES and RESTORES is the version that eventually loses somebody's width.
+ * There is no FULL here, deliberately. The panel had one, and all it could add was width: a
+ * docked panel's automatic height already reaches the bottom inset, and a list of layers gains
+ * nothing from 60% of the screen. FULL belongs to the table, whose content is the kind that
+ * wants the room; see table.js and the `ui-furniture` skill.
  *
- * @type {{float: boolean, full?: boolean, w?: number, h?: number, x?: number, y?: number}}
+ * @type {{undocked: boolean, w?: number, h?: number, x?: number, y?: number}}
  */
-let _frame = { float: false };
+let _frame = { undocked: false };
 
 /**
- * The width the FOLD pinned, held under the borrow contract: released on unfold only while
- * the fold is still the one holding it, and never taken from a reader who had pinned a width
+ * The width the FOLD set, held under the borrow contract: released on unfold only while
+ * the fold is still the one holding it, and never taken from a reader who had set a width
  * of their own. Was a bare boolean; see makeBorrow in furniture.js for the two bugs the bare
  * boolean cannot express.
  * @type {ReturnType<typeof makeBorrow>}
@@ -88,9 +87,7 @@ let _foldW;
 /** @type {HTMLElement} */
 let _panel;
 /** @type {HTMLButtonElement} */
-let _pin;
-/** @type {HTMLButtonElement} */
-let _fullBtn;
+let _dockBtn;
 /** @type {ReturnType<typeof makeFoldable>|null} */
 let _foldable = null;
 /** @type {(() => void)[]} */
@@ -109,7 +106,7 @@ const clampH = (px) => Math.max(MIN_H, Math.min(Math.round(px), window.innerHeig
  * property the stylesheet positions it with rather than a number copied into JavaScript.
  * @returns {{x: number, y: number}}
  */
-function berthPoint() {
+function dockPoint() {
     const inset = parseFloat(
         getComputedStyle(document.documentElement).getPropertyValue('--sgs-panel-inset'),
     );
@@ -132,12 +129,11 @@ function clampXY(x, y) {
 /** The single place any of the three facts becomes pixels. @returns {void} */
 function apply() {
     const p = _panel;
-    // Each class tracks exactly one fact, and they combine. A floating panel can carry a
-    // pinned width; a docked one can carry a pinned width AND a pinned height.
+    // Each class tracks exactly one fact, and they combine. An undocked panel can carry a
+    // manual width; a docked one can carry a manual width AND a manual height.
     p.classList.toggle('sgs-panel--manual-w', _frame.w != null);
     p.classList.toggle('sgs-panel--manual-h', _frame.h != null);
-    p.classList.toggle('sgs-panel--float', _frame.float);
-    p.classList.toggle('sgs-panel--full', !!_frame.full);
+    p.classList.toggle('sgs-panel--undocked', _frame.undocked);
 
     if (_frame.w != null) p.style.setProperty('--sgs-panel-w', `${_frame.w}px`);
     else p.style.removeProperty('--sgs-panel-w');
@@ -145,9 +141,9 @@ function apply() {
     if (_frame.h != null) p.style.setProperty('--sgs-panel-h', `${_frame.h}px`);
     else p.style.removeProperty('--sgs-panel-h');
 
-    // Position is the only thing float owns outright. Size comes from the same two variables
-    // whether the panel is docked or loose, which is what stops a grip from re-docking it.
-    if (_frame.float) {
+    // Position is the only thing `undocked` owns outright. Size comes from the same two variables
+    // whether the panel is docked or undocked, which is what stops a grip from re-docking it.
+    if (_frame.undocked) {
         const { x, y } = clampXY(_frame.x ?? 60, _frame.y ?? 80);
         _frame.x = x; _frame.y = y;
         p.style.left = `${x}px`;
@@ -158,34 +154,30 @@ function apply() {
         releaseDrag(p);
     }
 
-    _fullBtn.innerHTML = icon(_frame.full ? 'tight' : 'full', 12);
-    _fullBtn.title = _frame.full ? 'Give the room back' : 'Fill the map';
-    _fullBtn.setAttribute('aria-label', _fullBtn.title);
-    _fullBtn.setAttribute('aria-pressed', String(!!_frame.full));
-
-    _pin.innerHTML = icon(_frame.float ? 'pin-off' : 'pin', 13);
-    _pin.title = _frame.float ? 'Dock the panel' : 'Undock the panel';
-    _pin.setAttribute('aria-label', _pin.title);
-    _pin.setAttribute('aria-pressed', String(!_frame.float));
+    setButton(_dockBtn, {
+        glyph: _frame.undocked ? 'pin-off' : 'pin', size: 13,
+        label: _frame.undocked ? 'Dock the layer panel' : 'Undock the layer panel', pressed: !_frame.undocked,
+    });
 
     setPrefs({
-        panelFloat: _frame.float,
-        panelFull: _frame.full,
+        panelUndocked: _frame.undocked,
         panelW: _frame.w,
         panelH: _frame.h,
         panelX: _frame.x,
         panelY: _frame.y,
     });
+    // Whether the chevron's TIGHT step is on offer depends on the geometry just applied.
+    _foldable?.relabel();
     for (const fn of _listeners) fn();
 }
 
 /**
  * Fold or unfold the panel from outside.
  *
- * The dock uses this as it grows: once the dock's top edge has taken the space the panel
+ * The table uses this as it grows: once the table's top edge has taken the space the panel
  * needs to be worth reading, a panel still trying to occupy it is a strip of clipped rows.
  * Exported rather than reached through initPanel's return value because the caller is the
- * dock, not the code that wired the panel up, and threading the handle through main.js would
+ * table, not the code that wired the panel up, and threading the handle through main.js would
  * make every future caller main.js's problem.
  *
  * @param {boolean} folded
@@ -205,7 +197,7 @@ export function isPanelFolded() { return !!_foldable?.isFolded(); }
  * @returns {Posture}
  */
 export function getPosture() {
-    if (_frame.float) return 'float';
+    if (_frame.undocked) return 'undocked';
     if (_frame.w != null) return 'manual-w';
     if (_frame.h != null) return 'manual-h';
     return 'auto';
@@ -218,16 +210,15 @@ export function getPosture() {
  * @returns {void}
  */
 export function setPosture(mode) {
-    if (mode === 'float') {
-        _frame.float = true;
+    if (mode === 'undocked') {
+        _frame.undocked = true;
     } else if (mode === 'auto') {
-        _frame.float = false;
-        _frame.full = false;
+        _frame.undocked = false;
         _frame.w = undefined;
         _frame.h = undefined;
         _foldW.release();
     } else {
-        _frame.float = false;
+        _frame.undocked = false;
     }
     apply();
 }
@@ -245,46 +236,32 @@ export function initPanel(panel) {
     const prefs = getPrefs();
     _frame = {
         // `panelPosture` is the old single-enum key. Read it once so a reader who already had
-        // a floating panel keeps it, then let it fall out of storage: apply() writes the three
+        // an undocked panel keeps it, then let it fall out of storage: apply() writes the three
         // facts and never writes the enum back.
-        float: prefs.panelFloat ?? prefs.panelPosture === 'float',
-        full: prefs.panelFull,
+        undocked: prefs.panelUndocked ?? prefs.panelPosture === 'float',
         w: prefs.panelW,
         h: prefs.panelH,
         x: prefs.panelX,
         y: prefs.panelY,
     };
     const head = /** @type {HTMLElement} */ (panel.querySelector('.sgs-panel-head'));
-    const berth = /** @type {HTMLElement} */ (panel.querySelector('.sgs-berth'));
 
-    // FULL sits with the pin, in the berth: both answer "how much room does this get", and
-    // neither is about the panel's CONTENTS the way fold and close are.
-    _fullBtn = document.createElement('button');
-    _fullBtn.type = 'button';
-    _fullBtn.className = 'sgs-icon-btn sgs-panel-full';
-    _fullBtn.addEventListener('click', () => {
-        _frame.full = !_frame.full;
-        apply();
-    });
-    berth.appendChild(_fullBtn);
-
-    _pin = document.createElement('button');
-    _pin.type = 'button';
-    _pin.className = 'sgs-icon-btn sgs-panel-pin';
-    _pin.addEventListener('click', () => {
-        if (_frame.float) {
-            // Re-docking returns to automatic on both axes: the float's pinned size was a
-            // fact about where it floated, not about the dock.
-            _frame.float = false;
+    // The dock button comes first in the head's buttons: it answers "where is this", not "is the content
+    // showing", which is the fold's and the close's question. Its look is apply()'s.
+    _dockBtn = /** @type {HTMLButtonElement} */ (panel.querySelector('.sgs-panel-dock'));
+    _dockBtn.addEventListener('click', () => {
+        if (_frame.undocked) {
+            // Re-docking returns to automatic on both axes: a size set while undocked was a
+            // fact about where it sat, not about the docked panel.
+            _frame.undocked = false;
             _frame.w = undefined;
             _frame.h = undefined;
             _foldW.release();
         } else {
-            _frame.float = true;
+            _frame.undocked = true;
         }
         apply();
     });
-    berth.appendChild(_pin);
 
     // The fold's borrowed width. `take` reads _pendingW rather than a parameter because the
     // measurement has to happen before makeFoldable hides the body (see the capture-phase
@@ -296,19 +273,50 @@ export function initPanel(panel) {
         give: () => { _frame.w = undefined; },
     });
 
-    // FOLD and CLOSE, the same pair the dock offers, in the same order. See stow.js for why
+    // FOLD and CLOSE, the same pair the table offers, in the same order. See stow.js for why
     // one section reasonably carries both.
     const foldBtn = /** @type {HTMLButtonElement} */ (panel.querySelector('.sgs-panel-fold'));
-    foldBtn.innerHTML = icon('chevron', 12);
+    setButton(foldBtn, { glyph: 'chevron' });
+    const body = /** @type {HTMLElement} */ (panel.querySelector('.sgs-panel-body'));
+    /**
+     * The panel's width at max-content, rows included, read by one inline override. Folded, the
+     * body is hidden and the head alone would measure, so it is shown for the read.
+     * @returns {number}
+     */
+    const contentWidth = () => {
+        const prevW = panel.style.width;
+        const hidden = body.hidden;
+        body.hidden = false;
+        panel.style.width = 'max-content';
+        const w = panel.getBoundingClientRect().width;
+        panel.style.width = prevW;
+        body.hidden = hidden;
+        return w;
+    };
     const foldable = _foldable = makeFoldable({
         section: panel,
         control: foldBtn,
-        body: /** @type {HTMLElement} */ (panel.querySelector('.sgs-panel-body')),
+        body,
         foldedClass: 'sgs-panel--folded',
+        // TIGHT hugs the rows, offered whenever they all fit on screen. SNUG hugs the rows and
+        // takes the width in to them, offered when there is width to take in: the panel's
+        // automatic width is already its content's, so SNUG appears once a grip has set a
+        // wider one, and is skipped otherwise rather than repeating TIGHT.
+        tightClass: 'sgs-panel--tight',
+        snugClass: 'sgs-panel--snug',
+        tightFits: () => body.scrollHeight + head.getBoundingClientRect().height + 2
+            <= window.innerHeight - 2 * dockPoint().x,
+        snugDiffers: () => contentWidth() < panel.getBoundingClientRect().width - 2,
+        labels: {
+            natural: 'Unfold the layer panel',
+            tight: 'Fit the layer panel to its rows',
+            head: 'Fold the layer panel to its head',
+            snug: 'Fit the layer panel to its rows and width',
+        },
         folded: false,
         onChange: (folded) => {
-            // Unfolding gives the automatic width back, but only if the FOLD is what pinned
-            // it. A width the reader chose with the grip is theirs and survives both.
+            // Leaving the head gives the automatic width back, but only if the FOLD is what
+            // set it. A width the reader chose with the grip is theirs and survives both.
             if (!folded) _foldW.release();
             apply();
             for (const fn of _listeners) fn();
@@ -319,27 +327,32 @@ export function initPanel(panel) {
     // toggles the folded class before it calls back. So this runs in the CAPTURE phase, which
     // reaches the button ahead of the bubble-phase handler makeFoldable registered, whatever
     // order the two were attached in. Measuring in onChange reads the collapsed panel and
-    // pins the header's width, which is the bug wearing a fix.
+    // sets the head's width, which is the bug wearing a fix.
     foldBtn.addEventListener('click', () => {
-        if (panel.classList.contains('sgs-panel--folded')) return;  // this click is an unfold
+        // Only the step INTO the head hides the body. Natural to tight changes the height
+        // alone, and a press out of the head is an unfold.
+        if (foldable.next() !== 'head') return;
         _pendingW = clampW(panel.getBoundingClientRect().width);
         _foldW.want(true);
     }, true);
+    // Whether TIGHT is on offer depends on how many rows there are NOW, and rows arrive after
+    // the panel is built, so the label is refreshed as the pointer or the focus reaches it.
+    foldBtn.addEventListener('pointerenter', () => foldable.relabel());
+    foldBtn.addEventListener('focus', () => foldable.relabel());
 
     // The mark points RIGHT, back at the panel it restores: a chevron is a direction, and
     // the direction it should give is "your panel is over here".
     const closable = makeClosable({
         section: panel,
-        markId: 'sgs-panel-sliver',
+        markId: 'sgs-panel-mark',
         markClass: 'sgs-mark--left',
         glyph: 'chevron',
         label: 'the layer panel',
         onChange: () => { for (const fn of _listeners) fn(); },
     });
-    /** @type {HTMLButtonElement} */
-    (panel.querySelector('.sgs-panel-close')).innerHTML = icon('close', 12);
-    /** @type {HTMLButtonElement} */
-    (panel.querySelector('.sgs-panel-close')).addEventListener('click', () => closable.close());
+    const closeBtn = /** @type {HTMLButtonElement} */ (panel.querySelector('.sgs-panel-close'));
+    setButton(closeBtn, { glyph: 'close' });
+    closeBtn.addEventListener('click', () => closable.close());
 
     // Grips. Each drags one dimension; each double-clicks back to automatic, which is why
     // there is no separate reset.
@@ -356,7 +369,7 @@ export function initPanel(panel) {
             if (!dragging) return;
             const pe = /** @type {PointerEvent} */ (e);
             const r = panel.getBoundingClientRect();
-            // One grip pins ONE axis, floating or docked, and never touches the other.
+            // One grip sets ONE axis, undocked or docked, and never touches the other.
             // This is the whole point of the three-facts model: the gesture that used to
             // read "become manual-h" now reads "the height is this", which cannot discard
             // a width the reader already chose.
@@ -390,25 +403,29 @@ export function initPanel(panel) {
         });
     }
 
-    // Dragging the head floats the panel; letting go near the berth puts it back.
+    // Dragging the head undocks the panel; letting go near its edge docks it again.
     //
     // Undocking by drag and re-docking by drag are the same gesture, and before this the
     // second half of it did not exist: a reader who dragged the panel back to the corner it
-    // came from got a panel sitting AT the corner but still floating, still writing
-    // panelX/panelY, still needing the pin pressed to actually be docked. The app and the
+    // came from got a panel sitting AT the corner but still undocked, still writing
+    // panelX/panelY, still needing the dock button pressed to actually be docked. The app and the
     // reader disagreed about a thing the reader could see, which is the whole argument in
     // furniture.js's SNAP.
-    makeDraggable(panel, head, ({ x, y }) => {
-        _frame.float = true;
+    //
+    // It docks along the whole LEFT EDGE, not at the top-left corner: a panel held against the left
+    // edge anywhere along it docks, the table's rule along the bottom rotated (nearLeftEdge).
+    // Ctrl held leaves the snap off, so a reader can park it just off the edge on purpose.
+    makeDraggable(panel, head, ({ x, y, ctrl }) => {
+        _frame.undocked = true;
         _frame.x = x; _frame.y = y;
-        panel.classList.toggle('sgs-snapping', nearBerth({ left: x, top: y }, berthPoint()));
+        panel.classList.toggle('sgs-snapping', !ctrl && nearLeftEdge({ left: x }, dockPoint().x));
         apply();
-    }, ({ x, y }) => {
+    }, ({ x, ctrl }) => {
         panel.classList.remove('sgs-snapping');
-        if (!nearBerth({ left: x, top: y }, berthPoint())) return;
-        // Re-berthing by drag lands in the same state the pin lands in, on purpose: two
+        if (ctrl || !nearLeftEdge({ left: x }, dockPoint().x)) return;
+        // Docking by drag lands in the same state the dock button lands in, on purpose: two
         // gestures for one outcome, not two outcomes that look alike.
-        _frame.float = false;
+        _frame.undocked = false;
         _frame.w = undefined;
         _frame.h = undefined;
         _foldW.release();

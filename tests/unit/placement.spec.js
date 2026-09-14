@@ -77,10 +77,10 @@ describe('adjacentPlacement', () => {
         expect(overlaps(asRect(pos), panel)).toBe(false);
     });
 
-    it('never lands on an open dock', () => {
-        const dock = rect(10, 620, 1260, 170);
-        const pos = adjacentPlacement({ x: 640, y: 600 }, SIZE, [dock], SAFE);
-        expect(overlaps(asRect(pos), dock)).toBe(false);
+    it('never lands on an open table', () => {
+        const table = rect(10, 620, 1260, 170);
+        const pos = adjacentPlacement({ x: 640, y: 600 }, SIZE, [table], SAFE);
+        expect(overlaps(asRect(pos), table)).toBe(false);
     });
 
     it('covers the anchor rather than fleeing to a corner when nothing fits', () => {

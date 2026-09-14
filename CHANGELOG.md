@@ -9,6 +9,155 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
+## [0.2.0] - 2026-09-14
+
+One release for everything below; each line has its own test.
+
+### Theme
+
+- **The theme is defined in one place.** Every colour token is a `light-dark()` pair, and
+  three `color-scheme` lines in `tokens.css` are the only place a theme state is named. No
+  component carries a dark block any more; components derive colours with `color-mix()`.
+  Components: `tokens`, `theme`, `swatch`, `source-pill`, `field-badge`, `map-controls`.
+- **A mid-grey dark palette of adjacent tones** (ground `#2d2d33`), and **a faint warm cast**
+  in both themes: every opaque token blended 1.25% toward `rgb(255, 80, 0)`. The `ui-theme`
+  skill has the ladder.
+- **MapLibre's own chrome follows the theme**: the control group, its hover, its divider.
+- **The chosen segment in quick settings is a quiet grey plate** (`--sgs-fg-dim`), not the
+  accent blue. Component: `quick-settings`.
+- **Quick settings stay open** through clicks on the map, closing on the gear or Escape, so its
+  shortcuts can be tried while it shows. Component: `quick-settings`.
+- **The arrows pan the map without clicking it first**; Shift + ←/→ rotates and Shift + ↑/↓
+  tilts. MapLibre only hears them on its focused canvas, so `main.js` takes them anywhere else.
+  Component: `app-shell`.
+
+### Furniture (panel and table)
+
+- **One model for the head buttons.** One chevron with four views on the panel and the table
+  alike, pointing one way per view: natural ↓, fitted to its rows →, head alone ↑, fitted to
+  its rows and width ←. A fitted view is skipped only when it cannot do its job (the rows could
+  not all fit on screen; there is no width to take in). One owner for the cycle,
+  `nextFoldMode()` in `stow.js`, which now takes `{tight, snug}`; `makeFoldable()` gains
+  `snugClass`, `tightFits` and `snugDiffers`. A folded table unfolds from its chevron, not its
+  bar, as the panel does.
+- **FULL belongs to the table.** The panel's FULL is gone. FULL on an undocked table takes the
+  map, and giving the room back returns the table to the state it was in before: where it was,
+  its size, and its chevron view, so a folded or fitted table folds or fits again. Its glyphs
+  sit on opposite diagonals now (FULL bottom-left to top-right, its release top-left to
+  bottom-right).
+- **The table drags like the panel.** Its head is grabbable docked or undocked, folded or not, and
+  dragging it undocks it. Undocking, by drag or button, keeps the table's width; narrowing it is
+  the chevron's fourth view.
+- **Both sections snap back anywhere along their edge**: the table along the bottom, the panel
+  along the left, not only near one corner (new `nearBottomEdge()` and `nearLeftEdge()` in
+  `furniture.js`). Ctrl held while dragging turns the snap off; `makeDraggable()` reports it.
+- **Head buttons are spaced by one rule** (`.sgs-head-actions`, 4px) in every furniture head.
+- **One card, one head, one title, one grip.** The panel, the table and the popups share one
+  rule for each in `furniture.css` instead of three drifting copies: the popup's head now sits
+  one step off the ground like the others, the heads share one padding and gap, and the panel's
+  grips show the table's quiet pill instead of an accent wash on hover.
+- **One vocabulary in the copy**: both pins say "Dock" and "Undock" (the table's said
+  "Berth"), the panel is "the layer panel" everywhere, the popup's close says "Close the popup",
+  and the four grips read "Drag to set the width/height, double-click to …".
+- **A closing section shrinks into its tab** (160ms, `stowInto()` in `stow.js`), **and the tab
+  pulses once** in the chrome's own greys, its outline held for 300ms of a 1s pulse
+  (`flashMark()`), so the reader sees where it went.
+- Fixed: a folded panel stretched to full height under an undocked table.
+- Components: `panel`, `table`, `edge-mark`, `app-shell` (`furniture.css`), `framework`
+  (`furniture.js`), `primitives` (`prefs.js`).
+
+### Features and tables
+
+- **Zoom-to flashes the feature once**, on the press, while the camera is still moving (new
+  `flashFeature()` in `layers.js`). `LayerDef` gains `key`, the property that tells features
+  apart; without one a row still zooms and simply does not flash.
+- **A popup's table button takes three presses: find, clear, close.** The first lights the
+  feature's row (opening or switching the table as needed) and shows the button pressed, drawn
+  as a table with a row lit; the second clears the row; the third closes the table. A table
+  opened any other way gets its row lit, never closed. Closing the popup puts out a row its
+  button lit. The lit row is announced with `aria-current`. New `featureTableState()` and
+  `releaseFeatureRow()` in `table.js`; `openPopup()` gains `tableButtonState` and `onClose`.
+- **A feature with a popup open is drawn selected**: a quiet neutral edge on a polygon, a ring
+  hugging a point, gone when its popup closes (`markSelected()` in `layers.js`).
+- **Faint row stripes on the table** (the text colour at 2.5%); the popup's field table stays
+  plain. Component: `field-table`.
+- Components: `app-shell` (`layers.js`, `main.js`), `table`, `popups`.
+
+### Code vocabulary
+
+- **One word per thing, in the code as on screen.** The screen already said Dock, Undock and
+  "the table". The code said berth, berthed, pinned, float, floating and loose for two
+  positions, "sliver" for the table's tab, and "dock" for the table itself, so the button "Dock
+  the table" was, in the code, docking the dock. Now the section across the bottom is the
+  **table**, a section is **docked** or **undocked**, a closed section leaves a **mark**, a size
+  the reader dragged is **manual** (as its class already said), and the chevron's third view is
+  the **head**. `VOCABULARY.md` states it; `tests/unit/vocabulary.spec.js` keeps the retired
+  words out of the app, the skills and the docs.
+- Why rename the code and not only its comments: identifiers are what a reader or an agent
+  searches for, and an app scaffolded from this repo copies them, so a codebase whose names
+  disagree with its own buttons teaches both vocabularies to every app made from it. In 0.x,
+  this is the cheapest the rename will ever be. The cost is the Breaking list below.
+- **Icon buttons are made in one place.** `iconButton()` and `setButton()` in the new
+  `app/js/ui/buttons.js` set the glyph, the tooltip and the accessible name from one call (and
+  `aria-pressed` for a toggle). The thirteen hand-built icon buttons in six files, and the
+  places in eight files that relabelled them, now go through it, so a label cannot reach the
+  tooltip and miss the screen reader. The buttons with words on them (window tabs, footer
+  actions, quick-settings segments) keep their own code: each has its own role, and a shared
+  helper would need a branch per caller.
+- The panel's dock button is in `index.html` beside its fold and close, instead of being
+  injected into a `display: contents` wrapper, which is gone.
+- The fitted view ← narrows the table from the right again, so its left edge stays put.
+
+### Smaller
+
+- **The compass is a hollow notched arrowhead**, its ink centred so it spins in place, with a
+  measured half-pixel `NUDGE` so it no longer sits low and right. Component: `icons`.
+- **Shorter shortcut lines**: "Nudge the top popup", "Keep multiple popups open". Component:
+  `quick-settings`.
+- **The attribution is a small-cornered card**, not MapLibre's round pill. Component:
+  `map-controls`.
+- **The README is ordered by task**: run the demo, start an app, pull in upstream changes,
+  send changes back, verify. The naming law and the decision log moved to CONTRIBUTING.md. No
+  doc states how many skills there are any more; the tables are the list.
+
+Breaking: `tokens` now needs `light-dark()` (Chrome and Edge 123, Firefox 120, Safari 17.5).
+Below that floor surfaces render transparent, not light. An app that switches theme some way
+other than `data-theme` must end its switch by setting `color-scheme` on the root; see the
+`ui-theme` skill.
+
+Breaking: `panel` no longer has `.sgs-panel-full`, `.sgs-panel--full` or the `panelFull`
+preference; an app that styled or scripted the panel's FULL should drop it (a stored
+`panelFull` is ignored). `makeFoldable()` stays backward compatible: without `tightClass` it
+folds in two steps as before, and `onChange` gains a second argument. `table.js` needs
+`furniture.js` at this version for `nearBottomEdge()`.
+
+Breaking: the `dock` component is now `table` (`app/js/ui/dock.js` is `app/js/ui/table.js`),
+and the `table-dock` capability is `table`. In an app's `sgs.json`, rename the `"dock"` key to
+`"table"`; `sgs:status` and `sgs:drift` report `dock` as an unknown component until you do.
+
+Breaking: names in `table`, `panel`, `edge-mark`, `framework`, `app-shell` and `primitives`,
+for an app that scripts or styles them:
+- ids and classes: `#sgs-dock` and every `.sgs-dock-*` become `#sgs-table` and `.sgs-table-*`;
+  `.sgs-dock--float` and `.sgs-panel--float` end in `--undocked`; `body.sgs-dock-open` and
+  `body.sgs-dock-float` are `sgs-table-open` and `sgs-table-undocked`; `--sgs-dock-h` and
+  `--sgs-dock-w` are `--sgs-table-h` and `--sgs-table-w`; the dock buttons `.sgs-dock-pin` and
+  `.sgs-panel-pin` are `.sgs-table-dock` and `.sgs-panel-dock`; the marks `#sgs-dock-sliver`
+  and `#sgs-panel-sliver` are `#sgs-table-mark` and `#sgs-panel-mark`. The `<table>` inside the
+  table, which was `.sgs-table`, is `.sgs-grid` (component `field-table`).
+- functions: `initDock` and `isDockOpen` are `initTable` and `isTableOpen`; `nearBerth`,
+  `nearBottomBerth` and `nearLeftBerth` are `nearDockPoint`, `nearBottomEdge` and `nearLeftEdge`.
+- values: the fold view `'header'` is `'head'` (`FoldMode`, `makeFoldable()`'s labels), and the
+  posture `'float'` is `'undocked'` (`getPosture()`, `setPosture()`).
+- preferences: `dockFloat`, `dockFull` and `dockH/W/X/Y` are `tableUndocked`, `tableFull` and
+  `tableH/W/X/Y`; `panelFloat` is `panelUndocked`. They are not migrated, so a reader's saved
+  panel and table layout resets once.
+- `.sgs-berth` and `#sgs-panel-berth` are gone: the panel's dock button is a plain button in
+  `index.html`.
+
+Breaking: `buttons` now has JavaScript, `app/js/ui/buttons.js`, which `map-controls`,
+`edge-mark`, `panel`, `table`, `popups` and `overlay-window` import. It imports `icons`; both
+are in `core`.
+
 ## [0.1.0] - 2026-09-02
 
 The first release. Everything below is what the repo IS, not what changed in it.

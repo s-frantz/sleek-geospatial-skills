@@ -17,7 +17,8 @@
     "app/css/components/field-table.css"
   ],
   "buttons": [
-    "app/css/components/buttons.css"
+    "app/css/components/buttons.css",
+    "app/js/ui/buttons.js"
   ],
   "tooltip": [
     "app/css/components/tooltip.css",
@@ -88,8 +89,8 @@
     "app/js/ui/layer-rows.js",
     ".claude/skills/ui-furniture/SKILL.md"
   ],
-  "dock": [
-    "app/js/ui/dock.js"
+  "table": [
+    "app/js/ui/table.js"
   ],
   "popups": [
     "app/js/ui/popup.js",

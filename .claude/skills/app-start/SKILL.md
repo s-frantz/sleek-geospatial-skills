@@ -95,7 +95,7 @@ omitted capability, remove its wiring — this table is checked against the real
 | omitted | remove from `main.js` | and elsewhere |
 |---|---|---|
 | `layer-panel` | `initPanel` + `renderLayerRows` imports and calls | the `#sgs-panel` block in `index.html` |
-| `table-dock` | `initDock`, `toggleLayerTable` imports and calls; the `onOpenTable:` line in the `openPopup` call; the row callback passed to `renderLayerRows` | dock tests in `tests/e2e/layout.spec.js` |
+| `table` | `initTable`, `toggleLayerTable` imports and calls; the `onOpenTable:` line in the `openPopup` call; the row callback passed to `renderLayerRows` | dock tests in `tests/e2e/layout.spec.js` |
 | `popups` | `openPopup` import; the whole `map.on('click', glId, …)` block and its `mouseenter`/`mouseleave` cursor lines | `tests/e2e/popup.spec.js` entirely |
 | `tooltips` | `installTooltips` import and call | tooltip tests in `layout.spec.js` |
 | `settings` | `settingsControl` import and its `addControl` line; `toggleQuickSettings` import; the `?` key handler | settings tests in `layout.spec.js` |

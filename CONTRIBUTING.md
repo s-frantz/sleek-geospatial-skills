@@ -51,7 +51,7 @@ Rules that make it work:
 | **Tokens** | `app/css/tokens.css` | ~20 names, referenced elsewhere with a CSS fallback. Alias them into your own vocabulary; never rename this file to match yours. |
 | **Components** | `app/css/components/*.css` + their paired `.js` | Self-contained — a component never knows what it sits next to. Copied, then watermarked. |
 | **Framework** | `app/js/utils/furniture.js`, `app/js/utils/visible-area.js`, `app/js/ui/popup-placement.js` | A CONTRACT, not fixed code: mark any element `data-sgs-furniture` and it participates in camera padding and popup obstacle avoidance, with nothing to register anywhere else. |
-| **Demo furniture** | `app/css/furniture.css`, `app/js/main.js`, `app/js/map.js`, `app/js/layers.js`, `app/js/ui/panel.js`, `app/js/ui/dock.js`, `app/js/ui/popup.js`, `app/index.html` | Yours the moment you copy it. A second panel, a form instead of a layer list — none of that happens by editing a shared file; it happens by writing new furniture here. |
+| **Demo furniture** | `app/css/furniture.css`, `app/js/main.js`, `app/js/map.js`, `app/js/layers.js`, `app/js/ui/panel.js`, `app/js/ui/table.js`, `app/js/ui/popup.js`, `app/index.html` | Yours the moment you copy it. A second panel, a form instead of a layer list — none of that happens by editing a shared file; it happens by writing new furniture here. |
 
 Nothing is ever imported live from this repo into an app. Every app is a full copy, and stays
 runnable if this repo disappears entirely.
@@ -83,8 +83,9 @@ watermark keeps the skill that describes what it actually has rather than silent
 the clone's latest. They land at `<app>/.claude/skills/`, alongside a generated `CLAUDE.md`
 listing what is there.
 
-Two skills stay behind on purpose: `app-start` (the app has already started) and
-`repo-maintain` (the laws for this repo, not for an app).
+Some skills stay behind on purpose: `app-start` and `app-adopt` (both are decisions taken
+before the app has any of these files) and `repo-maintain` (the laws for this repo, not for an
+app).
 
 Discovery, measured against Claude Code 2.1.185 rather than assumed:
 
@@ -98,6 +99,21 @@ Discovery, measured against Claude Code 2.1.185 rather than assumed:
   directory avoids that entirely, and is the recommended habit.
 - If two skills share a name across directories, both stay available and the nested one takes
   a directory-qualified name (`products/app-1:ui-furniture`).
+
+### The decision log
+
+An app scaffolded here gets `sgs-decisions.md` beside its `sgs.json`, and the two are a pair:
+the manifest records WHAT the app took and at which version, the log records WHY, in the words
+the question was asked in.
+
+It exists because the interview is expensive and agents have no memory of it. Without a log,
+the next session opens the app, cannot tell a deliberate omission from an oversight, and asks
+again, or worse, quietly re-adds something that was refused on purpose. `app-start` writes it,
+`app-upgrade` and `app-contribute` append to it, and all three READ IT BEFORE ASKING ANYTHING.
+
+A question already answered at the CURRENT version is not re-asked. A question answered at an
+older version is re-asked only if `sgs:status` says that component actually moved in between,
+which is the whole point of stamping each entry with a version.
 
 ## Checking your own changes
 
@@ -211,6 +227,21 @@ which is the best outcome available and the smallest PR.
 
 A candidate that passes all five gates then follows the fix path below, reproduction and all.
 Passing the test earns a PR, not a merge.
+
+### Naming a skill
+
+**A skill is named for its category and its subject, and nothing else.** No version, no
+adjective, no "-guide" or "-conventions" suffix. Procedures are prefixed `app-` when they act
+on an app and `repo-` when they act on this repo; conventions are prefixed `ui-` for the app's
+own chrome and `map-` for what MapLibre makes you decide. Adding a skill means picking its
+prefix first, and if no prefix fits, that is a signal about the skill rather than about the
+scheme.
+
+The scheme's first real test was `app-adopt`, which the naming made obvious before the skill
+existed: `app-start` interviews a blank page, so the person arriving with an application
+already written had no entry point. It has one now, and `sgs:init` grew the two flags it needs
+(`--eject` and `--manifest-only`) rather than the skill describing a workflow the tools could
+not perform.
 
 ## Contributing a fix back
 

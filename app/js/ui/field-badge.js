@@ -2,7 +2,7 @@
  * field-badge.js — the ONE field-row vocabulary: a monospace TYPE BADGE beside a FIELD NAME.
  *
  * Every surface that shows attributes renders the same two things, so they are built in one
- * place: the popup's field table and the dock table's header both call these, and therefore
+ * place: the popup's field table and the table's header both call these, and therefore
  * cannot drift. Add a third surface (a filter panel, a field editor) and it inherits the
  * vocabulary for free.
  *

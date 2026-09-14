@@ -1,5 +1,5 @@
 /* ── Buttons — TIER 2 component ────────────────────────────────────────────────────────────
-   One icon-button shell everywhere off the map: panel berth, popup head, window head, rows.
+   One icon-button shell everywhere off the map: panel and table heads, popup head, window head, rows.
    The glyph inherits `color`, so hover is a single rule for the whole app. Self-contained. */
 
 .sgs-icon-btn {

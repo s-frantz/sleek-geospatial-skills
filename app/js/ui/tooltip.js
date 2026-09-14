@@ -8,11 +8,11 @@
  * bubble from then on) and shown in ONE shared, rounded, token-styled element.
  *
  * Everything is event delegation on the document, so dynamically created elements — every
- * control, popup button and dock button in this app — are covered without registering
+ * control, popup button and table button in this app — are covered without registering
  * anything. Elements can also opt in directly with `data-tip="..."`.
  *
  * ── Placement: BESIDE beats BELOW at an edge ─────────────────────────────────────────────
- * The default is centred under the element. But the control stack is pinned to the right
+ * The default is centred under the element. But the control stack sits at the right
  * edge, and a label centred under a button 30px from the edge cannot be centred: clamping
  * shoves it sideways until it no longer points at anything, and a wider label ends up under
  * the NEXT button down.

@@ -37,7 +37,12 @@
 
 .sgs-seg-btn:first-child { border-left: 0; }
 .sgs-seg-btn:hover { background: var(--sgs-hover, rgba(0,0,0,.06)); }
-.sgs-seg-btn[aria-checked="true"] { background: var(--sgs-accent, #2f6fd0); color: var(--sgs-accent-fg, #fff); }
+/* The chosen segment is the QUIET text colour turned into a plate, with the ground as its ink:
+   chosen in the same greys as the rest of the chrome rather than in a hue that appears nowhere
+   else in the popover. The quiet tone rather than full ink, because a near-black plate in light
+   was the heaviest thing on screen for a fact as small as "this one"; it still clears 4.5:1 in
+   both themes. */
+.sgs-seg-btn[aria-checked="true"] { background: var(--sgs-fg-dim, #5c636e); color: var(--sgs-bg, #fff); }
 
 /* The shortcut inventory, ruled off as its own quiet band. */
 .sgs-shortcuts {

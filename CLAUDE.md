@@ -6,7 +6,7 @@ trade.
 
 ## Read the skill first
 
-`.claude/skills/` holds fifteen skills. Before changing anything, read the one that covers it.
+`.claude/skills/` holds the skills. Before changing anything, read the one that covers it.
 
 Names carry their category: `app-` procedures act on an app, `repo-` procedures act on this
 repo, `ui-` and `map-` conventions are consulted while building. Procedures run in a rough
@@ -35,10 +35,11 @@ order (`app-start`, then `app-verify` forever, then `app-upgrade` paired with
 Framework terms (clone, app, manifest, watermark, drift, ejected, tier, capability) are
 defined once, in `VOCABULARY.md` — link there, never redefine.
 
-Twelve of these fifteen also travel into apps: a component owns the SKILL.md that describes
-it, listed among its files in `sgs-components.json`, so `sgs:init` copies it exactly when it
-copies the code. Writing or moving a skill means editing that file too. `app-start`,
-`app-adopt` and `repo-maintain` belong to no component and stay here.
+Most skills also travel into apps: a component owns the SKILL.md that describes it, listed
+among its files in `sgs-components.json`, so `sgs:init` copies it exactly when it copies the
+code. Writing or moving a skill means editing that file too. The skills for deciding how an
+app begins (`app-start`, `app-adopt`) and the laws for this repo (`repo-maintain`) belong to
+no component and stay here.
 
 ## Editing sgs-components.json or sgs-capabilities.json
 
@@ -48,6 +49,14 @@ splitting a component id is bigger than it looks: every existing app's `sgs.json
 the old id, and `sgs:status`/`sgs:drift` report it as unknown until the manifest is updated —
 so the CHANGELOG entry must say what manifests should do. The `repo-maintain` skill carries the
 tests an addition must pass; read it before growing either file.
+
+## Working with the maintainer
+
+**Build locally; open a pull request only when asked.** Make changes on a local branch, verify
+them, and show them running on a localhost port. Then say what changed and ask what goes into a
+PR. Do not open one PR per change, and do not push each change as it lands. "One idea per PR"
+in CONTRIBUTING.md is about what a PR contains once it is opened, not a reason to open one per
+idea: nine small PRs for one session's work had to be folded back into one release.
 
 ## House rules
 
@@ -107,5 +116,5 @@ Types, unit, geometry, ink. All four, and quote what came back.
 Kept deliberately small, and deliberately not here: a real layer model, a group tree, drag
 reordering, a config schema, symbology, a basemap switcher, a minimap. Each is a reasonable
 addition; none is required to demonstrate a convention, and every one of them makes the repo
-harder to read as a set of examples. Add one only when it teaches something the current ten
+harder to read as a set of examples. Add one only when it teaches something the existing
 skills do not.
