@@ -24,7 +24,7 @@ not an opinion baked into the code.
 A candidate is rejected if it would leave the visible area, or land on anything marked
 `data-sgs-furniture` WHILE it occludes an edge (see the `map-camera` skill and
 `app/js/utils/furniture.js`), plus any popup already on screen. This file names no ids — the
-control stack, the panel, an open dock all qualify because they carry the attribute, not
+control stack, the panel, an open table all qualify because they carry the attribute, not
 because `popup-placement.js` knows they exist.
 
 Everything else is fair game, including the map and the feature itself.

@@ -1,6 +1,6 @@
 /* ── Map controls — TIER 2 component ───────────────────────────────────────────────────────
    Self-contained: adapts MapLibre's own control chrome to this app's language. Knows nothing
-   about panel, dock, or popup. */
+   about panel, table, or popup. */
 
 /* THE SPECIFICITY TRAP. MapLibre styles its buttons through `.maplibregl-ctrl-group button`,
    a two-part selector that beats a single class. `.sgs-ctrl-btn { width: 30px }` silently

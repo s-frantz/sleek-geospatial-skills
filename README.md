@@ -25,8 +25,8 @@ domain from the city's own open data, and a scatter of invented points to go wit
 
 | | |
 |---|---|
-| **Left panel** | docked or floating, width and height independently pinnable, a pin, edge grips that double-click back to automatic, and a stow that gives the pixels back |
-| **Bottom dock** | a band that folds, goes on reporting what is in it while folded, and rises to symmetric margins while folding the panel out of its way |
+| **Left panel** | docked or undocked, width and height set independently, a dock button, edge grips that double-click back to automatic, and a stow that gives the pixels back |
+| **Table** | a band that folds, goes on reporting what is in it while folded, and rises to symmetric margins while folding the panel out of its way |
 | **Popups** | two placement strategies, leader lines, and a refusal to cover the app's own furniture |
 | **Control stack** | custom MapLibre controls that look native, with glyphs sized and centred by measurement |
 | **Large window** | one modal shell with layout slots, placeholder content, and an Escape key that closes only the topmost thing |
@@ -63,7 +63,7 @@ What travels: a small token canon (`app/css/tokens.css`, referenced elsewhere wi
 fallback), self-contained components (`app/css/components/*.css` + paired `.js`), and a
 framework CONTRACT rather than fixed code — mark any element `data-sgs-furniture` and it
 participates in camera padding and popup obstacle avoidance with nothing to register anywhere
-else. The demo furniture (`main.js`, `panel.js`, `dock.js`, `popup.js`, `furniture.css`) is
+else. The demo furniture (`main.js`, `panel.js`, `table.js`, `popup.js`, `furniture.css`) is
 yours from the moment it's copied.
 
 ```bash
@@ -112,8 +112,8 @@ where a lesson was learned twice independently.
 |---|---|
 | [`ui-boot`](.claude/skills/ui-boot/SKILL.md) | vendored globals with `defer`, a module entry that cannot race them |
 | [`ui-theme`](.claude/skills/ui-theme/SKILL.md) | three theme states, every colour defined once, a dark palette of adjacent tones, no flash on load |
-| [`ui-furniture`](.claude/skills/ui-furniture/SKILL.md) | the panel and the dock: three facts not four postures, one applier, TIGHT/PINNED/FULL |
-| [`ui-stow`](.claude/skills/ui-stow/SKILL.md) | FOLD, CLOSE, MARK, BERTH, PIN, SNAP, and the test that picks one |
+| [`ui-furniture`](.claude/skills/ui-furniture/SKILL.md) | the panel and the table: three facts not four postures, one applier, TIGHT/MANUAL/FULL |
+| [`ui-stow`](.claude/skills/ui-stow/SKILL.md) | FOLD, CLOSE, MARK, DOCK, SNAP, and the test that picks one |
 | [`ui-window`](.claude/skills/ui-window/SKILL.md) | one modal shell, a rail of pages, and one owner for the Escape key |
 | [`ui-icons`](.claude/skills/ui-icons/SKILL.md) | size and centring are two problems; measure both |
 | [`map-controls`](.claude/skills/map-controls/SKILL.md) | the specificity trap that silently ignores your control CSS |

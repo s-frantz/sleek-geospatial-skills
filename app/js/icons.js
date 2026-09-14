@@ -33,9 +33,9 @@ const PATHS = {
 
     close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
 
-    /** Pinned: the panel is docked to the left edge and reserves that band. */
+    /** Docked: the section sits against its edge and reserves that band. */
     pin: '<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1z"/>',
-    /** Unpinned: the panel floats, and stops being something the camera has to avoid. */
+    /** Undocked: the section sits where it was dragged, and the camera stops avoiding it. */
     'pin-off': '<path d="M12 17v5"/><path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89"/><path d="m2 2 20 20"/><path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11"/>',
 
     /** The stack of things a map shows. Doubles as the panel's MARK when the panel stows. */
@@ -44,7 +44,7 @@ const PATHS = {
     /** Crosshair: bring this into view. */
     target: '<circle cx="12" cy="12" r="7"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>',
 
-    /** Ruled box: rows and columns, the dock's table. */
+    /** Ruled box: rows and columns, the table. */
     table: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/>',
 
     /**

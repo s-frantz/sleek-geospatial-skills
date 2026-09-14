@@ -23,7 +23,7 @@
  */
 
 import { map } from '../map.js';
-import { icon } from '../icons.js';
+import { iconButton, setButton } from './buttons.js';
 import { buildSymbolSwatch } from './symbology.js';
 import { getSourcePill, makeTypePill } from './type-pill.js';
 import { buildFieldBadge, inferTypeFromValue } from './field-badge.js';
@@ -218,28 +218,20 @@ export function openPopup({
     /** @type {(() => void)|null} */
     let refreshTableBtn = null;
     if (layer && onOpenTable) {
-        const tableBtn = document.createElement('button');
-        tableBtn.type = 'button';
-        tableBtn.className = 'sgs-icon-btn sgs-popup-table';
+        const tableBtn = iconButton({
+            className: 'sgs-icon-btn sgs-popup-table',
+            onClick: (ev) => { ev.stopPropagation(); onOpenTable(layer.id); },
+        });
         refreshTableBtn = () => {
             const s = tableButtonState?.() ?? { pressed: false, label: 'Find this feature in the table' };
-            tableBtn.title = s.label;
-            tableBtn.setAttribute('aria-label', s.label);
-            tableBtn.setAttribute('aria-pressed', String(s.pressed));
-            tableBtn.innerHTML = icon(s.pressed ? 'table-lit' : 'table', 12);
+            setButton(tableBtn, { glyph: s.pressed ? 'table-lit' : 'table', label: s.label, pressed: s.pressed });
         };
         refreshTableBtn();
-        tableBtn.addEventListener('click', (ev) => { ev.stopPropagation(); onOpenTable(layer.id); });
         actions.appendChild(tableBtn);
     }
 
-    const close = document.createElement('button');
-    close.className = 'sgs-icon-btn';
-    close.type = 'button';
     // Named for what it closes, as the table's and the layer panel's close buttons are.
-    close.title = 'Close the popup';
-    close.setAttribute('aria-label', close.title);
-    close.innerHTML = icon('close', 12);
+    const close = iconButton({ glyph: 'close', label: 'Close the popup' });
     actions.appendChild(close);
 
     const body = document.createElement('div');

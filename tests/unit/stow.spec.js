@@ -12,24 +12,24 @@ import { nextFoldMode } from '../../app/js/ui/stow.js';
 const BOTH = { tight: true, snug: true };
 
 describe('nextFoldMode', () => {
-    it('steps natural, tight, header, snug, and round to natural again', () => {
+    it('steps natural, tight, head, snug, and round to natural again', () => {
         expect(nextFoldMode('natural', BOTH)).toBe('tight');
-        expect(nextFoldMode('tight', BOTH)).toBe('header');
-        expect(nextFoldMode('header', BOTH)).toBe('snug');
+        expect(nextFoldMode('tight', BOTH)).toBe('head');
+        expect(nextFoldMode('head', BOTH)).toBe('snug');
         expect(nextFoldMode('snug', BOTH)).toBe('natural');
     });
 
     it('skips tight only when the rows could not all fit on screen', () => {
-        expect(nextFoldMode('natural', { tight: false, snug: true })).toBe('header');
+        expect(nextFoldMode('natural', { tight: false, snug: true })).toBe('head');
     });
 
     it('skips snug when there is no width to take in, since it would be tight again', () => {
-        expect(nextFoldMode('header', { tight: true, snug: false })).toBe('natural');
+        expect(nextFoldMode('head', { tight: true, snug: false })).toBe('natural');
     });
 
     it('with neither fitted view on offer, it is a plain fold and unfold', () => {
         const none = { tight: false, snug: false };
-        expect(nextFoldMode('natural', none)).toBe('header');
-        expect(nextFoldMode('header', none)).toBe('natural');
+        expect(nextFoldMode('natural', none)).toBe('head');
+        expect(nextFoldMode('head', none)).toBe('natural');
     });
 });

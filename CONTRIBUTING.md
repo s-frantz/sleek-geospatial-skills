@@ -51,7 +51,7 @@ Rules that make it work:
 | **Tokens** | `app/css/tokens.css` | ~20 names, referenced elsewhere with a CSS fallback. Alias them into your own vocabulary; never rename this file to match yours. |
 | **Components** | `app/css/components/*.css` + their paired `.js` | Self-contained — a component never knows what it sits next to. Copied, then watermarked. |
 | **Framework** | `app/js/utils/furniture.js`, `app/js/utils/visible-area.js`, `app/js/ui/popup-placement.js` | A CONTRACT, not fixed code: mark any element `data-sgs-furniture` and it participates in camera padding and popup obstacle avoidance, with nothing to register anywhere else. |
-| **Demo furniture** | `app/css/furniture.css`, `app/js/main.js`, `app/js/map.js`, `app/js/layers.js`, `app/js/ui/panel.js`, `app/js/ui/dock.js`, `app/js/ui/popup.js`, `app/index.html` | Yours the moment you copy it. A second panel, a form instead of a layer list — none of that happens by editing a shared file; it happens by writing new furniture here. |
+| **Demo furniture** | `app/css/furniture.css`, `app/js/main.js`, `app/js/map.js`, `app/js/layers.js`, `app/js/ui/panel.js`, `app/js/ui/table.js`, `app/js/ui/popup.js`, `app/index.html` | Yours the moment you copy it. A second panel, a form instead of a layer list — none of that happens by editing a shared file; it happens by writing new furniture here. |
 
 Nothing is ever imported live from this repo into an app. Every app is a full copy, and stays
 runnable if this repo disappears entirely.

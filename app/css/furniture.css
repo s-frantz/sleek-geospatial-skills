@@ -2,7 +2,7 @@
    furniture.css — TIER 3: the demo's OWN furniture. Yours to rewrite.
 
    This is not a shared library file. It is the specific visual chrome of THIS app's panel,
-   dock, and popups — copied once at instantiation, then owned. A second panel, a right-docked
+   table, and popups — copied once at instantiation, then owned. A second panel, a right-docked
    inspector, a form instead of a layer list: none of that happens by editing a shared file,
    it happens by writing new furniture here (or replacing this file outright) and giving each
    root element `data-sgs-furniture` so the FRAMEWORK tier (app/js/utils/furniture.js,
@@ -10,7 +10,7 @@
    with no further wiring. See docs — CONTRIBUTING.md and the `ui-furniture` / `ui-stow` /
    `map-popups` skills — for what the framework promises and what it leaves to you.
 
-   The one deliberate exception: the rule below coupling the dock's open state to the panel's
+   The one deliberate exception: the rule below coupling the table's open state to the panel's
    bottom edge is THIS app's specific choice about how its two pieces of furniture share space.
    The framework does not generalize that — it has no opinion on how your furniture arranges
    around itself, only on padding the camera and keeping popups off of it. Write your own
@@ -24,7 +24,7 @@
    the same five declarations, written out three times). Each keeps below only what is its own:
    where it sits, its size, and, for the table, the shadow of a band lit from below. */
 .sgs-panel,
-.sgs-dock,
+.sgs-table,
 .sgs-popup {
     display: flex;
     flex-direction: column;
@@ -54,17 +54,17 @@
 /* manual-h: the panel releases its bottom anchor and hugs the height it was given. */
 .sgs-panel--manual-h { bottom: auto; height: var(--sgs-panel-h); }
 
-/* float: unpinned. Left and top come from JavaScript; the bottom anchor goes, so the panel
+/* Undocked: left and top come from JavaScript; the bottom anchor goes, so the panel
    hugs its content. This is also the state in which furniture.js reports no edge occlusion —
    see edgeOf() in app/js/utils/furniture.js. */
-.sgs-panel--float {
+.sgs-panel--undocked {
     bottom: auto;
     max-height: 70vh;
     cursor: default;
 }
 
 /* TIGHT, the chevron's middle step: the panel hugs its rows, however tall it was. A class and
-   not a height, so it writes over no pinned height and stepping on restores that exactly.
+   not a height, so it writes over no manual height and stepping on restores that exactly.
    Declared after --manual-h so it wins on source order, and capped so a long list scrolls
    rather than running off the screen. There is no FULL for the panel; see panel.js. */
 .sgs-panel--tight,
@@ -75,10 +75,10 @@
 }
 
 /* SNUG, the chevron's fourth view: TIGHT, and as narrow as the rows. Also a class, so a width
-   the reader pinned survives underneath it; declared after --manual-w so it wins. */
+   the reader set survives underneath it; declared after --manual-w so it wins. */
 .sgs-panel--snug { width: max-content; }
 
-/* SNAPPING: shown while a dragged piece of furniture is inside the catch radius of its berth,
+/* SNAPPING: shown while a dragged piece of furniture is inside the catch radius of its edge,
    so "close enough" is something the reader can see rather than something they discover by
    letting go. Outline rather than a moved shadow: it must not change the element's geometry
    mid-drag, because the geometry is what the snap test is reading. */
@@ -88,12 +88,12 @@
 }
 
 /* FOLDED: the head stays in its slot and keeps its controls; the body collapses and the
-   panel hugs the bar. Same shape as the folded dock, deliberately.
+   panel hugs the bar. Same shape as the folded table, deliberately.
 
    The width is the exception: folding collapses the VERTICAL axis and must leave the other
-   one alone, so a pinned width survives the fold. Without the :not() this rule wins on source
+   one alone, so a manual width survives the fold. Without the :not() this rule wins on source
    order over .sgs-panel--manual-w and the panel visibly narrows to its header, which reads as
-   the panel moving rather than closing. panel.js pins the automatic width on fold for the
+   the panel moving rather than closing. panel.js sets the automatic width on fold for the
    same reason, so in practice this rule now only fires between the two. */
 .sgs-panel--folded {
     bottom: auto;
@@ -105,32 +105,32 @@
 
 /* Folded, on either section: the head alone, so no grips and no rule under the head. */
 .sgs-panel--folded .sgs-grip,
-.sgs-dock--folded .sgs-dock-grip { display: none; }
+.sgs-table--folded .sgs-table-grip { display: none; }
 .sgs-panel--folded .sgs-panel-head,
-.sgs-dock--folded .sgs-dock-head { border-bottom: none; }
+.sgs-table--folded .sgs-table-head { border-bottom: none; }
 /* The chevron points one way per view, the same on both sections, so it reads without knowing
-   which section it sits on: NATURAL down, TIGHT right, HEADER up, SNUG left. Four views, a
+   which section it sits on: NATURAL down, TIGHT right, HEAD up, SNUG left. Four views, a
    quarter turn per press, round the dial. The glyph is drawn pointing down. */
 .sgs-panel--tight .sgs-panel-fold svg,
-.sgs-dock--tight .sgs-dock-fold svg { transform: rotate(-90deg); }
+.sgs-table--tight .sgs-table-fold svg { transform: rotate(-90deg); }
 .sgs-panel--folded .sgs-panel-fold svg,
-.sgs-dock--folded .sgs-dock-fold svg { transform: rotate(180deg); }
+.sgs-table--folded .sgs-table-fold svg { transform: rotate(180deg); }
 .sgs-panel--snug .sgs-panel-fold svg,
-.sgs-dock--snug .sgs-dock-fold svg { transform: rotate(90deg); }
+.sgs-table--snug .sgs-table-fold svg { transform: rotate(90deg); }
 
 /* CLOSED: the section leaves the layout entirely. What remains is its MARK (edge-mark.css),
-   berthed on the left edge — the panel's own edge, so the tab is where the panel went. */
+   parked on the left edge, the panel's own edge, so the tab is where the panel went. */
 .sgs-panel.sgs-closed { display: none; }
 
 .sgs-panel-fold svg,
-.sgs-dock-fold svg { transition: transform 120ms ease; }
+.sgs-table-fold svg { transition: transform 120ms ease; }
 
 /* ONE HEAD for every piece of furniture: the same bar, one step off the ground, the same
    spacing, and a handle to drag on every one of them. The three heads had three paddings and
    three gaps (6, 8 and 6) for no reason anyone could name, and the popup's alone sat on the
    card's own ground. */
 .sgs-panel-head,
-.sgs-dock-head,
+.sgs-table-head,
 .sgs-popup-head {
     display: flex;
     align-items: center;
@@ -144,13 +144,13 @@
 }
 
 .sgs-panel-head:active,
-.sgs-dock-head:active,
+.sgs-table-head:active,
 .sgs-popup-head:active { cursor: grabbing; }
 
 /* ONE TITLE: the section's name in every head, bold, on one line, and cut with an ellipsis
    rather than pushing the head's buttons off its end. */
 .sgs-panel-title,
-.sgs-dock-title,
+.sgs-table-title,
 .sgs-popup-title {
     font-weight: 600;
     white-space: nowrap;
@@ -164,15 +164,10 @@
 
 /* HEAD ACTIONS: the buttons at the right of every furniture head (panel, table, popup) sit in
    this one group, so their spacing is ONE rule. Each head used to space its own buttons with
-   its own gap, which made three different answers: the panel's berth pair sat 2px apart and
+   its own gap, which made three different answers: the panel's dock and FULL buttons sat 2px apart and
    its fold and close 6px, the table's buttons 8px, the popup's 6px. The head's own gap still
    separates the group from the title; it no longer reaches between buttons. */
 .sgs-head-actions { display: flex; align-items: center; gap: 4px; flex: none; }
-
-/* A BERTH is a corner of chrome that already exists, never a dedicated lane. It dissolves
-   into the actions group rather than drawing a box of its own, so whatever lands in it is
-   spaced exactly like the buttons beside it, and an empty berth leaves no gap behind. */
-.sgs-berth { display: contents; }
 
 .sgs-panel-body { overflow: auto; padding: 6px; }
 
@@ -182,7 +177,7 @@
    accent, while the table's showed its pill: two answers to one affordance, and the blue one
    a hue the rest of the chrome does not use. Each piece keeps only where its grips sit. */
 .sgs-grip,
-.sgs-dock-grip {
+.sgs-table-grip {
     position: absolute;
     z-index: 2;
     display: flex;
@@ -191,19 +186,19 @@
 }
 
 .sgs-grip::before,
-.sgs-dock-grip::before {
+.sgs-table-grip::before {
     content: "";
     border-radius: 2px;
     background: var(--sgs-line, #d9dce2);
 }
 
 .sgs-grip:hover::before,
-.sgs-dock-grip:hover::before { background: var(--sgs-fg-dim, #5c636e); }
+.sgs-table-grip:hover::before { background: var(--sgs-fg-dim, #5c636e); }
 
 .sgs-grip--h::before,
-.sgs-dock-grip--h::before { width: 36px; height: 3px; }
+.sgs-table-grip--h::before { width: 36px; height: 3px; }
 .sgs-grip--w::before,
-.sgs-dock-grip--w::before { width: 3px; height: 36px; }
+.sgs-table-grip--w::before { width: 3px; height: 36px; }
 
 .sgs-grip--w { top: 0; right: 0; width: 8px; height: 100%; cursor: ew-resize; }
 .sgs-grip--h { left: 0; bottom: 0; height: 8px; width: 100%; cursor: ns-resize; }
@@ -230,43 +225,43 @@
 .sgs-row:hover .sgs-row-actions,
 .sgs-row:focus-within .sgs-row-actions { opacity: 1; }
 
-/* ── The bottom dock ────────────────────────────────────────────────────────────────────── */
+/* ── The table ────────────────────────────────────────────────────────────────────── */
 
-/* Open: a full-width band (small inset each side), height owned by dock.js as an inline style
-   and PUBLISHED as --sgs-dock-h so the panel-coupling rule below can stay out of its way. */
-.sgs-dock {
+/* Open: a full-width band (small inset each side), height owned by table.js as an inline style
+   and PUBLISHED as --sgs-table-h so the panel-coupling rule below can stay out of its way. */
+.sgs-table {
     position: fixed;
     left: var(--sgs-panel-inset, 10px);
     right: var(--sgs-panel-inset, 10px);
     bottom: var(--sgs-panel-inset, 10px);
     z-index: 5;
-    /* Lit from below: a band standing on the bottom edge. Loose, it takes the card's own. */
+    /* Lit from below: a band standing on the bottom edge. Undocked, it takes the card's own. */
     box-shadow: 0 -6px 20px rgba(16, 20, 28, 0.14), 0 1px 3px rgba(16, 20, 28, 0.1);
 }
 
-/* THIS APP'S OWN CHOICE: the dock displaces the panel, so while it is open the panel's bottom
+/* THIS APP'S OWN CHOICE: the table displaces the panel, so while it is open the panel's bottom
    sits just above it. The framework does not know this rule exists — it only ever computes
    padding and obstacle rects from live geometry (furniture.js). If you add a third piece of
    furniture, decide its own arrangement rule the same way: bespoke CSS, not a framework
    feature. The exempt postures already gave up their bottom anchor, and each pairing must be
    restated here because this three-class selector would otherwise outweigh theirs. */
-body.sgs-dock-open .sgs-panel { bottom: calc(var(--sgs-dock-h, 250px) + 16px); }
-/* A dock that has left its berth is not the bottom of the map any more, so it stops
-   displacing the panel. dock.js publishes --sgs-dock-h as 0 while loose, which handles the
+body.sgs-table-open .sgs-panel { bottom: calc(var(--sgs-table-h, 250px) + 16px); }
+/* An undocked table is not the bottom of the map any more, so it stops
+   displacing the panel. table.js publishes --sgs-table-h as 0 while undocked, which handles the
    arithmetic; this restores the panel's own bottom anchor so it is not merely raised by
    nothing. */
-body.sgs-dock-float .sgs-panel { bottom: var(--sgs-panel-inset, 10px); }
-/* The postures that gave up their bottom anchor keep it given up, whatever the dock is doing.
+body.sgs-table-undocked .sgs-panel { bottom: var(--sgs-panel-inset, 10px); }
+/* The postures that gave up their bottom anchor keep it given up, whatever the table is doing.
    Stated ONCE, after both rules above, because each of them outweighs a single class. This
-   list used to sit between the two, so the loose-dock rule after it handed a folded panel its
+   list used to sit between the two, so the undocked-table rule after it handed a folded panel its
    bottom back, and the panel stretched to full height around its hidden body. */
-body.sgs-dock-open :is(.sgs-panel--manual-h, .sgs-panel--float, .sgs-panel--folded, .sgs-panel--tight, .sgs-panel--snug) { bottom: auto; }
+body.sgs-table-open :is(.sgs-panel--manual-h, .sgs-panel--undocked, .sgs-panel--folded, .sgs-panel--tight, .sgs-panel--snug) { bottom: auto; }
 
 /* The table's grips (their look is the one grip rule above). The height grip is on the TOP
    edge, since the table stands on the bottom, and always present; the width grip is on the
-   right and only matters loose. Both carry the modifier, the way the panel's do, so a test or
+   right and only matters undocked. Both carry the modifier, the way the panel's do, so a test or
    a stylesheet naming one never silently addresses both. */
-.sgs-dock-grip--h {
+.sgs-table-grip--h {
     top: 0;
     left: 0;
     right: 0;
@@ -274,27 +269,27 @@ body.sgs-dock-open :is(.sgs-panel--manual-h, .sgs-panel--float, .sgs-panel--fold
     cursor: ns-resize;
 }
 
-.sgs-dock-swatch,
-.sgs-dock-pill { display: inline-flex; align-items: center; flex: none; }
-.sgs-dock-count { color: var(--sgs-fg-dim, #5c636e); }
-.sgs-dock-spacer { flex: 1; }
-.sgs-dock-body { overflow: auto; }
+.sgs-table-swatch,
+.sgs-table-pill { display: inline-flex; align-items: center; flex: none; }
+.sgs-table-count { color: var(--sgs-fg-dim, #5c636e); }
+.sgs-table-spacer { flex: 1; }
+.sgs-table-body { overflow: auto; }
 
-/* Loose: the same card, off its berth. `right` goes because a floating band anchored to both
-   sides is not floating; the width becomes the reader's, and left/top come from dock.js. The
+/* Undocked: the same card, off its edge. `right` goes because a band anchored to both sides is
+   still docked; the width becomes the reader's, and left/top come from table.js. The
    shadow flips from "lit from below" to all round, which is the cheapest honest signal that
    the thing is now above the map rather than part of its frame. */
-.sgs-dock--float {
+.sgs-table--undocked {
     right: auto;
     bottom: auto;
-    width: var(--sgs-dock-w, 60vw);
+    width: var(--sgs-table-w, 60vw);
     min-width: 280px;
     box-shadow: var(--sgs-shadow, 0 6px 20px rgba(0,0,0,.16));
 }
 
 /* FULL: symmetric margins, the same limit maxHeight() enforces on the grip. Both are stated
-   because the reader can reach this state from either side of the berth. */
-.sgs-dock--full {
+   because the reader can reach this state docked or undocked. */
+.sgs-table--full {
     left: var(--sgs-panel-inset, 10px);
     right: var(--sgs-panel-inset, 10px);
     top: var(--sgs-panel-inset, 10px);
@@ -302,15 +297,9 @@ body.sgs-dock-open :is(.sgs-panel--manual-h, .sgs-panel--float, .sgs-panel--fold
     width: auto;
 }
 
-/* SNUG: the width is dock.js's (inline, the columns' own), and the table takes it in from the
-   LEFT, keeping its right edge where it was, so the chevron that was just pressed is still
-   under the pointer for the next press. Docked or FULL the left anchor goes; loose, dock.js
-   moves the left edge by the width taken in. */
-.sgs-dock--snug { left: auto; }
-
-/* The width grip mirrors the height grip on the right edge, and only exists loose: berthed,
-   the dock spans the viewport and has no width to argue about. */
-.sgs-dock-grip--w {
+/* The width grip mirrors the height grip on the right edge, and only exists undocked: docked,
+   the table spans the viewport and has no width to argue about. */
+.sgs-table-grip--w {
     top: 0;
     bottom: 0;
     left: auto;
@@ -321,15 +310,15 @@ body.sgs-dock-open :is(.sgs-panel--manual-h, .sgs-panel--float, .sgs-panel--fold
     display: none;
 }
 
-.sgs-dock--float:not(.sgs-dock--full) .sgs-dock-grip--w { display: flex; }
+.sgs-table--undocked:not(.sgs-table--full) .sgs-table-grip--w { display: flex; }
 
 /* Folded: the head alone, still a full-width bar, still reporting, and still a handle to drag
-   (the one head rule above makes it grabbable docked or loose, as the panel's is). It unfolds
+   (the one head rule above makes it grabbable docked or undocked, as the panel's is). It unfolds
    from its chevron, as the panel does. */
-.sgs-dock--folded .sgs-dock-body { display: none; }
-.sgs-dock--full .sgs-dock-grip--w { display: none; }
+.sgs-table--folded .sgs-table-body { display: none; }
+.sgs-table--full .sgs-table-grip--w { display: none; }
 
-/* The dock's mark is .sgs-mark--bottom; see components/edge-mark.css. */
+/* The table's mark is .sgs-mark--bottom; see components/edge-mark.css. */
 
 /* ── Popups ─────────────────────────────────────────────────────────────────────────────── */
 

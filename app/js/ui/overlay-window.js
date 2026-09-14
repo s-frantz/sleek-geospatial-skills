@@ -36,7 +36,7 @@
  * no rail. A window with one page should not pay for a rail listing one thing.
  */
 
-import { icon } from '../icons.js';
+import { iconButton } from './buttons.js';
 import { makeDraggable } from '../utils/draggable.js';
 import { pushDismissible } from './dismiss-stack.js';
 
@@ -74,12 +74,7 @@ export function createOverlayWindow({ title = '', windowClass = '', pages = [], 
     const titleEl = document.createElement('span');
     titleEl.className = 'sgs-window-title';
     titleEl.textContent = title;
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'sgs-icon-btn';
-    closeBtn.title = 'Close';
-    closeBtn.setAttribute('aria-label', 'Close');
-    closeBtn.innerHTML = icon('close', 14);
+    const closeBtn = iconButton({ glyph: 'close', size: 14, label: 'Close' });
     header.append(titleEl, closeBtn);
 
     const body = document.createElement('div');

@@ -25,7 +25,7 @@
  * Undo the promotion, so the element goes back to being positioned by the stylesheet.
  *
  * The drag writes SIX inline properties and clearing three of them is not enough, which is
- * how furniture that re-berths after a drag ends up in the right corner at the wrong size:
+ * how furniture that re-docks after a drag ends up in the right corner at the wrong size:
  * `bottom: auto` survives, the docked panel's bottom anchor never comes back, and it sits at
  * the top-left hugging its content while every class says it is docked. The promotion is this
  * file's residue, so removing it belongs here rather than in each caller's applier, where it
@@ -48,7 +48,7 @@ export function releaseDrag(el) {
  * @param {(pos: {x: number, y: number, ctrl: boolean}) => void} [onEnd] called once, on release
  * @returns {() => void} teardown
  *
- * Ctrl held means "put it exactly here": furniture that snaps to a berth reads it as leave the
+ * Ctrl held means "put it exactly here": furniture that snaps to its edge reads it as leave the
  * snap off, so a reader can park a section a little way off its edge on purpose. The drag
  * only reports it; what it means is each piece of furniture's call.
  */
@@ -97,8 +97,8 @@ export function makeDraggable(el, handle, onMove, onEnd) {
         if (!dragging) return;
         dragging = false;
         try { handle.releasePointerCapture(e.pointerId); } catch { /* already released */ }
-        // Release is its own event, not the last move. Furniture that snaps back to a berth
-        // has to decide on LETTING GO: deciding on the last move would re-berth the thing
+        // Release is its own event, not the last move. Furniture that snaps back to its edge
+        // has to decide on LETTING GO: deciding on the last move would re-dock the thing
         // mid-drag and leave the reader dragging something that is no longer under the
         // cursor.
         const r = el.getBoundingClientRect();

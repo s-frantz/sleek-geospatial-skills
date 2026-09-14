@@ -141,11 +141,11 @@ async function main() {
     // Let the control stack settle before screenshotting it.
     await page.waitForTimeout(300);
 
-    // The control stack, plus the panel's berth. Both are on screen from first paint, which
+    // The control stack, plus the panel's dock button. Both are on screen from first paint, which
     // is the requirement: a glyph that needs three clicks to reach cannot be in a check that
     // runs on every change.
     const handles = await page.locator(
-        '.maplibregl-ctrl-top-right button, #sgs-panel-berth button',
+        '.maplibregl-ctrl-top-right button, .sgs-panel-dock',
     ).all();
 
     console.log('');

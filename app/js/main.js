@@ -18,9 +18,9 @@ import { addAllLayers, LAYERS, layerById, interactiveLayerId, markSelected } fro
 import { initPanel } from './ui/panel.js';
 import { renderLayerRows } from './ui/layer-rows.js';
 import {
-    initDock, toggleLayerTable, toggleFeatureInTable, featureTableState, FEATURE_TABLE_LABELS,
+    initTable, toggleLayerTable, toggleFeatureInTable, featureTableState, FEATURE_TABLE_LABELS,
     releaseFeatureRow,
-} from './ui/dock.js';
+} from './ui/table.js';
 import { makeControl } from './ui/control-stack.js';
 import { settingsControl } from './ui/settings-control.js';
 import { toggleQuickSettings } from './ui/quick-settings.js';
@@ -35,7 +35,7 @@ installTooltips();
 
 // ── 1. Furniture ─────────────────────────────────────────────────────────────────────────
 initPanel(/** @type {HTMLElement} */ (document.getElementById('sgs-panel')));
-initDock();
+initTable();
 
 // ── 2. Controls ──────────────────────────────────────────────────────────────────────────
 map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
@@ -161,5 +161,5 @@ const ARROWS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], Arrow
  * @param {EventTarget|null} el
  */
 function isMapOrScroller(el) {
-    return el instanceof Element && !!el.closest('.maplibregl-canvas, .sgs-dock-body');
+    return el instanceof Element && !!el.closest('.maplibregl-canvas, .sgs-table-body');
 }

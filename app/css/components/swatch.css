@@ -1,7 +1,7 @@
 /* ── Swatch — TIER 2 component ─────────────────────────────────────────────────────────────
    The SHAPE carries the geometry: a square is a polygon, a dot is a point. Colour alone would
    throw that away, and two blue layers are told apart by form before hue.
-   Self-contained: no knowledge of panel, dock, or popup. Drop it anywhere. */
+   Self-contained: no knowledge of panel, table, or popup. Drop it anywhere. */
 
 .sgs-swatch { flex: none; display: inline-block; }
 

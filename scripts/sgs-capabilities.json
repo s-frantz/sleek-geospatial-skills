@@ -22,10 +22,10 @@
       ],
       "asks": "A left panel with layer rows (visibility, swatch, zoom-to)?"
     },
-    "table-dock": {
-      "_comment": "`panel` is here because dock.js IMPORTS foldPanel/isPanelFolded from it: the dock folds the layer panel out of its way as it rises. An app that took the table without the layer panel previously scaffolded a dock.js whose import target did not exist, and failed at first paint. Listing every component a capability needs, rather than the ones it feels like it owns, is what this file's set-union rule is for.",
+    "table": {
+      "_comment": "`panel` is here because table.js IMPORTS foldPanel/isPanelFolded from it: the table folds the layer panel out of its way as it rises. An app that took the table without the layer panel previously scaffolded a table.js whose import target did not exist, and failed at first paint. Listing every component a capability needs, rather than the ones it feels like it owns, is what this file's set-union rule is for.",
       "components": [
-        "dock",
+        "table",
         "panel",
         "edge-mark",
         "field-table",

@@ -19,7 +19,8 @@
  * `.sgs-ctrl-btn`'s rule in map-controls.css) beats reaching for `!important`.
  */
 
-import { icon, GLYPH } from '../icons.js';
+import { GLYPH } from '../icons.js';
+import { iconButton } from './buttons.js';
 
 /**
  * @typedef {object} ControlSpec
@@ -46,12 +47,12 @@ export function makeControl(specs) {
             container = document.createElement('div');
             container.className = 'maplibregl-ctrl maplibregl-ctrl-group sgs-ctrl';
             for (const spec of specs) {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'sgs-ctrl-btn';
-                btn.title = spec.title;
-                btn.setAttribute('aria-label', spec.title);
-                btn.innerHTML = icon(spec.glyph, spec.size ?? GLYPH);
+                const btn = iconButton({
+                    className: 'sgs-ctrl-btn',
+                    glyph: spec.glyph,
+                    size: spec.size ?? GLYPH,
+                    label: spec.title,
+                });
                 btn.dataset.glyph = spec.glyph;
                 btn.addEventListener('click', () => spec.onClick(btn));
                 container.appendChild(btn);

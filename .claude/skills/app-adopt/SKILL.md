@@ -75,12 +75,12 @@ with code of its own rarely overlaps this repo along capability lines.
 
 ```
 NOT ejected, because something you took needs the file:
-  panel          needed by table-dock
+  panel          needed by table
 ```
 
-The dock imports `foldPanel` from the panel. So "eject the panel, keep the table" is not a
-decision anyone can act on until one of two things happens: eject the dock as well, or keep
-this copy and make their own panel satisfy what the dock imports. Both are fine. Silence is
+The table imports `foldPanel` from the panel. So "eject the panel, keep the table" is not a
+decision anyone can act on until one of two things happens: eject the table as well, or keep
+this copy and make their own panel satisfy what the table imports. Both are fine. Silence is
 not, which is why the tool says it rather than quietly keeping the file.
 
 Every one of these goes in `sgs-decisions.md`. This is the coupling that makes adoption hard,
@@ -97,7 +97,7 @@ So it is a protocol, and the last line is the one that matters:
 1. **Mount both**, under names that say which is which. No abstraction layer, no flag to
    choose between them at runtime: this lives for hours, not for a release.
 2. **Name ONE behavioural difference** before looking at either. "Which do you like" has no
-   answer; "which one keeps the popup on screen when the feature is behind the dock" has one.
+   answer; "which one keeps the popup on screen when the feature is behind the table" has one.
 3. **Verify it on the ladder** (`app-verify`). If the difference cannot be printed as a
    number, it is a taste question, and taste questions are settled by whoever owns the app in
    about ten seconds rather than by a bake-off.

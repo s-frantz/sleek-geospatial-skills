@@ -44,7 +44,7 @@ The tier decides the prior; the diff decides the answer:
 | **framework** (`furniture.js`, `visible-area.js`, `popup-placement.js`) | almost always interesting. These are contracts every app relies on; a change here is a bug found or a case the contract missed |
 | **components** | often interesting. Ask: does this fix something ANY app using the component would hit, or does it bend the component to this app's taste? The first goes up; the second is a candidate for ejecting instead |
 | **tokens** | usually app theming — an alias block should have carried it. Aliasing that goes wrong IS worth an issue |
-| **app-shell / furniture** (`main.js`, panel, dock, popups) | usually the app being an app. Escalate only when the change is a transplantable LESSON (an ordering bug in boot, a posture case the panel mishandles), not a feature |
+| **app-shell / furniture** (`main.js`, panel, table, popups) | usually the app being an app. Escalate only when the change is a transplantable LESSON (an ordering bug in boot, a posture case the panel mishandles), not a feature |
 
 Walk them one at a time with the user; do not propose a bundle. Three honest outcomes per
 file, and all three are wins. Each one gets a line in `sgs-decisions.md` — the triage is the

@@ -76,7 +76,7 @@ updated to the tag it was checked against.
 The entry matters most for the changes you decided NOT to take. A watermark that moved with no
 diff behind it looks, six months later, exactly like a watermark nobody thought about — and the
 next session re-reads the same changelog entry and re-reaches the same conclusion, slowly. One
-line saying "the lesson does not apply here, our panel does not float" saves that entirely. A component you decided NOT to change
+line saying "the lesson does not apply here, our panel never undocks" saves that entirely. A component you decided NOT to change
 still gets its watermark moved forward — "I checked and it doesn't apply" is a real answer, and
 leaving the old tag in place means the next upgrade re-asks the same question for no reason.
 

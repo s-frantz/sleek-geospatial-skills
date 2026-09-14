@@ -18,7 +18,7 @@
  * TRUSTING A LABEL FOR WHERE SOMETHING IS is the wrong move — the git history has a
  * `position: fixed` element whose `offsetParent === null` (true by definition, on screen or
  * not) silently zeroed the camera's bottom padding. A static edge string is the same mistake
- * relocated to markup: it goes stale the instant something floats, redocks, or is dragged.
+ * relocated to markup: it goes stale the instant something undocks, docks again, or is dragged.
  * The boolean marker plus a live geometric read (edgeOf, below) cannot go stale, because
  * there is nothing cached to go stale.
  */
@@ -51,7 +51,7 @@ export function furnitureRects(root) {
  * dockedPanelRight()/dockCover() used before this file existed, generalised to any edge.
  *
  * A rect close to more than one edge is resolved by SHAPE first, distance second. A band that
- * spans nearly the full viewport width — this app's own dock, insets of 10px on left, right,
+ * spans nearly the full viewport width — this app's own table, insets of 10px on left, right,
  * AND bottom — sits within `home` of three edges simultaneously; per-edge distance alone
  * cannot tell it apart from a left- or right-docked panel, because all three distances are
  * equal. But a full-width band can only sensibly BE a top or bottom edge, so that shape rules
@@ -84,8 +84,8 @@ export function edgeOf(r, viewport, home = HOME) {
 
 /**
  * Furniture rects, each tagged with the edge it occludes. Furniture parked away from every
- * edge (an unpinned panel dragged to the middle of the map) is left out entirely — this is
- * the "not furniture any more" exception popup-placement.js has always made for a floated
+ * edge (an undocked panel dragged to the middle of the map) is left out entirely — this is
+ * the "not furniture any more" exception popup-placement.js has always made for an undocked
  * panel, now general: it applies to anything marked furniture, not to one hardcoded id.
  * @param {ParentNode} [root]
  * @returns {Array<{el: Element, rect: DOMRect, edge: 'left'|'right'|'top'|'bottom'}>}
@@ -134,101 +134,99 @@ export function edgeCover(root) {
 }
 
 /**
- * The catch radius when a reader drags furniture back toward its berth, in px.
+ * The catch radius when a reader drags furniture back toward its edge, in px.
  *
  * Deliberately larger than HOME, and the difference is the whole argument: HOME judges a rect
  * AT REST ("is this thing occluding the left edge?"), while SNAP is a target a hand in motion
  * has to hit. The same number for both reads as principled and misses constantly.
  *
  * It is a multiple of HOME rather than an unrelated number so the two cannot drift apart:
- * anything inside SNAP of its berth point is, by construction, already inside HOME of its
- * berth EDGE — which is to say the framework is ALREADY padding the camera as though the
- * furniture were docked while the furniture still believes it is floating. Snapping does not
+ * anything inside SNAP of its dock point is, by construction, already inside HOME of its
+ * EDGE, which is to say the framework is ALREADY padding the camera as though the
+ * furniture were docked while the furniture still believes it is undocked. Snapping does not
  * introduce a behaviour; it ends a disagreement the reader can see.
  */
 export const SNAP = HOME * 2;
 
 /**
- * Is this rect close enough to its berth point that letting go should re-berth it?
+ * Is this rect close enough to its dock point that letting go should dock it?
  *
  * Per-axis rather than Euclidean: a diagonal miss of 40px in both directions is not "nearly
  * home" in any sense a reader would recognise, and the radial version catches it.
  *
- * For a berth that is a single CORNER. Neither piece of furniture in this app has one any
- * more: the panel's berth is the whole left edge (nearLeftBerth) and the table's the whole
- * bottom (nearBottomBerth). Kept because a corner berth is a real shape, and the edge tests
+ * For furniture that docks at a single CORNER. Neither piece of furniture in this app does any
+ * more: the panel docks along the whole left edge (nearLeftEdge) and the table along the whole
+ * bottom (nearBottomEdge). Kept because a corner is a real shape, and the edge tests
  * are easiest to read against it.
  *
- * Pure, and takes the berth point rather than deriving one, because only the furniture knows
- * where its own berth is. Deriving it here would mean this file knowing about specific pieces
+ * Pure, and takes the dock point rather than deriving one, because only the furniture knows
+ * where it docks. Deriving it here would mean this file knowing about specific pieces
  * of furniture, which is exactly what the marker attribute exists to avoid.
  *
  * @param {{left: number, top: number}} rect where the furniture is now
- * @param {{x: number, y: number}} berth where it would sit if it were pinned
+ * @param {{x: number, y: number}} point where it would sit if it were docked
  * @param {number} [snap]
  * @returns {boolean}
  */
-export function nearBerth(rect, berth, snap = SNAP) {
-    return Math.abs(rect.left - berth.x) <= snap && Math.abs(rect.top - berth.y) <= snap;
+export function nearDockPoint(rect, point, snap = SNAP) {
+    return Math.abs(rect.left - point.x) <= snap && Math.abs(rect.top - point.y) <= snap;
 }
 
 /**
- * Is this rect held against a BOTTOM-EDGE berth closely enough that letting go should
- * re-berth it?
+ * Is this rect held against the BOTTOM EDGE closely enough that letting go should dock it?
  *
- * The dock's berth is the whole bottom edge, not a corner, so this ignores x entirely. It used
- * to go through nearBerth() with the bottom-LEFT corner as its point, which meant a loose table
- * dropped at the foot of the map stayed loose unless it happened to land within SNAP of the
+ * The table docks along the whole bottom edge, not at a corner, so this ignores x entirely. It used
+ * to go through nearDockPoint() with the bottom-LEFT corner as its point, which meant an undocked table
+ * dropped at the foot of the map stayed undocked unless it happened to land within SNAP of the
  * left inset: the reader held it against the edge it lives on, in the middle where it is most
  * natural to aim, and nothing happened.
  *
- * One-sided on y, where nearBerth() is symmetric. The panel cannot overshoot its corner (the
- * drag clamps it to the viewport), but the dock can be pushed down past its berth until only
+ * One-sided on y, where nearDockPoint() is symmetric. The panel cannot overshoot its corner (the
+ * drag clamps it to the viewport), but the table can be pushed down past its docked top until only
  * its head shows, and pushing a thing INTO the edge it belongs on is the clearest possible way
- * of saying "put it back". So anything at, below, or within SNAP above the berth counts.
+ * of saying "put it back". So anything at, below, or within SNAP above the docked top counts.
  *
  * @param {{top: number}} rect where the furniture is now
- * @param {number} berthTop the top it would have if it were pinned
+ * @param {number} dockTop the top it would have if it were docked
  * @param {number} [snap]
  * @returns {boolean}
  */
-export function nearBottomBerth(rect, berthTop, snap = SNAP) {
-    return rect.top >= berthTop - snap;
+export function nearBottomEdge(rect, dockTop, snap = SNAP) {
+    return rect.top >= dockTop - snap;
 }
 
 /**
- * Is this rect held against a LEFT-EDGE berth closely enough that letting go should re-berth
- * it? nearBottomBerth() rotated, for the panel.
+ * Is this rect held against the LEFT EDGE closely enough that letting go should dock it? nearBottomEdge() rotated, for the panel.
  *
- * The panel's berth used to be tested as its top-left CORNER, so a panel dropped against the
- * left edge halfway down the map stayed loose: the same miss the table had along the bottom.
+ * The panel's dock used to be tested as its top-left CORNER, so a panel dropped against the
+ * left edge halfway down the map stayed undocked: the same miss the table had along the bottom.
  * Its docked form spans the whole left edge, so the edge is the target, and y is ignored.
  * One-sided for the same reason too, though the drag clamps x at 0: anything at or left of the
- * berth, or within SNAP to its right, counts.
+ * docked left edge, or within SNAP to its right, counts.
  *
  * @param {{left: number}} rect where the furniture is now
- * @param {number} berthLeft the left it would have if it were pinned
+ * @param {number} dockLeft the left it would have if it were docked
  * @param {number} [snap]
  * @returns {boolean}
  */
-export function nearLeftBerth(rect, berthLeft, snap = SNAP) {
-    return rect.left <= berthLeft + snap;
+export function nearLeftEdge(rect, dockLeft, snap = SNAP) {
+    return rect.left <= dockLeft + snap;
 }
 
 /**
  * A change one piece of furniture makes to ANOTHER, which it may only undo while it is still
  * the one holding it.
  *
- * This shape had been written by hand three times before it was named — the fold that pins the
- * panel's width, the dock that folds the panel as it rises, the undock that pins the dock's
+ * This shape had been written by hand three times before it was named — the fold that sets the
+ * panel's width, the table that folds the panel as it rises, the undock that sets the table's
  * width — and each copy got the same half right and the same half wrong. Taking is easy.
  * GIVING BACK is where the bugs live, and there are two of them:
  *
- *   1. Giving back something you never took. The dock rises, the reader folds the panel
- *      themselves, the dock comes down and unfolds it. The app has overruled a choice it was
+ *   1. Giving back something you never took. The table rises, the reader folds the panel
+ *      themselves, the table comes down and unfolds it. The app has overruled a choice it was
  *      not asked about.
- *   2. Taking something that was already gone. The reader folds the panel, the dock rises and
- *      "folds" it again, the dock comes down and gives back a fold that was never the dock's
+ *   2. Taking something that was already gone. The reader folds the panel, the table rises and
+ *      "folds" it again, the table comes down and gives back a fold that was never the table's
  *      to give. Same bug, entered from the other side, which is why `available` is part of
  *      the contract and not the caller's problem.
  *

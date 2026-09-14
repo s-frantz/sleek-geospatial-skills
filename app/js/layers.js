@@ -6,7 +6,7 @@
  * an entry here, or replace the array with a fetch, whichever your app actually needs.
  *
  * What IS worth copying is the shape: one record per layer carrying its id, its label, where
- * its data lives, how it paints, and which fields the dock shows. Everything else in the app
+ * its data lives, how it paints, and which fields the table shows. Everything else in the app
  * reads layers through this array, so there is exactly one place that knows what exists.
  */
 
@@ -23,7 +23,7 @@ import { bboxOf, isDegenerate } from './utils/geo.js';
  * @property {string} type                  its SOURCE kind, which drives the type pill
  * @property {boolean} visible whether it starts on
  * @property {string} color
- * @property {string[]} fields the columns the dock shows, in order
+ * @property {string[]} fields the columns the table shows, in order
  * @property {string} key the property that tells one feature from another: how a table row,
  *           a popup and the map agree that they mean the same feature
  */
@@ -117,7 +117,7 @@ export function layerById(id) {
 }
 
 /**
- * The raw features of a layer, for the dock's table.
+ * The raw features of a layer, for the table.
  * @param {string} id
  * @returns {any[]}
  */
