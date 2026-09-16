@@ -267,7 +267,8 @@ Nothing in the PR needs to say — or should say — where the underlying issue 
 found.
 
 **A merge to main IS a release.** `.github/workflows/tag-release.yml` tags `v<version>`
-automatically on every push to `main`, reading the version straight from `package.json`. There
+automatically on every push to `main`, reading the version straight from `package.json`, and
+creates that tag's GitHub release page from the version's section in `CHANGELOG.md`. There
 is no separate "cut a release" step — bumping the version in your PR is that step, which is
 also why the bump is required rather than suggested: a tag that doesn't move on every merge is
 a tag `sgs:status` can no longer trust.

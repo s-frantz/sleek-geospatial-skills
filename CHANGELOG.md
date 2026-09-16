@@ -1,6 +1,7 @@
 # Changelog
 
-Every release is a tag (`vX.Y.Z`). `npm run sgs:status`, run from an app's directory, diffs
+Every release is a tag (`vX.Y.Z`) with a GitHub release page, whose notes are that version's
+section below. `npm run sgs:status`, run from an app's directory, diffs
 your `sgs.json` watermarks against this repo's history between the tag you last synced from
 and the latest one. It does not read this file for that. What THIS file is for: a `Breaking:`
 line names which component ids changed in a way that isn't just "pull the new version," so
@@ -8,6 +9,12 @@ line names which component ids changed in a way that isn't just "pull the new ve
 
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
+
+## [0.2.1] - 2026-09-15
+
+- **Every release gets a release page.** `tag-release.yml` now also creates the GitHub release
+  for the tag it makes, with this file's section for that version as its notes, and skips a
+  release that already exists. Nothing an app copies changes.
 
 ## [0.2.0] - 2026-09-14
 
