@@ -258,6 +258,15 @@ export function initPanel(panel) {
             _frame.h = undefined;
             _foldW.release();
         } else {
+            // Undocking frees the panel WHERE IT IS: its current corner becomes its undocked
+            // origin. Setting only the flag let apply() fall back to an x/y remembered from some
+            // earlier undock, or to (60, 80), so an app that docks the panel on the right saw it
+            // fly across the screen on undock, once underneath another right-side panel. The
+            // table's dock button already did this; the panel was the one that did not. Height
+            // goes automatic as before, so the panel stays put and only shortens.
+            const r = _panel.getBoundingClientRect();
+            _frame.x = Math.round(r.left);
+            _frame.y = Math.round(r.top);
             _frame.undocked = true;
         }
         apply();

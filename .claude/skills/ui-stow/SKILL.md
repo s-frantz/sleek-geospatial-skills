@@ -40,7 +40,7 @@ on screen, SNUG when there is no width to take in. The cycle has one owner, `nex
 skill has what each view does to the geometry and which wins when they combine.
 
 `app/js/ui/stow.js`: `makeClosable()` for CLOSE and its MARK, `makeFoldable()` for FOLD.
-`nearLeftEdge()`, `nearBottomEdge()` and `SNAP` in `app/js/utils/furniture.js` for the snap
+`nearLeftEdge()`, `nearBottomEdge()`, `nearTopEdge()` and `SNAP` in `app/js/utils/furniture.js` for the snap
 test; `makeDraggable()` in `app/js/utils/draggable.js` for the drag it answers.
 
 The five words split cleanly in two, and the split is worth saying out loud because it decides
@@ -85,13 +85,21 @@ rest and `SNAP` is a target a moving hand has to hit.
 **The snap test has the shape of where the section docks.** A section that docks at a corner
 docks at a point, and a drop snaps when it lands within `SNAP` of it on both axes,
 `nearDockPoint()`. A section that docks along an edge docks along a line, and a drop snaps when
-it is held against that line ANYWHERE along it: `nearBottomEdge()` for the table (y alone) and
-`nearLeftEdge()` for the panel (x alone). Testing an edge against one of its corners is the bug
+it is held against that line ANYWHERE along it: `nearBottomEdge()` and `nearTopEdge()` for the
+table (y alone) and `nearLeftEdge()` for the panel (x alone). Testing an edge against one of its corners is the bug
 this avoids: an undocked table dropped at the foot of the map, in the middle where a hand
 naturally aims, stayed undocked because it was 500px from the bottom-left corner it was being
 compared to, and the panel had the same miss halfway down the left edge. The edge tests are
 one-sided, because a section pushed PAST its docked place is being held against the edge
 harder, not missing it.
+
+**A section may have more than one edge.** The table docks along the bottom or the top. The
+drop decides which, by whichever edge it is held against, and the dock button returns the
+section to the edge it last docked along: the edge is a remembered fact, not a second button.
+Everything else follows from where the band is. Along the top it is top-edge furniture, so the
+camera pads for it and popups open below it with no branch of their own, and its grip and its
+mark move to the edges that face the map. What it would cover there steps aside in the app's own
+stylesheet, the way the panel already stepped above it at the bottom.
 
 **Ctrl held turns the snap off**, for both sections: the drag reports it, and each piece of
 furniture skips its snap, so a reader can park a section just off its edge on purpose.
@@ -171,7 +179,7 @@ row of a narrow panel on chrome, and it reads as new furniture rather than as th
 having moved.
 
 So a mark parks against the viewport edge the section came from: the panel's on the left, the
-table's on the bottom, the same edge `data-sgs-furniture`'s `edgeOf()` would attribute the
+table's on whichever edge it docks along, the bottom or the top, the same edge `data-sgs-furniture`'s `edgeOf()` would attribute the
 section to while it was open (see the `map-camera` skill). No lane, no extra line, and
 nothing on screen when nothing is closed.
 

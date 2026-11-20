@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-    adjacentPlacement, cascadeSlot, CASCADE_STEP, rect, overlaps,
+    adjacentPlacement, cascadeSlot, CASCADE_STEP, rect, overlaps, cleanBaseLeft, cleanBaseTop,
 } from '../../app/js/ui/popup-placement.js';
 
 const SAFE = rect(10, 10, 1260, 780);
@@ -25,6 +25,27 @@ describe('overlaps', () => {
 
     it('is true for genuine intersection', () => {
         expect(overlaps(rect(0, 0, 10, 10), rect(9, 9, 10, 10))).toBe(true);
+    });
+});
+
+describe('the CLEAN column home', () => {
+    const NONE = { left: 0, right: 0, top: 0, bottom: 0 };
+
+    it('starts at the viewport margin when no furniture hugs the left or the top', () => {
+        expect(cleanBaseLeft(NONE)).toBe(10);
+        expect(cleanBaseTop(NONE)).toBe(10);
+    });
+
+    it('starts below a top bar, as it starts right of a left panel', () => {
+        const cover = { ...NONE, left: 300, top: 50 };
+        expect(cleanBaseLeft(cover)).toBe(310);
+        expect(cleanBaseTop(cover)).toBe(60);
+    });
+
+    it('ignores furniture on the edges the column does not start from', () => {
+        const cover = { ...NONE, right: 200, bottom: 240 };
+        expect(cleanBaseLeft(cover)).toBe(10);
+        expect(cleanBaseTop(cover)).toBe(10);
     });
 });
 

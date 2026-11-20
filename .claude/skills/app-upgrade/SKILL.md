@@ -24,7 +24,10 @@ npm run sgs:status          # from the app; it takes a path too
 ```
 
 This diffs the SKILLS REPO's own history between each component's watermark and the latest
-release, never the app's files, which may be customized. It needs a CLONE to read that
+release, never the app's files, which may be customized. And it diffs per component, for the
+files that make it up, so a component nobody touched upstream reads current however many
+releases have shipped: a whole-repo version bump must never read as staleness on every
+component at once. It needs a CLONE to read that
 history from and finds one itself: `$SGS_CLONE`, or a directory named `.sgs` or
 `sleek-geospatial-skills` in the app or any ancestor. If it cannot find one it says so and
 exits 1 rather than reporting a cheerful nothing; clone one anywhere convenient and re-run.

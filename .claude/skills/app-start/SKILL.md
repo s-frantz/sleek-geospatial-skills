@@ -96,7 +96,7 @@ omitted capability, remove its wiring — this table is checked against the real
 |---|---|---|
 | `layer-panel` | `initPanel` + `renderLayerRows` imports and calls | the `#sgs-panel` block in `index.html` |
 | `table` | `initTable`, `toggleLayerTable` imports and calls; the `onOpenTable:` line in the `openPopup` call; the row callback passed to `renderLayerRows` | dock tests in `tests/e2e/layout.spec.js` |
-| `popups` | `openPopup` import; the whole `map.on('click', glId, …)` block and its `mouseenter`/`mouseleave` cursor lines | `tests/e2e/popup.spec.js` entirely |
+| `popups` | `openPopup` and `featureNear` imports; the map-wide `map.on('click', …)` block and the `mousemove`/`mouseout` cursor listeners under it | `tests/e2e/popup.spec.js` entirely |
 | `tooltips` | `installTooltips` import and call | tooltip tests in `layout.spec.js` |
 | `settings` | `settingsControl` import and its `addControl` line; `toggleQuickSettings` import; the `?` key handler | settings tests in `layout.spec.js` |
 | `about-window` | `openAboutWindow` import; the `makeControl([{ glyph: 'info', … }])` block | the large-window test in `popup.spec.js` |

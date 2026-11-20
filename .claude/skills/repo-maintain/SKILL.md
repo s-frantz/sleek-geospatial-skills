@@ -33,13 +33,21 @@ capability-scoped and pinned. Two consequences to hold to: a skill must not refe
 repo-root files an app does not receive (`../../../CHANGELOG.md` resolves in the clone and
 nowhere else; say "the clone's CHANGELOG" instead), and a skill about a component must not
 assume any OTHER capability is present. A skill that fits no component is a sign it is about
-the repo rather than the code: `app-start` and `repo-maintain` are the only two, and a
-third should have to argue for itself.
+the repo rather than the code, and each one has to argue for itself. There are three.
+`repo-maintain` is the laws for this repo, which no app needs. `app-start` and `app-adopt` are
+decisions taken BEFORE the app has any of these files, so there is no component yet for them to
+travel in. Those two stay separate rather than merging because their starting states ask
+different questions (choosing features on a blank page, against reconciling two
+implementations), and what they share, `app-adopt` names and does not repeat: `app-start`'s
+steps 1 and 4 to 6. A fourth should argue as hard.
 
-**The demo teaches; it does not grow.** The scope list in CLAUDE.md is a refusal, not a
-backlog: no layer model, no group tree, no config schema, no symbology engine, no basemap
-switcher, no minimap. A new behaviour enters the demo only when it demonstrates a convention
-the existing skills cannot. That escape hatch has a procedure: the admission test below.
+**The demo grows only to teach.** The scope list in CLAUDE.md is a refusal, not a backlog:
+no layer model, no group tree, no config schema, no symbology engine, no basemap switcher, no
+minimap. The demo may grow, but only by the smallest addition that lets it SHOW a convention it
+otherwise could not, preferably built from what is already on screen. The table docking along
+the top is the worked case: the popup column's top-edge contract was code with nothing in the
+demo to exercise it, and a second edge for existing furniture showed it where a new title bar
+would only have been one more thing to read past. The procedure is the admission test below.
 
 **One definition per term.** New vocabulary goes in VOCABULARY.md, once; everything else
 links. Two definitions of one word is how FOLD/STOW survived in a skill for a month after the
@@ -67,9 +75,11 @@ each one narrows what the next has to think about.
    a genuinely novel product feature belongs in the app that wants it.
 
 3. **Demo.** Can it be shown with what is already here: the two demo GeoJSON layers, the
-   existing furniture, and a test that fails before the change? A candidate needing new data,
-   a new layer model or a config schema is asking the demo to grow, and the answer is no.
-   Write the failing test first; it is the only proof that gate 2's gap is real.
+   existing furniture, and a test that fails before the change? If not, what is the smallest
+   growth that shows it, made of what is already there? A new behaviour for existing furniture
+   can pass; new data, a new layer model or a config schema is the demo growing for its own
+   sake, and the answer is no. Write the failing test first; it is the only proof that gate 2's
+   gap is real.
 
 4. **Shape.** Decide what it becomes, using the laws above rather than convenience:
    a component (own-schedule test), a capability (plain-language test), a skill (real files

@@ -98,14 +98,34 @@ export function obstacles() {
 }
 
 /**
+ * @typedef {{left: number, right: number, top: number, bottom: number}} Cover
+ */
+
+/**
  * Where a CLEAN popup's column starts: right of whatever furniture occludes the left edge,
  * the viewport edge otherwise. Recomputed per open, so the answer tracks live geometry rather
  * than a value remembered from an older layout.
+ * @param {Cover} [cover]  how far furniture intrudes from each edge (defaults to the live DOM)
  * @returns {number}
  */
-export function cleanBaseLeft() {
-    const cover = edgeCover();
+export function cleanBaseLeft(cover = edgeCover()) {
     return cover.left > 0 ? cover.left + EDGE : EDGE;
+}
+
+/**
+ * Where a CLEAN popup's column starts vertically: below whatever furniture occludes the top
+ * edge, the viewport edge otherwise. The vertical twin of cleanBaseLeft().
+ *
+ * It was a constant, 10px, for as long as the demo had nothing along its top. edgeCover() was
+ * already measuring the top edge and nothing here read it, so an app that added a title bar
+ * marked as furniture got every CLEAN popup opening on top of that bar, out of line with the
+ * panels beside it, which DID start below it. Furniture on any edge was supported and the
+ * column only listened to one of them.
+ * @param {Cover} [cover]  how far furniture intrudes from each edge (defaults to the live DOM)
+ * @returns {number}
+ */
+export function cleanBaseTop(cover = edgeCover()) {
+    return cover.top > 0 ? cover.top + EDGE : EDGE;
 }
 
 /**

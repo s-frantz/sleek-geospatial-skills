@@ -1,16 +1,17 @@
 /**
- * table.js — the table: a band across the foot of the viewport showing one layer's rows.
+ * table.js: the table, a band across the foot (or the head) of the viewport showing one
+ * layer's rows.
  *
  * ── Three states, three shapes ───────────────────────────────────────────────────────────
  *   OPEN     a full-width card (small inset each side), resizable by dragging its top edge.
- *            The layer panel gives up its bottom: a body class plus the `--sgs-table-h`
- *            variable raise the panel so the two never overlap, and the CSS owns that rule —
- *            the table only publishes its height.
+ *            The layer panel gives up its bottom (its top, along the top): a body class plus
+ *            the `--sgs-table-h` variable move the panel so the two never overlap, and the CSS
+ *            owns that rule. The table only publishes its height.
  *   FOLDED   the head alone, still full width, still reporting "Stations, 24 rows". A fold
  *            and not a stow, because the head has something to say while shut — apply the
  *            test from the `ui-stow` skill to anything you add here.
  *   CLOSED   the table leaves entirely. What remains is its MARK: a small tab parked at the
- *            bottom-centre edge that brings the table back, the same put-away grammar as
+ *            centre of the edge the table docks along, that brings the table back, the same put-away grammar as
  *            everything else, just against the viewport instead of a panel.
  *
  * ── Docked, or undocked ─────────────────────────────────────────────────────────────────────
@@ -18,6 +19,15 @@
  * button in its head, and a drag that undocks it and a drag back that docks it again.
  * Before, the table was the one piece of chrome nailed to the viewport, which made it the one
  * piece a reader could not move off the thing they were trying to look at.
+ *
+ * ── Along the bottom, or along the top ──────────────────────────────────────────────────────
+ * It docks along whichever of the two edges it is dropped against, and the dock button returns
+ * it to the edge it last docked on. The edge is one more fact on the table, `_edge`, and the
+ * rest follows from where the band is rather than from a branch per feature: along the top it
+ * is top-edge furniture, so the camera pads for it and CLEAN popups open below it, the contract
+ * the demo had no way to show while nothing could sit along its top. The two things it would
+ * cover there, the panel and the control stack, step down below it in furniture.css, the same
+ * app-owned rule that raises the panel above it at the bottom.
  *
  * Undocked, it stops being bottom-edge furniture: `edgeOf` in furniture.js reads geometry rather
  * than a label, so the camera stops padding for it and popups stop avoiding it the moment it
@@ -38,7 +48,7 @@ import { getSourcePill, makeTypePill } from './type-pill.js';
 import { foldPanel, isPanelFolded } from './panel.js';
 import { flashMark, nextFoldMode, stowInto } from './stow.js';
 import { makeDraggable, releaseDrag } from '../utils/draggable.js';
-import { nearBottomEdge, makeBorrow } from '../utils/furniture.js';
+import { nearBottomEdge, nearTopEdge, makeBorrow } from '../utils/furniture.js';
 import { getPrefs, setPrefs } from '../utils/prefs.js';
 
 /** Default open height, px. */
@@ -107,8 +117,14 @@ let _tight = false;
 let _snug = false;
 /** The current table's own width (max-content), measured when it is built: SNUG's target. */
 let _contentW = 0;
-/** Undocked on the map rather than docked along the bottom. */
+/** Undocked on the map rather than docked along an edge. */
 let _undocked = false;
+/**
+ * The edge the table docks along: where it sits while docked, and where the dock button sends
+ * it back to. Kept while undocked, so the button returns the table to the edge it came from.
+ * @type {'bottom'|'top'}
+ */
+let _edge = 'bottom';
 /** FULL: a takeover, not a size. `_height` keeps the reader's number underneath it. */
 let _full = false;
 /**
@@ -137,7 +153,14 @@ function apply() {
     // docked one does, while its undocked position and width wait underneath untouched,
     // so releasing FULL puts it back where it was.
     const undocked = _undocked && !_full;
+    // Docked along the top, and not taken over by FULL, which is a takeover from either edge.
+    const atTop = !_undocked && !_full && _edge === 'top';
     table.classList.toggle('sgs-table--undocked', _undocked);
+    table.classList.toggle('sgs-table--top', _edge === 'top');
+    document.body.classList.toggle('sgs-table-at-top', atTop);
+    // The mark parks on the edge the table docks along, so a close leads the eye to where the
+    // table lives, not to the bottom by habit.
+    setMarkEdge(_edge);
     table.classList.toggle('sgs-table--full', _full);
     table.classList.toggle('sgs-table--tight', _tight && !_folded);
     table.classList.toggle('sgs-table--snug', _snug && !_folded);
@@ -162,7 +185,7 @@ function apply() {
         table.style.top = `${y}px`;
         table.style.setProperty('--sgs-table-w', `${_width || Math.round(window.innerWidth * 0.6)}px`);
     } else {
-        // Docked: left/right/bottom come from the stylesheet again. The table is natively
+        // Docked: left/right and its edge come from the stylesheet again. The table is natively
         // `position: fixed` so the drag never promoted it, but it still wrote right/bottom to
         // auto on the way past, and those are exactly what a full-bleed band needs back.
         releaseDrag(table);
@@ -188,14 +211,15 @@ function apply() {
         chev.setAttribute('aria-expanded', String(!_folded));
     }
 
-    // Only a DOCKED table covers the bottom of the map (or a FULL one, from anywhere). Undocked,
+    // Only a DOCKED table covers an edge of the map (or a FULL one, from anywhere). Undocked,
     // it is furniture the camera still avoids by geometry, but it is not an edge any more, so
-    // the panel must not be pushed up by a band that is no longer down there.
+    // the panel must not be pushed aside by a band that is no longer there. Which way the
+    // published height pushes is the body class's to say (furniture.css).
     const h = undocked ? 0 : table.getBoundingClientRect().height;
     document.documentElement.style.setProperty('--sgs-table-h', `${Math.round(h)}px`);
 
     squeezePanel();
-    setPrefs({ tableUndocked: _undocked, tableFull: _full, tableH: _height, tableW: _width, tableX: _x, tableY: _y });
+    setPrefs({ tableUndocked: _undocked, tableEdge: _edge, tableFull: _full, tableH: _height, tableW: _width, tableX: _x, tableY: _y });
 }
 
 /** Kept as the old name for callers that only mean "the height moved". @returns {void} */
@@ -214,14 +238,27 @@ function clampXY(x, y) {
 }
 
 /**
- * Where the table sits when it is docked: hard against the bottom inset, full-bleed. Its y
- * depends on how tall the table currently is, which is why the dock point is a function and
- * not a constant.
- * @returns {{x: number, y: number}}
+ * The top the table would have docked along the bottom: hard against the bottom inset. It
+ * depends on how tall the table currently is, which is why it is a function and not a constant.
+ * Docked along the top, its top is simply INSET.
+ * @returns {number}
  */
-function dockPoint() {
+function bottomDockTop() {
     const h = _table ? _table.getBoundingClientRect().height : _height;
-    return { x: INSET, y: Math.round(window.innerHeight - INSET - h) };
+    return Math.round(window.innerHeight - INSET - h);
+}
+
+/**
+ * Which edge a drop at `top` would dock the table along, or null to leave it where it lands.
+ * Bottom first: it is the table's home, and a table nearly as tall as the map can be near
+ * both at once.
+ * @param {number} top
+ * @returns {'bottom'|'top'|null}
+ */
+function snapEdge(top) {
+    if (nearBottomEdge({ top }, bottomDockTop())) return 'bottom';
+    if (nearTopEdge({ top }, INSET)) return 'top';
+    return null;
 }
 
 /**
@@ -275,6 +312,19 @@ function releasePanel() { _panelRoom.release(); }
 function dockTable() {
     _undocked = false;
     apply();
+}
+
+/**
+ * Park the mark on one edge. Its class is all edge-mark.css reads, so the mark component still
+ * knows only which edge it belongs to, never which furniture it marks.
+ * @param {'bottom'|'top'} edge
+ * @returns {void}
+ */
+function setMarkEdge(edge) {
+    const mark = document.getElementById('sgs-table-mark');
+    if (!mark) return;
+    mark.classList.toggle('sgs-mark--bottom', edge === 'bottom');
+    mark.classList.toggle('sgs-mark--top', edge === 'top');
 }
 
 /** @returns {boolean} */
@@ -459,6 +509,9 @@ export function initTable() {
     });
     mark.id = 'sgs-table-mark';
     document.body.appendChild(mark);
+    // Before the table is built this session, the mark still belongs on the edge the reader
+    // last docked it along.
+    setMarkEdge(getPrefs().tableEdge === 'top' ? 'top' : 'bottom');
 }
 
 /** What the chevron says a press will do, by the view the press goes to. */
@@ -537,6 +590,7 @@ function setFolded(next) {
 function buildTable() {
     const prefs = getPrefs();
     _undocked = !!prefs.tableUndocked;
+    _edge = prefs.tableEdge === 'top' ? 'top' : 'bottom';
     _full = !!prefs.tableFull;
     _height = prefs.tableH ?? DEFAULT_H;
     _width = prefs.tableW ?? 0;
@@ -550,9 +604,10 @@ function buildTable() {
     // pads around and popups must not cover, with no id registered anywhere else.
     table.setAttribute('data-sgs-furniture', '');
 
-    // Top-edge resize grip: a thin strip with a centred pill, overlaid so it costs no
-    // height. Drag to resize; double-click returns the default — the grip carries its own
-    // undo, same as the panel's.
+    // The height grip: a thin strip with a centred pill, overlaid so it costs no height, on the
+    // edge that faces the map (the top, except when docked along the top, where it is the
+    // bottom). Drag to resize; double-click fits the rows. The grip carries its own undo, as the
+    // panel's does.
     const grip = document.createElement('div');
     grip.className = 'sgs-table-grip sgs-table-grip--h';
     grip.title = 'Drag to set the height, double-click to fit the rows';
@@ -573,12 +628,13 @@ function buildTable() {
         _beforeFull = null;
         _tight = false;
         _snug = false;
-        // Undocked, the table's top edge is where the pointer is. Docked, its BOTTOM is held
-        // to the inset, so the same drag means a height rather than a position.
-        _height = Math.round(Math.max(MIN_H, Math.min(
-            _undocked ? table.getBoundingClientRect().bottom - e.clientY : window.innerHeight - e.clientY - INSET,
-            maxHeight(),
-        )));
+        // Undocked, the table's top edge is where the pointer is. Docked along the bottom, its
+        // BOTTOM is held to the inset, so the same drag means a height rather than a position;
+        // docked along the top, its top is held and the grip is its bottom edge.
+        const wanted = _undocked ? table.getBoundingClientRect().bottom - e.clientY
+            : _edge === 'top' ? e.clientY - INSET
+                : window.innerHeight - e.clientY - INSET;
+        _height = Math.round(Math.max(MIN_H, Math.min(wanted, maxHeight())));
         if (_undocked) _y = Math.round(e.clientY);
         apply();
     });
@@ -722,10 +778,11 @@ function buildTable() {
     body.className = 'sgs-table-body';
 
     // Same gesture as the panel, docked or undocked, folded or not: dragging the head undocks the
-    // table, and letting go near the bottom edge docks it again. It docks along the whole edge,
-    // so "near" means held against the bottom anywhere along it, not near one corner of it: see
-    // nearBottomEdge() in furniture.js. A nudge that never leaves the edge's catch therefore
-    // changes nothing, which is what makes grabbing the head safe.
+    // table, and letting go near the bottom or the top edge docks it along that edge. It docks
+    // along the whole edge, so "near" means held against it anywhere along it, not near one
+    // corner of it: see nearBottomEdge() and nearTopEdge() in furniture.js. A nudge that never
+    // leaves the edge's catch therefore changes nothing, which is what makes grabbing the head
+    // safe.
     makeDraggable(table, head, ({ x, y, ctrl }) => {
         // Picked up from its edge, it keeps the width it had there, as the dock button does.
         if (!_undocked) _width = dockedWidth();
@@ -734,11 +791,12 @@ function buildTable() {
         _beforeFull = null;
         _x = x; _y = y;
         // Ctrl held leaves the snap off, as it does for the panel.
-        table.classList.toggle('sgs-snapping', !ctrl && nearBottomEdge({ top: y }, dockPoint().y));
+        table.classList.toggle('sgs-snapping', !ctrl && snapEdge(y) !== null);
         apply();
     }, ({ y, ctrl }) => {
         table.classList.remove('sgs-snapping');
-        if (_undocked && !ctrl && nearBottomEdge({ top: y }, dockPoint().y)) dockTable();
+        const edge = ctrl ? null : snapEdge(y);
+        if (_undocked && edge) { _edge = edge; dockTable(); }
     });
 
     table.append(grip, wgrip, head, body);

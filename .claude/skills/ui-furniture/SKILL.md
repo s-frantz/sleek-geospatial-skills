@@ -9,7 +9,8 @@ description: The geometry every piece of this app's large furniture shares - thr
 `app/css/furniture.css`.
 
 **This is not only the panel.** The table (`app/js/ui/table.js`) is the same model rotated:
-same three facts, same single applier, the same chevron, the same dock-and-snap pair from the
+same three facts, plus one the panel does not need (the edge it docks along, the bottom or the
+top; see `ui-stow`), same single applier, the same chevron, the same dock-and-snap pair from the
 `ui-stow` skill. It is the same surface too: one rule each in `furniture.css` for the card, the
 head, the title and the grip, shared by the panel, the table and the popups, so a change to one
 is a change to all three rather than a third copy drifting. The same goes for the words: both
@@ -211,9 +212,17 @@ text, so a toggle that changes its label cannot change one and forget the other.
 ## Undocking changes what the panel IS
 
 A docked panel hugs the left edge, so the camera pads for it and popups avoid it. An undocked
-panel sits anywhere, so `edgeOf()` (`app/js/utils/furniture.js`) reads its rect as hugging no
-edge at all and both stop treating it as an obstacle. The SAME `data-sgs-furniture` marker
-stays on the element the whole time; only its live geometry changes. Reserving a band for
+panel sits anywhere, so once it is moved off its edge `edgeOf()` (`app/js/utils/furniture.js`)
+reads its rect as hugging no edge at all and both stop treating it as an obstacle.
+
+Undocking does not move it. The dock button frees the panel where it lies, its current corner
+becoming its undocked origin, exactly as the table's does; only its height goes automatic. A
+panel that just undocked is therefore still against its edge and still padded for, until the
+reader drags it somewhere. The earlier undock jumped to a remembered position, or to a fixed
+corner, which on an app that docks the panel on the right sent it across the screen.
+
+The SAME `data-sgs-furniture` marker stays on the element the whole time; only its live
+geometry changes. Reserving a band for
 something that may be in the middle of the map buys nothing, and reserving a band around
 wherever it currently is would make the camera jump every time it moved. See `map-camera`.
 

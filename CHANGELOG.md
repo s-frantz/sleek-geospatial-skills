@@ -10,6 +10,47 @@ line names which component ids changed in a way that isn't just "pull the new ve
 A line here should say what changed and, if relevant, what a consuming app needs to check.
 It should not narrate the commit that produced it.
 
+## [0.3.0] - 2026-11-20
+
+Three fixes reported by a downstream app that had shipped each of them, the flaky test one of
+them was feeding, and the table docking along the top so the demo can show the first of them.
+No component id changes, so no manifest needs editing.
+
+- **A click a few pixels off a feature still opens it** (#26). One map-wide `click` and one
+  hover, both through `featureNear()`, which searches `HIT_RADIUS` (6px) around the pointer and
+  takes the topmost feature, replacing the per-layer `map.on('click', glId, …)` and its
+  `mouseenter`/`mouseleave` lines. The cursor shows a pointer exactly where a click would open
+  something. Components: `app-shell`, `popups`. If your app's `main.js` still binds clicks per
+  layer, take the new step 4 of `main.js` whole; the `app-start` de-wiring table now names the
+  new listeners.
+- **CLEAN popups open below furniture along the top edge** (#24), as they already opened right
+  of the panel. New `cleanBaseTop()` beside `cleanBaseLeft()`, both taking the edge cover as an
+  argument; `CLEAN_TOP` is gone. Nothing changes in an app with nothing along its top; dock the
+  demo's table along the top to see it. Components: `framework`, `popups`.
+- **Undocking the panel from its button leaves it where it is** (#25), as the table's button
+  already did, instead of jumping to a remembered position or to (60, 80). A just-undocked
+  panel is therefore still against its edge, and still padded for, until it is dragged away.
+  Component: `panel`.
+- **The table docks along the top as well as the bottom.** Drop it against either edge and it
+  docks there; the dock button returns it to the edge it last docked along (a new `tableEdge`
+  preference). Along the top, its grip moves to its bottom edge, its mark parks on the top edge,
+  and the panel and the top-right control stack step down below it (two app-owned rules in
+  `furniture.css`, beside the one that raises the panel above it at the bottom). New
+  `nearTopEdge()` in `furniture.js`; new `.sgs-mark--top` in `edge-mark.css`. Components:
+  `table`, `framework`, `edge-mark`, `app-shell`, `primitives`. An app that styles `.sgs-table` itself
+  should check its rules still hold under `.sgs-table--top`.
+- **`popup.spec.js` waits for the districts to render before clicking one** (#9), so it stops
+  failing a different third of its tests per run; it fails by naming the layer if the layer
+  never paints. Tests only.
+- **The demo may grow, to teach.** `repo-maintain`'s law now reads "the demo grows only to
+  teach", and its gate 3 asks for the smallest growth that shows a convention rather than
+  refusing all growth. CLAUDE.md says the same. Nothing an app copies changes.
+- **One home per procedure** (#11, #12). CONTRIBUTING no longer narrates starting, upgrading,
+  ejecting and checking for drift a second time; it points at the skill that owns each. The one
+  point only it carried (why `sgs:status` diffs per component) moved into `app-upgrade`.
+  `repo-maintain` now argues for its three clone-only skills by name instead of saying there
+  are two. Component: `workflow` (the `app-upgrade` skill); nothing else an app copies changes.
+
 ## [0.2.1] - 2026-09-15
 
 - **Every release gets a release page.** `tag-release.yml` now also creates the GitHub release

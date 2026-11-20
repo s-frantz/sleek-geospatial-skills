@@ -239,6 +239,15 @@
     box-shadow: 0 -6px 20px rgba(16, 20, 28, 0.14), 0 1px 3px rgba(16, 20, 28, 0.1);
 }
 
+/* Docked along the top: the same band hung from the top inset, lit from above. Before the
+   undocked and FULL rules below, which outrank it by coming later: undocked, table.js places it;
+   FULL, it takes the map from either edge. */
+.sgs-table--top {
+    top: var(--sgs-panel-inset, 10px);
+    bottom: auto;
+    box-shadow: 0 6px 20px rgba(16, 20, 28, 0.14), 0 1px 3px rgba(16, 20, 28, 0.1);
+}
+
 /* THIS APP'S OWN CHOICE: the table displaces the panel, so while it is open the panel's bottom
    sits just above it. The framework does not know this rule exists — it only ever computes
    padding and obstacle rects from live geometry (furniture.js). If you add a third piece of
@@ -251,6 +260,18 @@ body.sgs-table-open .sgs-panel { bottom: calc(var(--sgs-table-h, 250px) + 16px);
    arithmetic; this restores the panel's own bottom anchor so it is not merely raised by
    nothing. */
 body.sgs-table-undocked .sgs-panel { bottom: var(--sgs-panel-inset, 10px); }
+/* Docked along the top, the table displaces the panel DOWNWARD instead: the panel starts just
+   below the band and keeps its own bottom anchor. The same six pixels as at the bottom, and
+   before the exemption below, so a folded or fitted panel still gives up its bottom. */
+body.sgs-table-at-top .sgs-panel {
+    top: calc(var(--sgs-table-h, 250px) + 16px);
+    bottom: var(--sgs-panel-inset, 10px);
+}
+/* And it would cover the control stack, which is the one thing at the top that must stay
+   reachable, so the stack steps down below the band too, level with the panel. Along the bottom
+   the band covers only the attribution and the scale bar, small and fixed, which this app has
+   never moved for it. */
+body.sgs-table-at-top .maplibregl-ctrl-top-right { top: calc(var(--sgs-table-h, 250px) + 6px); }
 /* The postures that gave up their bottom anchor keep it given up, whatever the table is doing.
    Stated ONCE, after both rules above, because each of them outweighs a single class. This
    list used to sit between the two, so the undocked-table rule after it handed a folded panel its
@@ -268,6 +289,10 @@ body.sgs-table-open :is(.sgs-panel--manual-h, .sgs-panel--undocked, .sgs-panel--
     height: 8px;
     cursor: ns-resize;
 }
+
+/* Along the top the edge that faces the map is the bottom one, so the grip moves there. Not
+   while undocked: an undocked table resizes from its top, wherever it last docked. */
+.sgs-table--top:not(.sgs-table--undocked) .sgs-table-grip--h { top: auto; bottom: 0; }
 
 .sgs-table-swatch,
 .sgs-table-pill { display: inline-flex; align-items: center; flex: none; }
@@ -318,7 +343,8 @@ body.sgs-table-open :is(.sgs-panel--manual-h, .sgs-panel--undocked, .sgs-panel--
 .sgs-table--folded .sgs-table-body { display: none; }
 .sgs-table--full .sgs-table-grip--w { display: none; }
 
-/* The table's mark is .sgs-mark--bottom; see components/edge-mark.css. */
+/* The table's mark is .sgs-mark--bottom, or .sgs-mark--top while it docks along the top; see
+   components/edge-mark.css. */
 
 /* ── Popups ─────────────────────────────────────────────────────────────────────────────── */
 
