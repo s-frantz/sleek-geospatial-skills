@@ -28,12 +28,11 @@ import { buildSymbolSwatch } from './symbology.js';
 import { getSourcePill, makeTypePill } from './type-pill.js';
 import { buildFieldBadge, inferTypeFromValue } from './field-badge.js';
 import {
-    PLACEMENT, getPlacementMode, adjacentPlacement, anchorPoint, cleanBaseLeft, cascadeSlot,
+    PLACEMENT, getPlacementMode, adjacentPlacement, anchorPoint, cleanBaseLeft, cleanBaseTop,
+    cascadeSlot,
 } from './popup-placement.js';
 import { pushDismissible, raiseDismissible } from './dismiss-stack.js';
-
-/** Where the CLEAN column sits vertically: just under the top edge, out of the map's way. */
-const CLEAN_TOP = 10;
+import { edgeCover } from '../utils/furniture.js';
 
 /**
  * @typedef {object} OpenPopup
@@ -316,13 +315,15 @@ function place(p) {
         p.el.style.top = `${pos.top}px`;
         p.el.dataset.strategy = pos.side;
     } else {
-        // CLEAN: the fixed home beside the panel, cascading right for each kept popup. The
-        // base is re-measured per open, so a panel that moved since the last popup does not
-        // leave the column where the panel used to be.
-        const slot = cascadeSlot(cleanBaseLeft(), _cascadeOffset, size.w, window.innerWidth);
+        // CLEAN: the fixed home beside the panel and below anything along the top, cascading
+        // right for each kept popup. Both bases are re-measured per open, from one reading of
+        // the furniture, so a panel that moved since the last popup does not leave the column
+        // where the panel used to be.
+        const cover = edgeCover();
+        const slot = cascadeSlot(cleanBaseLeft(cover), _cascadeOffset, size.w, window.innerWidth);
         _cascadeOffset = slot.nextOffset;
         p.el.style.left = `${slot.left}px`;
-        p.el.style.top = `${CLEAN_TOP}px`;
+        p.el.style.top = `${cleanBaseTop(cover)}px`;
         p.el.dataset.strategy = 'clean';
     }
     drawLeader(p);

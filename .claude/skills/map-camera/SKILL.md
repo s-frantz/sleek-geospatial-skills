@@ -64,7 +64,9 @@ A band spanning nearly the full viewport width — this app's own table, inset 1
 right, AND bottom — sits within the "hugging" threshold of three edges simultaneously, and all
 three distances are equal, so nothing can pick a winner by distance. `edgeOf()` checks shape
 first: something spanning nearly the full width can only sensibly be a top or bottom edge,
-which rules out left/right before distance has to break a tie it cannot break. This was a real,
+which rules out left/right before distance has to break a tie it cannot break. The same table
+docked along the top reads as top-edge furniture by the same test, with nothing here told that
+it moved. This was a real,
 caught regression — see `tests/unit/furniture.spec.js` for the pinned case, found originally by
 a Playwright zoom-to test rather than by inspection.
 

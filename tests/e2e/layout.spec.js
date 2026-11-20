@@ -200,21 +200,38 @@ test('occlusion follows the panel geometry, not whether it is docked', async ({ 
     const padWhileDocked = await readPad();
     expect(padWhileDocked).toBeGreaterThan(48);
 
-    // Undock: the panel parks away from the left edge (its default home is x=60), so the
-    // left band is released.
+    // Undock: the panel stays where it was, against the left edge, so the band stays too.
+    // Occlusion is a question about WHERE THE PANEL IS: an undocked panel hugging the edge
+    // covers exactly as much map as a docked one; docked or not never enters into it.
     await page.locator('.sgs-panel-dock').click();
-    expect(await readPad()).toBe(48);
+    await expect(page.locator('#sgs-panel')).toHaveClass(/sgs-panel--undocked/);
+    expect(await readPad()).toBe(padWhileDocked);
 
-    // Now drag it back against the left edge. Occlusion is a question about WHERE
-    // THE PANEL IS: an undocked panel hugging the edge covers exactly as much map as a docked one,
-    // so the band comes back; docked or not never entered into it.
-    const head = await page.locator('.sgs-panel-head').boundingBox();
-    if (!head) throw new Error('no head');
-    await page.mouse.move(head.x + head.width / 2, head.y + head.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(12 + head.width / 2, head.y + head.height / 2, { steps: 5 });
-    await page.mouse.up();
-    expect(await readPad()).toBeGreaterThan(48);
+    // Out into the middle of the map, away from every edge, and the left band is released.
+    await dragHead(page, '.sgs-panel-head', 500, 400);
+    await expect(page.locator('#sgs-panel')).toHaveClass(/sgs-panel--undocked/);
+    expect(await readPad()).toBe(48);
+});
+
+test('undocking the panel from its button leaves it where it is (#25)', async ({ page }) => {
+    // A position remembered from an earlier undock, which the old undock fell back to, so the
+    // panel flew across the screen to it. It must lose to where the panel actually is.
+    // A second init script, so it runs AFTER beforeEach's clear rather than being wiped by it.
+    await page.addInitScript(() => localStorage.setItem('sgs-prefs', JSON.stringify({ panelX: 640, panelY: 300 })));
+    await page.reload();
+    await page.waitForSelector('body[data-ready="true"]');
+
+    const panel = page.locator('#sgs-panel');
+    const before = await panel.boundingBox();
+    if (!before) throw new Error('no panel');
+    await page.locator('.sgs-panel-dock').click();
+    await expect(panel).toHaveClass(/sgs-panel--undocked/);
+    const after = await panel.boundingBox();
+    if (!after) throw new Error('no panel');
+
+    // Picked up where it lay: same corner, to the pixel. Only its height may change.
+    expect(Math.abs(after.x - before.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1);
 });
 
 test('quick settings opens to the LEFT of the gear, top-aligned with it', async ({ page }) => {
@@ -1272,4 +1289,105 @@ test('the large window carries a rail of pages, and switching keeps what a page 
     await expect(page.locator('.sgs-window-foot')).toHaveCount(1);
     await page.keyboard.press('Escape');
     await expect(win).toHaveCount(0);
+});
+
+// ── The table along the top ─────────────────────────────────────────────────────────────────
+
+/** Open the stations table and drop it against the top edge. @param {import('@playwright/test').Page} page */
+async function tableAtTop(page) {
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await expect(page.locator('#sgs-table')).toHaveCount(1);
+    await dragHead(page, '.sgs-table-head', 640, 12);
+    const table = page.locator('#sgs-table');
+    await expect(table).toHaveClass(/sgs-table--top/);
+    await expect(table).not.toHaveClass(/sgs-table--undocked/);
+    return table;
+}
+
+test('the table dropped against the top docks along it, and the panel and the controls step below it', async ({ page }) => {
+    const vp = page.viewportSize();
+    if (!vp) throw new Error('no viewport');
+    const table = await tableAtTop(page);
+    const t = await table.boundingBox();
+    const panel = await page.locator('#sgs-panel').boundingBox();
+    const stack = await page.locator('.maplibregl-ctrl-top-right .maplibregl-ctrl').first().boundingBox();
+    if (!t || !panel || !stack) throw new Error('missing geometry');
+
+    // A full-bleed band hung from the top inset.
+    expect(Math.abs(t.y - 10)).toBeLessThanOrEqual(1);
+    expect(Math.abs(t.width - (vp.width - 20))).toBeLessThanOrEqual(1);
+    // Nothing it would have covered is under it: the panel and the first control start below.
+    expect(panel.y).toBeGreaterThanOrEqual(t.y + t.height);
+    expect(stack.y).toBeGreaterThanOrEqual(t.y + t.height);
+    // And the panel still reaches the bottom inset, as it does with no table at all.
+    expect(Math.abs(panel.y + panel.height - (vp.height - 10))).toBeLessThanOrEqual(1);
+
+    // The camera pads for it as top-edge furniture, past its bottom edge.
+    const pad = await page.evaluate(async () => {
+        const src = '/js/utils/visible-area.js';
+        const m = await import(src);
+        return m.visiblePadding().top;
+    });
+    expect(pad).toBeGreaterThan(t.y + t.height);
+});
+
+test('the dock button sends the table back to the edge it last docked along, and a drop changes the edge', async ({ page }) => {
+    const table = await tableAtTop(page);
+    const dock = page.locator('.sgs-table-dock');
+
+    await dock.click();
+    await expect(table).toHaveClass(/sgs-table--undocked/);
+    await dock.click();
+    await expect(table).not.toHaveClass(/sgs-table--undocked/);
+    await expect(table).toHaveClass(/sgs-table--top/);
+
+    // Dropped against the bottom, it docks there, and the edge it remembers is the bottom again.
+    const vp = page.viewportSize();
+    if (!vp) throw new Error('no viewport');
+    await dragHead(page, '.sgs-table-head', 640, vp.height - 12);
+    await expect(table).not.toHaveClass(/sgs-table--undocked/);
+    await expect(table).not.toHaveClass(/sgs-table--top/);
+    const t = await table.boundingBox();
+    if (!t) throw new Error('no table');
+    expect(Math.abs(t.y + t.height - (vp.height - 10))).toBeLessThanOrEqual(1);
+});
+
+test('docked along the top, the table resizes from its bottom edge, the one facing the map', async ({ page }) => {
+    const table = await tableAtTop(page);
+    const before = await table.boundingBox();
+    const grip = await page.locator('.sgs-table-grip--h').boundingBox();
+    if (!before || !grip) throw new Error('missing geometry');
+    // The grip sits on the band's bottom edge.
+    expect(Math.abs(grip.y + grip.height - (before.y + before.height))).toBeLessThanOrEqual(1);
+
+    const releaseY = grip.y + grip.height / 2 + 80;
+    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(grip.x + grip.width / 2, releaseY, { steps: 4 });
+    await page.mouse.up();
+
+    const after = await table.boundingBox();
+    if (!after) throw new Error('no table');
+    // Still hung from the same top, with its bottom edge where the pointer let go: the grip
+    // sets the edge to the pointer, as the bottom-docked table's sets its top edge.
+    expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(after.y + after.height - releaseY)).toBeLessThanOrEqual(1);
+    expect(after.height).toBeGreaterThan(before.height + 70);
+});
+
+test('a table closed from the top leaves its mark on the top edge, which brings it back there', async ({ page }) => {
+    await tableAtTop(page);
+    await page.locator('#sgs-table button[aria-label="Close the table"]').click();
+    await expect(page.locator('#sgs-table')).toHaveCount(0);
+
+    const mark = page.locator('#sgs-table-mark');
+    await expect(mark).toBeVisible();
+    await expect(mark).toHaveClass(/sgs-mark--top/);
+    const m = await mark.boundingBox();
+    if (!m) throw new Error('no mark');
+    expect(m.y).toBeLessThanOrEqual(1);
+
+    await mark.click();
+    await expect(page.locator('#sgs-table')).toHaveClass(/sgs-table--top/);
 });

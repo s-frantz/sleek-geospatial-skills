@@ -32,17 +32,21 @@ Everything else is fair game, including the map and the feature itself.
 Note what is deliberately NOT furniture: the basemap attribution. It is small and fixed, and
 avoiding it would push popups around for no benefit.
 
-## The clean column clears the LEFT edge; it does not currently watch the top
+## The clean column starts clear of the left edge and the top edge
 
 `cleanBaseLeft()` starts the column just right of whatever furniture hugs the left edge (the
-panel, in this demo) — recomputed per open, from live geometry, never cached. The column's
-top is a fixed constant (`CLEAN_TOP` in `popup.js`), not obstacle-checked. This is a real,
-known gap rather than a design decision: `obstacles()`/`edgeFurniture()` currently only feed
-ADJACENT mode's placement search (below). If your app puts furniture near the top of the clean
-column's path — a tall top-right control stack a long cascade could reach, say — that's the
-first place to look before assuming the bug is somewhere cleverer. Fixing it would mean
-folding the same `edgeFurniture()` check CLEAN already uses for its left edge into a top
-clearance too.
+panel, in this demo), and `cleanBaseTop()` starts it just below whatever hugs the top edge (a
+title bar or toolbar strip, in an app that has one). Both read one `edgeCover()` measurement,
+taken per open from live geometry and never cached.
+
+The top used to be a constant. The demo has nothing along its top, so nothing here showed it;
+a downstream app with a title bar got every CLEAN popup opening on top of the bar. If you add
+furniture along an edge, the column should already know, and if it does not, the furniture
+is missing its `data-sgs-furniture` attribute.
+
+What the column does NOT do is dodge furniture on the way across: a long cascade can still
+reach a tall control stack on the right. The cascade wraps before the viewport edge, not
+before the stack.
 
 ## Slide on the CROSS axis only
 
@@ -87,6 +91,17 @@ In CLEAN mode a popup deliberately sits far from its feature. Without a line dra
 anchor, a reader cannot tell which of three open popups belongs to which of thirty features. If
 you take the placement strategy, take the leader line too.
 
+## What opens one: a hit within a few pixels
+
+MapLibre's per-layer `click` fires only on an exact rendered-pixel hit, so a thin line or a small
+circle needs pixel-perfect aim, and a missed click reads as "this is not interactive".
+`featureNear(point)` in `app/js/layers.js` searches `HIT_RADIUS` (6px) either side of the
+pointer and returns the topmost feature, and the app binds ONE map-wide `click` to it, not one
+per layer. Hover asks the same function, throttled to a frame, so the pointer cursor promises
+exactly what a click will do; a cursor and a click that disagree teach the reader to distrust
+both. It skips layers with no GL layer on the map, because `queryRenderedFeatures` refuses the
+whole query over one unknown id.
+
 ## Checklist
 
 - [ ] New furniture carries `data-sgs-furniture`, or popups will sit on it. Nothing to add
@@ -94,5 +109,7 @@ you take the placement strategy, take the leader line too.
 - [ ] The placement decision takes its inputs as arguments; only their DEFAULT values touch
       the DOM, so a test can override them without building a fixture.
 - [ ] Placement re-runs on `move`, `resize`, and any furniture change.
+- [ ] Clicks and hover go through `featureNear()`, one map-wide listener each, never a
+      per-layer `map.on('click', layerId, …)`.
 - [ ] Changing the setting re-places what is ALREADY open. A setting that only applies to the
       next click cannot be evaluated by the person changing it.

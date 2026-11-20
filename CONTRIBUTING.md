@@ -2,8 +2,9 @@
 
 This repo ships two things: a set of agent skills (`.claude/skills/`), and a small runnable
 app that exists so those skills point at real files and real measurements instead of
-describing conventions in the abstract. This doc covers three things people do with it:
-starting an app from it, upgrading one, and contributing a fix back. Terms used here are
+describing conventions in the abstract. This doc covers how apps relate to it, how a
+change reaches main, and how to propose or contribute one; the procedures for an app are
+skills, listed below. Terms used here are
 defined once, in [VOCABULARY.md](VOCABULARY.md).
 
 ## The filesystem convention
@@ -56,24 +57,23 @@ Rules that make it work:
 Nothing is ever imported live from this repo into an app. Every app is a full copy, and stays
 runnable if this repo disappears entirely.
 
-## Starting an app
+## Starting, upgrading, sending back
 
-The full flow, a capability interview and the de-wiring of whatever you leave out, is the
-`app-start` skill. The mechanical core:
+Each of these is a procedure, and each procedure is a skill, which is where it is written in
+full. The commands are in the [README](README.md). This file used to narrate both, at a third
+length, and a passage written in two places is the one that is updated in one of them.
 
-```bash
-cd monorepo
-git clone https://github.com/s-frantz/sleek-geospatial-skills .sgs
-echo '.sgs/' >> .gitignore
-node .sgs/scripts/sgs-init.mjs products/my-app                        # everything, or:
-node .sgs/scripts/sgs-init.mjs products/my-app --with popups,settings,demo-data
-cd products/my-app && npm install && npm start
-```
+| doing | command | the skill that owns it |
+|---|---|---|
+| starting an app on a blank page | `sgs:init` | [`app-start`](.claude/skills/app-start/SKILL.md) |
+| bringing the conventions into an app that already exists | `sgs:init --eject` or `--manifest-only` | [`app-adopt`](.claude/skills/app-adopt/SKILL.md) |
+| finding what changed upstream since your watermark, and deciding what applies | `sgs:status` | [`app-upgrade`](.claude/skills/app-upgrade/SKILL.md) |
+| finding what you changed in your copy, and sending the fixes back | `sgs:drift` | [`app-contribute`](.claude/skills/app-contribute/SKILL.md) |
 
-With no flags you get the complete demo, green as copied. `--with` takes capability names
-from `scripts/sgs-capabilities.json` (the core set ships regardless); the script then filters
-`index.html`'s stylesheet links to what was copied and writes `sgs.json` naming only those
-components. JS wiring for omitted capabilities is agent work, and the skill carries the table.
+The terms all four share (manifest, watermark, drift, ejected) are defined in
+[VOCABULARY.md](VOCABULARY.md). What lets them remember across sessions is the decision log,
+`sgs-decisions.md` beside `sgs.json`: `app-start` writes it, the other three append to it, and
+every one of them reads it before asking anything.
 
 ### Skills come with the app, capability-scoped
 
@@ -99,87 +99,6 @@ Discovery, measured against Claude Code 2.1.185 rather than assumed:
   directory avoids that entirely, and is the recommended habit.
 - If two skills share a name across directories, both stay available and the nested one takes
   a directory-qualified name (`products/app-1:ui-furniture`).
-
-### The decision log
-
-An app scaffolded here gets `sgs-decisions.md` beside its `sgs.json`, and the two are a pair:
-the manifest records WHAT the app took and at which version, the log records WHY, in the words
-the question was asked in.
-
-It exists because the interview is expensive and agents have no memory of it. Without a log,
-the next session opens the app, cannot tell a deliberate omission from an oversight, and asks
-again, or worse, quietly re-adds something that was refused on purpose. `app-start` writes it,
-`app-upgrade` and `app-contribute` append to it, and all three READ IT BEFORE ASKING ANYTHING.
-
-A question already answered at the CURRENT version is not re-asked. A question answered at an
-older version is re-asked only if `sgs:status` says that component actually moved in between,
-which is the whole point of stamping each entry with a version.
-
-## Checking your own changes
-
-```bash
-npm run sgs:drift path/to/your-app
-```
-
-The mirror of `sgs:status`: instead of asking whether upstream moved past your watermark, it
-asks whether YOUR COPY did — each file diffed against what its watermark tag shipped, read
-straight out of the clone's history. Drift is information, not error (the furniture tier
-exists to drift); what it produces is the candidate list for contributing back. The
-`app-contribute` skill triages it.
-
-## Checking for updates
-
-```bash
-npm run sgs:status path/to/your-app
-```
-
-Every component in an app's `sgs.json` carries a **watermark**: the release tag it was last
-synced from, not a live version pin. This command diffs THIS repo's own history between that
-tag and the latest release, for exactly the files that make up the component — it never
-touches your app's copy at all, so customizing a component doesn't confuse it. A component you
-haven't touched reports current no matter how many releases have shipped since; a component
-that changed in the very next release reports behind. That's deliberate: a whole-repo tag
-bump should never read as false staleness on every component nobody actually touched.
-
-```
-$ npm run sgs:status apps/flood-intake
-  tooltip      v0.2.0 → v0.5.0  (3 releases, 1+ breaking)
-  source-pill  v0.3.0 → v0.5.0  (2 releases)
-  panel        ejected — upstream changed since v0.2.0, FYI only
-
-Everything else watermarked is current.
-```
-
-## Upgrading
-
-Two of these steps are mechanical; two require a judgment call. Doing them in order matters —
-each narrows what the next one has to think about.
-
-1. **Run `sgs:status`.** Mechanical. This is your list.
-2. **Read [CHANGELOG.md](CHANGELOG.md)** for every release strictly between your watermark and
-   the target, for each behind component. Also mechanical: it's reading, not archaeology —
-   a release that changed a component's contract says so there, not just in its diff.
-3. **Decide what applies.** This is where judgment lives, and it's real judgment: has your
-   copy of this component diverged enough that the upstream fix doesn't even apply the same
-   way? Does the lesson matter for your app at all? If you're using an AI agent for this step,
-   `/grill-me`-style interrogation (ask it to walk each changed component one at a time,
-   resolving whether and how to apply each) tends to produce a better outcome than "just
-   apply the diff."
-4. **Apply, and bump the watermark.** For an unmodified component this is usually "take the
-   new file wholesale." For one you've customized, it's applying just the lesson and then
-   updating `sgs.json`'s value for that component to the tag you upgraded to.
-
-### Ejecting a component
-
-If a component needs to diverge permanently — you've rewritten `panel.js` into something the
-upstream contract can't express — record it rather than silently drifting:
-
-```json
-"panel": "ejected@v0.2.0"
-```
-
-`sgs:status` keeps reporting on it (informationally: "upstream changed since v0.2.0, FYI
-only") without ever suggesting you pull the new version wholesale.
 
 ## How a change reaches main
 
@@ -255,8 +174,8 @@ knowing who's reading it.
 2. Fix it here.
 3. Update the relevant `SKILL.md` with why, if the fix changes a convention rather than just a
    bug.
-4. Bump `package.json`'s `"version"` — usually the patch number (`1.0.0` → `1.0.1`); reach for
-   minor or major only when the change is genuinely bigger than a fix. This is enforced: a PR
+4. Bump `package.json`'s `"version"`, by the rule in [Which number to bump](#which-number-to-bump).
+   This is enforced: a PR
    whose version isn't strictly greater than `main`'s fails the required `Version bump
    required` check and cannot merge (`.github/workflows/version-check.yml`).
 5. If the fix is contract-breaking for anything downstream, add a `Breaking:` line to the

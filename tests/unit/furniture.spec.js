@@ -11,7 +11,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-    edgeOf, coverFromEdgeFurniture, nearDockPoint, nearBottomEdge, nearLeftEdge, makeBorrow, HOME, SNAP,
+    edgeOf, coverFromEdgeFurniture, nearDockPoint, nearBottomEdge, nearTopEdge, nearLeftEdge, makeBorrow, HOME, SNAP,
 } from '../../app/js/utils/furniture.js';
 
 describe('nearLeftEdge', () => {
@@ -151,6 +151,27 @@ describe('nearBottomEdge', () => {
     it('is one-sided: pushed down past the docked top is held against the edge, not far from it', () => {
         expect(nearBottomEdge({ top: dockTop + SNAP + 1 }, dockTop)).toBe(true);
         expect(nearBottomEdge({ top: dockTop + 300 }, dockTop)).toBe(true);
+    });
+});
+
+describe('nearTopEdge', () => {
+    // Docked along the top, the table's top is the inset, whatever its height.
+    const dockTop = 10;
+
+    it('catches the rect anywhere along the edge, as nearBottomEdge does along the bottom', () => {
+        for (const left of [10, 400, 1100]) {
+            expect(nearTopEdge(/** @type {any} */ ({ left, top: dockTop }), dockTop)).toBe(true);
+        }
+    });
+
+    it('catches within SNAP below the docked top and not beyond it', () => {
+        expect(nearTopEdge({ top: dockTop + SNAP }, dockTop)).toBe(true);
+        expect(nearTopEdge({ top: dockTop + SNAP + 1 }, dockTop)).toBe(false);
+        expect(nearTopEdge({ top: 400 }, dockTop)).toBe(false);
+    });
+
+    it('is one-sided: pushed up past the docked top is held against the edge', () => {
+        expect(nearTopEdge({ top: 0 }, dockTop)).toBe(true);
     });
 });
 

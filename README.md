@@ -4,7 +4,7 @@ Components for MapLibre apps, each paired with an agent skill that explains how 
 change it, and keep it up to date.
 
 The components are the parts of a map app that sit around the map: a side panel, a table
-along the bottom, popups, map controls, a modal window, and light and dark themes. The skills
+along the bottom or the top, popups, map controls, a modal window, and light and dark themes. The skills
 are opinionated, and each one records a decision and the alternative it beat. They are also
 flexible. You copy only the components you want and change them however you like. Two
 commands then tell you what has been fixed here since, and which of your own changes might
@@ -26,7 +26,7 @@ in [app/data/README.md](app/data/README.md).
 | | |
 |---|---|
 | **Left panel** | docked or undocked, width and height set independently, a dock button, edge grips that double-click back to automatic, and a stow that gives the pixels back |
-| **Table** | a band that folds, goes on reporting what is in it while folded, and rises to symmetric margins while folding the panel out of its way |
+| **Table** | a band along the bottom or the top that folds, goes on reporting what is in it while folded, and grows to symmetric margins while folding the panel out of its way |
 | **Popups** | two placement strategies, leader lines, and a refusal to cover the app's own furniture |
 | **Control stack** | custom MapLibre controls that look native, with glyphs sized and centred by measurement |
 | **Large window** | one modal shell with layout slots, placeholder content, and an Escape key that closes only the topmost thing |
@@ -139,7 +139,7 @@ tests/        unit/ (rung 2)  e2e/ (rung 3)
 .claude/skills/   the skills, one directory each
 types/        ambient declarations for the vendored globals
 VOCABULARY.md     every framework term, defined once
-CONTRIBUTING.md   how apps relate to this repo, how a change reaches main, naming, the decision log
+CONTRIBUTING.md   how apps relate to this repo, how a change reaches main, proposing, naming
 CHANGELOG.md      one entry per release; Breaking: lines name affected components
 ```
 

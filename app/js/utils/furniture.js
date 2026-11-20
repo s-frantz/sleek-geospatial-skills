@@ -196,6 +196,21 @@ export function nearBottomEdge(rect, dockTop, snap = SNAP) {
 }
 
 /**
+ * Is this rect held against the TOP EDGE closely enough that letting go should dock it?
+ * nearBottomEdge() reflected, for a table docked along the top: x ignored, one-sided on y, and
+ * the drag clamps y at 0, so anything at or above the docked top, or within SNAP below it,
+ * counts.
+ *
+ * @param {{top: number}} rect where the furniture is now
+ * @param {number} dockTop the top it would have if it were docked
+ * @param {number} [snap]
+ * @returns {boolean}
+ */
+export function nearTopEdge(rect, dockTop, snap = SNAP) {
+    return rect.top <= dockTop + snap;
+}
+
+/**
  * Is this rect held against the LEFT EDGE closely enough that letting go should dock it? nearBottomEdge() rotated, for the panel.
  *
  * The panel's dock used to be tested as its top-left CORNER, so a panel dropped against the

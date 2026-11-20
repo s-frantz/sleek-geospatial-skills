@@ -14,7 +14,7 @@
  */
 
 import { map } from './map.js';
-import { addAllLayers, LAYERS, layerById, interactiveLayerId, markSelected } from './layers.js';
+import { addAllLayers, featureNear, markSelected } from './layers.js';
 import { initPanel } from './ui/panel.js';
 import { renderLayerRows } from './ui/layer-rows.js';
 import {
@@ -65,42 +65,54 @@ map.on('load', async () => {
     );
 
     // ── 4. Interactions ──────────────────────────────────────────────────────────────────
-    for (const def of LAYERS) {
-        // One handler per logical layer, on its body rather than on every GL layer it paints
-        // as. See interactiveLayerId.
-        const glId = interactiveLayerId(def.id);
-        map.on('click', glId, (/** @type {any} */ e) => {
-            const feature = e.features?.[0];
-            if (!feature) return;
-            const layer = layerById(def.id);
-            if (!layer) return;
-            openPopup({
-                lngLat: [e.lngLat.lng, e.lngLat.lat],
-                title: String(feature.properties?.name ?? layer.label),
-                rows: layer.fields.map((f) => /** @type {[string, unknown]} */ ([f, feature.properties?.[f]])),
-                accent: layer.color,
-                // A plain click replaces the open popup; Ctrl keeps it, for comparing.
-                ctrlKey: !!e.originalEvent?.ctrlKey,
-                layer,
-                // A popup is one feature, so its table button finds that feature's row, then
-                // clears it, then closes the table, and shows pressed while its row is lit.
-                onOpenTable: () => toggleFeatureInTable(def.id, feature.properties?.[layer.key]),
-                tableButtonState: () => {
-                    const s = featureTableState(def.id, feature.properties?.[layer.key]);
-                    return { pressed: s === 'lit', label: FEATURE_TABLE_LABELS[s] };
-                },
-                // The feature looks selected for as long as its popup is open, and a row its
-                // table button lit goes dark with it.
-                onClose: () => {
-                    markSelected(def.id, feature, false);
-                    releaseFeatureRow(def.id, feature.properties?.[layer.key]);
-                },
-            });
-            markSelected(def.id, feature, true);
+    // ONE click handler and ONE hover for the whole map, not one per layer: both ask
+    // featureNear(), which searches HIT_RADIUS around the pointer, so a thin line or a small
+    // circle no longer needs pixel-perfect aim, and the cursor promises exactly what a click
+    // will do. Bound once, so adding or removing a layer never has to manage listeners.
+    map.on('click', (/** @type {any} */ e) => {
+        const hit = featureNear(e.point);
+        if (!hit) return;
+        const { def: layer, feature } = hit;
+        openPopup({
+            lngLat: [e.lngLat.lng, e.lngLat.lat],
+            title: String(feature.properties?.name ?? layer.label),
+            rows: layer.fields.map((f) => /** @type {[string, unknown]} */ ([f, feature.properties?.[f]])),
+            accent: layer.color,
+            // A plain click replaces the open popup; Ctrl keeps it, for comparing.
+            ctrlKey: !!e.originalEvent?.ctrlKey,
+            layer,
+            // A popup is one feature, so its table button finds that feature's row, then
+            // clears it, then closes the table, and shows pressed while its row is lit.
+            onOpenTable: () => toggleFeatureInTable(layer.id, feature.properties?.[layer.key]),
+            tableButtonState: () => {
+                const s = featureTableState(layer.id, feature.properties?.[layer.key]);
+                return { pressed: s === 'lit', label: FEATURE_TABLE_LABELS[s] };
+            },
+            // The feature looks selected for as long as its popup is open, and a row its
+            // table button lit goes dark with it.
+            onClose: () => {
+                markSelected(layer.id, feature, false);
+                releaseFeatureRow(layer.id, feature.properties?.[layer.key]);
+            },
         });
-        map.on('mouseenter', glId, () => { map.getCanvas().style.cursor = 'pointer'; });
-        map.on('mouseleave', glId, () => { map.getCanvas().style.cursor = ''; });
-    }
+        markSelected(layer.id, feature, true);
+    });
+
+    // The hover asks the same question at most once a frame: mousemove can fire several times
+    // between paints, and a box query per event is work nobody sees.
+    /** @type {{x: number, y: number} | null} */
+    let hoverAt = null;
+    map.on('mousemove', (/** @type {any} */ e) => {
+        const queued = hoverAt !== null;
+        hoverAt = e.point;
+        if (queued) return;
+        requestAnimationFrame(() => {
+            const at = hoverAt;
+            hoverAt = null;
+            if (at) map.getCanvas().style.cursor = featureNear(at) ? 'pointer' : '';
+        });
+    });
+    map.on('mouseout', () => { hoverAt = null; map.getCanvas().style.cursor = ''; });
 
     document.body.dataset.ready = 'true';
 });

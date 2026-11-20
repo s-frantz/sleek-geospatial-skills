@@ -1,7 +1,7 @@
 /* ── Edge mark — TIER 2 component ──────────────────────────────────────────────────────────
    What a CLOSE leaves behind. A small tab flush against the viewport edge the section came
    from. Same size, same chevron, same reasoning regardless of which edge — learn one and you
-   know the rest. Self-contained: reads only which edge it belongs to (`--left`/`--bottom`),
+   know the rest. Self-contained: reads only which edge it belongs to (`--left`/`--bottom`/`--top`),
    never which piece of furniture it marks. */
 
 .sgs-mark {
@@ -32,7 +32,8 @@
 }
 
 /* The chevron points back at the section it restores: right for something at the left edge,
-   up for something at the bottom. A direction, not a decoration. */
+   up for something at the bottom, down for something at the top. A direction, not a
+   decoration. */
 .sgs-mark--left svg { transform: rotate(-90deg); }
 
 .sgs-mark--bottom {
@@ -47,8 +48,18 @@
 
 .sgs-mark--bottom svg { transform: rotate(180deg); }
 
+.sgs-mark--top {
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0;
+    width: 56px;
+    height: 13px;
+    border-top: none;
+    border-radius: 0 0 var(--sgs-radius, 8px) var(--sgs-radius, 8px);
+}
+
 body.sgs-mark--left-shown .sgs-mark--left { display: flex; }
-body:not(.sgs-table-open) .sgs-mark--bottom { display: flex; }
+body:not(.sgs-table-open) :is(.sgs-mark--bottom, .sgs-mark--top) { display: flex; }
 
 /* ARRIVING: one short pulse as the mark appears after a close, so the reader sees where the
    section went and where it comes back from. It follows the section in (stowInto() in stow.js

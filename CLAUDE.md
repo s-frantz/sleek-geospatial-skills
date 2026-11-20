@@ -116,5 +116,9 @@ Types, unit, geometry, ink. All four, and quote what came back.
 Kept deliberately small, and deliberately not here: a real layer model, a group tree, drag
 reordering, a config schema, symbology, a basemap switcher, a minimap. Each is a reasonable
 addition; none is required to demonstrate a convention, and every one of them makes the repo
-harder to read as a set of examples. Add one only when it teaches something the existing
-skills do not.
+harder to read as a set of examples.
+
+Small is not frozen. The demo grows when a convention has no way to show itself otherwise, by
+the smallest addition that does, preferably built from what is already on screen: the table
+docking along the top exists because nothing else in the demo sat along its top edge. What
+`repo-maintain` refuses is growth for its own sake, not growth.

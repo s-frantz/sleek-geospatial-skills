@@ -230,16 +230,61 @@ export function glLayerIds(id) {
 /**
  * The ONE GL layer that answers clicks for a logical layer.
  *
- * A polygon layer paints as a fill and an outline, and both are hit-testable. Bind a click
- * handler to every id from `glLayerIds` and one click near an edge opens two popups for the
- * same feature, which is the kind of bug that gets reported as "sometimes it opens twice".
- * Interaction belongs to the body of the thing, not to its outline.
+ * A polygon layer paints as a fill and an outline, and both are hit-testable. When clicks were
+ * bound per GL layer, binding every id from `glLayerIds` meant one click near an edge opened two
+ * popups for the same feature, the kind of bug that gets reported as "sometimes it opens twice".
+ * featureNear() takes one hit, so that can no longer happen, but the rule stands for a simpler
+ * reason: interaction belongs to the body of the thing, and HIT_RADIUS is what makes a thin
+ * thing easy to hit, not its outline.
  * @param {string} id
  * @returns {string}
  */
 export function interactiveLayerId(id) {
     const def = layerById(id);
     return def?.kind === 'fill' ? `${id}-fill` : `${id}-circle`;
+}
+
+/**
+ * How far from a feature a click or a hover still counts as on it, in px either side.
+ *
+ * MapLibre's per-layer `click` fires only on an exact rendered-pixel hit, so a 1.5px line or a
+ * small circle needed pixel-perfect aim, and a missed click reads as "this is not clickable".
+ * The number came from a downstream app's user review, which asked (in capitals) for bigger
+ * click targets: 6 turns a thin line into a band about 13px wide, roughly a fingertip on a
+ * trackpad, without reaching far enough to grab a neighbour on a zoomed-out map.
+ */
+export const HIT_RADIUS = 6;
+
+/**
+ * The feature a click or hover at `point` means: the topmost one within HIT_RADIUS, and the
+ * logical layer it belongs to. Click and hover both ask THIS, so the pointer cursor promises
+ * exactly what a click will do.
+ *
+ * Layers with no GL layer on the map (not yet added, refused, failed to load) are left out on
+ * every call: `queryRenderedFeatures` raises a style error for an unknown layer id and returns
+ * nothing at all, so one missing layer would make every layer unclickable.
+ *
+ * `queryRenderedFeatures` answers top-first, so where layers overlap the result is whatever is
+ * drawn on top, as it was when MapLibre's per-layer events chose.
+ * @param {{x: number, y: number}} point  in map-container px
+ * @returns {{def: LayerDef, feature: any} | undefined}
+ */
+export function featureNear(point) {
+    /** @type {Map<string, LayerDef>} */
+    const byGlId = new Map();
+    for (const def of LAYERS) {
+        const glId = interactiveLayerId(def.id);
+        if (map.getLayer(glId)) byGlId.set(glId, def);
+    }
+    if (byGlId.size === 0) return undefined;
+    const r = HIT_RADIUS;
+    const box = [[point.x - r, point.y - r], [point.x + r, point.y + r]];
+    const hits = map.queryRenderedFeatures(box, { layers: [...byGlId.keys()] });
+    for (const feature of hits) {
+        const def = byGlId.get(feature.layer?.id);
+        if (def) return { def, feature };
+    }
+    return undefined;
 }
 
 /**

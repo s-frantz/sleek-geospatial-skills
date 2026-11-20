@@ -109,34 +109,56 @@ test('a clicked feature is drawn selected while its popup is open, and plain aga
  * @param {boolean} [ctrl] hold Ctrl for the click
  */
 async function clickAFeature(page, nth = 0, ctrl = false) {
-    const pt = await page.evaluate((n) => {
-        const m = window.sgsMap;
-        const c = m.getCanvas();
-        const w = c.clientWidth;
-        const h = c.clientHeight;
-        /** @type {Map<string, {x: number, y: number}>} */
-        const found = new Map();
-        for (let y = 40; y < h - 40; y += 12) {
-            for (let x = 40; x < w - 40; x += 12) {
-                const top = document.elementFromPoint(x, y);
-                if (!top || !top.closest('#map')) continue;
-                const hit = m.queryRenderedFeatures([x, y], { layers: ['neighborhoods-fill'] });
-                for (const f of hit) {
-                    const id = f.properties.id;
-                    if (!found.has(id)) found.set(id, { x, y });
-                }
-            }
-        }
-        const points = [...found.values()];
-        return points.length ? points[n % points.length] : null;
-    }, nth);
-
-    if (!pt) throw new Error('no district rendered to click');
+    const points = await renderedDistricts(page);
+    const pt = points[nth % points.length];
     if (ctrl) await page.keyboard.down('Control');
     await page.mouse.click(pt.x, pt.y);
     if (ctrl) await page.keyboard.up('Control');
-    await page.waitForTimeout(120);
+    await page.locator('.sgs-popup').first().waitFor();
     return pt;
+}
+
+/**
+ * One clickable screen point per district on screen, WAITING for the layer to have painted.
+ *
+ * `body[data-ready]` says the app has wired itself up, not that the source has rendered, and
+ * `queryRenderedFeatures` only answers about what is rendered NOW. While the demo layer was
+ * twelve rectangles covering most of the viewport that race was invisible; with 94 real
+ * neighbourhood polygons it failed a different third of the popup tests on every run (#9).
+ * So this polls until the map reports itself loaded AND the sweep finds something, and when it
+ * never does, the failure names the layer rather than the click. No fixed sleep: one long
+ * enough for a slow machine would be paid by every test on a fast one.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<Array<{x: number, y: number}>>}
+ */
+async function renderedDistricts(page) {
+    try {
+        const handle = await page.waitForFunction(() => {
+            const m = window.sgsMap;
+            if (!m.loaded()) return null;
+            const c = m.getCanvas();
+            const w = c.clientWidth;
+            const h = c.clientHeight;
+            /** @type {Map<string, {x: number, y: number}>} */
+            const found = new Map();
+            for (let y = 40; y < h - 40; y += 12) {
+                for (let x = 40; x < w - 40; x += 12) {
+                    const top = document.elementFromPoint(x, y);
+                    if (!top || !top.closest('#map')) continue;
+                    const hit = m.queryRenderedFeatures([x, y], { layers: ['neighborhoods-fill'] });
+                    for (const f of hit) {
+                        const id = f.properties.id;
+                        if (!found.has(id)) found.set(id, { x, y });
+                    }
+                }
+            }
+            return found.size ? [...found.values()] : null;
+        }, undefined, { timeout: 10_000, polling: 100 });
+        return /** @type {Array<{x: number, y: number}>} */ (await handle.jsonValue());
+    } catch {
+        throw new Error('the neighborhoods layer never rendered a district on screen within 10s');
+    }
 }
 
 /** @param {import('@playwright/test').Page} page @param {number} [i] */
@@ -287,4 +309,108 @@ test('the large window opens over a popup, and escape closes only the top one', 
     await page.keyboard.press('Escape');
     await expect(page.locator('.sgs-window')).toHaveCount(0);
     await expect(page.locator('.sgs-popup')).toHaveCount(1);
+});
+
+/**
+ * Find a station and a direction to approach it from, by asking the map: walk out from the
+ * station's centre until MapLibre's own EXACT point query stops hitting it. That first miss is
+ * the edge as MapLibre sees it, radius and stroke included, so nothing here hard-codes either.
+ * Districts are hidden first, because they cover most of the map and "nothing opens" has to
+ * mean nothing, not a district.
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<{edge: {x: number, y: number}, name: string, dir: [number, number]}>}
+ */
+async function aStationEdge(page) {
+    await page.evaluate(() => {
+        for (const id of ['neighborhoods-fill', 'neighborhoods-line']) {
+            window.sgsMap.setLayoutProperty(id, 'visibility', 'none');
+        }
+    });
+    const handle = await page.waitForFunction(() => {
+        const m = window.sgsMap;
+        if (!m.loaded()) return null;
+        const c = m.getCanvas().getBoundingClientRect();
+        const only = { layers: ['stations-circle'] };
+        const onMap = (/** @type {number} */ x, /** @type {number} */ y) => {
+            const el = document.elementFromPoint(c.left + x, c.top + y);
+            return !!el && !!el.closest('#map');
+        };
+        for (const f of m.querySourceFeatures('stations')) {
+            const p = m.project(f.geometry.coordinates);
+            for (const dir of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+                let d = 0;
+                while (d < 60 && m.queryRenderedFeatures([p.x + dir[0] * d, p.y + dir[1] * d], only)
+                    .some((h) => h.properties.id === f.properties.id)) d++;
+                if (d === 0 || d >= 60) continue;
+                // The far test point must be clear of EVERY station, with room for the hit box.
+                const far = { x: p.x + dir[0] * (d + 20), y: p.y + dir[1] * (d + 20) };
+                const box = [[far.x - 8, far.y - 8], [far.x + 8, far.y + 8]];
+                if (m.queryRenderedFeatures(box, only).length) continue;
+                if (!onMap(p.x + dir[0] * d, p.y + dir[1] * d) || !onMap(far.x, far.y)) continue;
+                return {
+                    edge: { x: c.left + p.x + dir[0] * d, y: c.top + p.y + dir[1] * d },
+                    name: String(f.properties.name), dir,
+                };
+            }
+        }
+        return null;
+    }, undefined, { timeout: 10_000, polling: 100 });
+    return /** @type {any} */ (await handle.jsonValue());
+}
+
+test('a click a few px off a small feature still opens it; one well clear opens nothing (#26)', async ({ page }) => {
+    const { edge, name, dir } = await aStationEdge(page);
+    const near = { x: edge.x + dir[0] * 5, y: edge.y + dir[1] * 5 };
+    const far = { x: edge.x + dir[0] * 20, y: edge.y + dir[1] * 20 };
+
+    // The premise: an exact point query 5px off the edge finds nothing, so only the
+    // tolerance can make this click land.
+    const exact = await page.evaluate(({ x, y }) => {
+        const c = window.sgsMap.getCanvas().getBoundingClientRect();
+        return window.sgsMap.queryRenderedFeatures([x - c.left, y - c.top], { layers: ['stations-circle'] }).length;
+    }, near);
+    expect(exact).toBe(0);
+
+    // Asserting an absence needs a moment for a wrong popup to appear in; there is no event
+    // to wait for when the right answer is that nothing happens.
+    await page.mouse.click(far.x, far.y);
+    await page.waitForTimeout(150);
+    await expect(page.locator('.sgs-popup')).toHaveCount(0);
+
+    await page.mouse.click(near.x, near.y);
+    await expect(page.locator('.sgs-popup')).toHaveCount(1);
+    await expect(page.locator('.sgs-popup-title')).toHaveText(name);
+});
+
+test('the pointer cursor promises exactly what a click would do (#26)', async ({ page }) => {
+    const { edge, dir } = await aStationEdge(page);
+    const cursor = () => page.evaluate(() => window.sgsMap.getCanvas().style.cursor);
+
+    await page.mouse.move(edge.x + dir[0] * 5, edge.y + dir[1] * 5);
+    await expect.poll(cursor).toBe('pointer');
+    await page.mouse.move(edge.x + dir[0] * 20, edge.y + dir[1] * 20);
+    await expect.poll(cursor).toBe('');
+});
+
+test('a clean popup opens below a table docked along the top, as it opens beside the panel (#24)', async ({ page }) => {
+    // Without anything along the top, the column's top is the viewport margin.
+    await clickAFeature(page, 0);
+    expect(Math.round((await popupBox(page)).y)).toBe(10);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.sgs-popup')).toHaveCount(0);
+
+    // The table docked along the top is the demo's top-edge furniture, and an app's title bar
+    // is the same case: full width, against the top, marked as furniture. A second init script
+    // runs after beforeEach's clear, so the reader's last edge survives the reload.
+    await page.addInitScript(() => localStorage.setItem('sgs-prefs', JSON.stringify({ tableEdge: 'top' })));
+    await page.reload();
+    await page.waitForSelector('body[data-ready="true"]');
+    await page.locator('.sgs-row[data-layer="stations"]').hover();
+    await page.locator('.sgs-row[data-layer="stations"] button[aria-label^="Show"]').click();
+    await expect(page.locator('#sgs-table')).toHaveClass(/sgs-table--top/);
+
+    await clickAFeature(page, 0);
+    const table = await page.locator('#sgs-table').boundingBox();
+    if (!table) throw new Error('no table');
+    expect(Math.round((await popupBox(page)).y)).toBe(Math.round(table.y + table.height) + 10);
 });

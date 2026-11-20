@@ -23,6 +23,7 @@ const KEY = 'sgs-prefs';
  * @property {number} [panelX]
  * @property {number} [panelY]
  * @property {boolean} [tableUndocked]  the table undocked on the map rather than docked at the foot
+ * @property {'bottom'|'top'} [tableEdge]  the edge the table docks along, and goes back to from undocked
  * @property {boolean} [tableFull]
  * @property {number} [tableH]
  * @property {number} [tableW]   only meaningful while tableUndocked; docked, the table is full-bleed
